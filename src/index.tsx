@@ -97,6 +97,9 @@ function updateMetaRules(api: types.IExtensionApi,
   let rules: IBiDirRule[] = [];
   return Promise.map(Object.keys(mods || {}), modId => {
     const mod = mods[modId];
+    if (mod.attributes === undefined) {
+      return;
+    }
     const ref = makeModReference(mod);
     if ((ref.fileExpression === undefined)
        && (ref.fileMD5 === undefined)
