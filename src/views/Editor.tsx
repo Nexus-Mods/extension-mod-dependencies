@@ -50,7 +50,8 @@ class Editor extends ComponentEx<IProps, IComponentState> {
 
   public componentWillReceiveProps(nextProps: IProps) {
     if (this.props.dialog !== nextProps.dialog) {
-      if (nextProps.dialog !== undefined) {
+      if ((nextProps.dialog !== undefined)
+          && (nextProps.dialog.reference !== undefined)) {
         this.nextState.type = nextProps.dialog.type;
         this.nextState.reference = {
           ...nextProps.dialog.reference,
@@ -223,6 +224,10 @@ class Editor extends ComponentEx<IProps, IComponentState> {
   private save = () => {
     const { dialog, onAddRule } = this.props;
     const { reference, type } = this.state;
+
+    if (reference === undefined) {
+      return;
+    }
 
     let addRef;
     if (reference.versionMatch !== undefined) {
