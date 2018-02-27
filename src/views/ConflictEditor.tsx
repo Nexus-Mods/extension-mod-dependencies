@@ -233,7 +233,7 @@ function mapStateToProps(state): IConnectedProps {
 
 function mapDispatchToProps(dispatch: Redux.Dispatch<any>): IActionProps {
   return {
-    onClose: () => dispatch(setConflictDialog()),
+    onClose: () => dispatch(setConflictDialog(undefined, undefined, undefined)),
     onAddRule: (gameId, modId, rule) =>
       dispatch(nmmActions.addModRule(gameId, modId, rule)),
     onRemoveRule: (gameId, modId, rule) =>

@@ -46,7 +46,7 @@
     "react-dom": "^15.3.2",
     "react-i18next": "^1.10.1",
     "react-select": "1.0.0-rc.10",
-    "redux-act": "1.4.0",
+    "redux-act": "^1.7.3",
     "semvish": "^1.1.0",
     "webpack": "^1.13.2"
   }
