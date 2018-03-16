@@ -2,7 +2,6 @@ import { IBiDirRule } from '../types/IBiDirRule';
 import { IConflict } from '../types/IConflict';
 import { IModLookupInfo } from '../types/IModLookupInfo';
 
-import matchReference from '../util/matchReference';
 import renderModName from '../util/renderModName';
 import ruleFulfilled from '../util/ruleFulfilled';
 
@@ -266,7 +265,8 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
       modInfo: undefined,
       reference: undefined,
       showOverlay: false,
-      modRules: props.localState.modRules.filter(rule => matchReference(rule.source, props.mod)),
+      modRules: props.localState.modRules.filter(
+        rule => util.testModReference(props.mod, rule.source)),
     });
 
     this.mIsMounted = false;
@@ -293,7 +293,7 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
     if ((this.props.mod !== nextProps.mod)
         || (this.props.localState.modRules !== nextProps.localState.modRules)) {
       this.nextState.modRules = nextProps.localState.modRules.filter(rule =>
-        matchReference(rule.source, nextProps.mod));
+        util.testModReference(nextProps.mod, rule.source));
     }
 
     if (this.props.isDragging !== nextProps.isDragging) {
@@ -420,7 +420,7 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
 
   private findRule(ref: IModLookupInfo): IBiDirRule {
     return this.state.modRules.find(rule => {
-      const res = matchReference(rule.reference, ref);
+      const res = util.testModReference(ref, rule.reference);
       return res;
     });
   }

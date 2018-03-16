@@ -49,6 +49,8 @@ const sessionReducer: types.IReducerSpec = {
         (state, payload) => util.setSafe(state, ['conflictDialog'], payload),
     [actions.highlightConflictIcon as any]:
         (state, payload) => util.setSafe(state, ['highlightConflicts'], payload),
+    [actions.setEditCycle as any]:
+        (state, payload) => util.setSafe(state, ['editCycle'], payload),
   },
   defaults: {
     connection: undefined,
@@ -56,6 +58,7 @@ const sessionReducer: types.IReducerSpec = {
     highlightConflicts: false,
     conflicts: {},
     conflictDialog: undefined,
+    editCycle: undefined,
   },
 };
 

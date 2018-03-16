@@ -34,7 +34,7 @@ function getAllFiles(basePath: string, mods: types.IMod[]): Promise<IFileMap> {
         util.setdefault(files, relPath.toLowerCase(), []).push(mod);
       }
       return Promise.resolve();
-    });
+    }, { ignoreErrors: ['EPERM'] });
   })
     .then(() => files);
 }

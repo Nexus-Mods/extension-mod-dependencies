@@ -23,3 +23,5 @@ export const setConflictInfo = createAction<any, {}>('SET_CONFLICT_INFO');
 
 export const setConflictDialog = createAction('SET_CONFLICT_DIALOG',
   (gameId: string, modId: string, modRules: IBiDirRule[]) => ({ gameId, modId, modRules }));
+
+export const setEditCycle = createAction('SET_EDIT_MOD_CYCLE', (modIds: string[]) => modIds);

@@ -1,19 +1,21 @@
 import { IBiDirRule } from '../types/IBiDirRule';
 import { IConflict } from '../types/IConflict';
-import matchReference from '../util/matchReference';
 import renderModName from '../util/renderModName';
 import renderReference from '../util/renderReference';
 
 import { setConflictDialog } from '../actions';
 
+import getRuleTypes, { RuleChoice } from '../util/getRuleTypes';
+
 import { IReference, IRule } from 'modmeta-db';
+import * as path from 'path';
 import * as React from 'react';
 import { Button, FormControl, ListGroup, ListGroupItem,
          Modal, OverlayTrigger, Popover } from 'react-bootstrap';
 import { translate } from 'react-i18next';
 import { connect } from 'react-redux';
 import * as ReduxThunk from 'redux-thunk';
-import { actions as nmmActions, ComponentEx, tooltip, types, util } from 'vortex-api';
+import { actions as vortexActions, ComponentEx, tooltip, types, util } from 'vortex-api';
 
 interface IConnectedProps {
   gameId: string;
@@ -31,8 +33,6 @@ interface IActionProps {
 
 type IProps = IConnectedProps & IActionProps;
 
-type RuleChoice = undefined | 'before' | 'after' | 'conflicts';
-
 interface IComponentState {
   ruleType: { [modId: string]: RuleChoice };
 }
@@ -47,13 +47,13 @@ interface IComponentState {
 class ConflictEditor extends ComponentEx<IProps, IComponentState> {
   constructor(props: IProps) {
     super(props);
-    this.initState({ ruleType: this.getRuleTypes(props.modId, props.mods, props.conflicts) });
+    this.initState({ ruleType: getRuleTypes(props.modId, props.mods, props.conflicts) });
   }
 
   public componentWillReceiveProps(nextProps: IProps) {
     // find existing rules for these conflicts
     this.nextState.ruleType =
-      this.getRuleTypes(nextProps.modId, nextProps.mods, nextProps.conflicts);
+      getRuleTypes(nextProps.modId, nextProps.mods, nextProps.conflicts);
   }
 
   public render(): JSX.Element {
@@ -75,27 +75,6 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     );
   }
 
-  private getRuleTypes(modId: string,
-                       mods: { [modId: string]: types.IMod },
-                       conflicts: IConflict[]) {
-    const res: { [modId: string]: RuleChoice } = {};
-    if (mods[modId] === undefined) {
-      // can this even happen?
-      return res;
-    }
-
-    conflicts.forEach(conflict => {
-      const existingRule = (mods[modId].rules || [])
-        .find(rule => (['before', 'after', 'conflicts'].indexOf(rule.type) !== -1)
-          && matchReference(rule.reference, conflict.otherMod));
-
-      res[conflict.otherMod.id] = existingRule !== undefined
-        ? existingRule.type as RuleChoice
-        : undefined;
-    });
-    return res;
-  }
-
   private renderConflict = (conflict: IConflict) => {
     const {t, modId, modRules, mods} = this.props;
     const {ruleType} = this.state;
@@ -113,8 +92,8 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     if (ruleType[conflict.otherMod.name] === undefined) {
       reverseRule = modRules
         .find(rule => !rule.original
-                   && matchReference(rule.reference, conflict.otherMod)
-                   && matchReference(rule.source, mods[modId]));
+                   && (util as any).testModReference(rule.reference, conflict.otherMod)
+                   && (util as any).testModReference(rule.source, mods[modId]));
     }
 
     return (
@@ -186,7 +165,8 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
         logicalFileName: mod.attributes['logicalFileName'],
       } : {
         fileExpression: mod.attributes['fileExpression']
-                     || mod.attributes['fileName']
+                     || path.basename(mod.attributes['fileName'],
+                                      path.extname(mod.attributes['fileName']))
                      || mod.attributes['name'],
       };
   }
@@ -204,7 +184,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
           type: ruleType[otherId],
         });
       } else {
-        const origTypes = this.getRuleTypes(modId, mods, conflicts);
+        const origTypes = getRuleTypes(modId, mods, conflicts);
         onRemoveRule(gameId, modId, {
           reference: this.makeReference(mods[otherId]),
           type: origTypes[otherId],
@@ -235,9 +215,9 @@ function mapDispatchToProps(dispatch: Redux.Dispatch<any>): IActionProps {
   return {
     onClose: () => dispatch(setConflictDialog(undefined, undefined, undefined)),
     onAddRule: (gameId, modId, rule) =>
-      dispatch(nmmActions.addModRule(gameId, modId, rule)),
+      dispatch(vortexActions.addModRule(gameId, modId, rule)),
     onRemoveRule: (gameId, modId, rule) =>
-      dispatch(nmmActions.removeModRule(gameId, modId, rule)),
+      dispatch(vortexActions.removeModRule(gameId, modId, rule)),
   };
 }
 

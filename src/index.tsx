@@ -6,18 +6,18 @@ import { IBiDirRule } from './types/IBiDirRule';
 import { IConflict } from './types/IConflict';
 import { IModLookupInfo } from './types/IModLookupInfo';
 import determineConflicts from './util/conflicts';
-import matchReference from './util/matchReference';
 import renderModLookup from './util/renderModLookup';
 import renderModName from './util/renderModName';
 import renderReference from './util/renderReference';
 import ruleFulfilled from './util/ruleFulfilled';
 import ConflictEditor from './views/ConflictEditor';
+import ConflictGraph from './views/ConflictGraph';
 import Connector from './views/Connector';
 import DependencyIcon, { ILocalState } from './views/DependencyIcon';
 import Editor from './views/Editor';
 import ProgressFooter from './views/ProgressFooter';
 
-import { highlightConflictIcon, setConflictInfo } from './actions';
+import { highlightConflictIcon, setConflictInfo, setEditCycle } from './actions';
 import connectionReducer from './reducers';
 import { enabledModKeys } from './selectors';
 
@@ -32,7 +32,7 @@ import { actions, ComponentEx, log, selectors, types, util } from 'vortex-api';
 
 function makeReference(mod: IModInfo): IReference {
   return {
-    fileExpression: mod.fileName,
+    fileExpression: path.basename(mod.fileName, path.extname(mod.fileName)),
     fileMD5: mod.fileMD5,
     versionMatch: mod.fileVersion,
     logicalFileName: mod.logicalFileName,
@@ -49,8 +49,12 @@ function makeModReference(mod: types.IMod): IReference {
     };
   }
 
+  const fileName = mod.attributes['fileName'];
+
   return {
-    fileExpression: mod.attributes['fileName'],
+    fileExpression: fileName !== undefined
+      ? path.basename(fileName, path.extname(fileName))
+      : undefined,
     fileMD5: mod.attributes['fileMD5'],
     versionMatch: mod.attributes['version'],
     logicalFileName: mod.attributes['logicalFileName'],
@@ -136,7 +140,7 @@ let loadOrder: ILoadOrderState = {};
 
 function findRule(ref: IModLookupInfo): IBiDirRule {
   return dependencyState.modRules.find(rule => {
-    return matchReference(rule.reference, ref);
+    return (util as any).testModReference(ref, rule.reference);
   });
 }
 
@@ -314,6 +318,9 @@ function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
       updateConflictInfo(api, conflictMap);
       return checkRulesFulfilled(api);
     })
+    .catch(err => {
+      api.showErrorNotification('failed to determine conflicts', err);
+    })
     .finally(() => {
       store.dispatch(actions.stopActivity('mods', 'conflicts'));
     });
@@ -365,7 +372,7 @@ function main(context: types.IExtensionContext) {
       />
     ),
     calc: (mod: types.IMod) =>
-      dependencyState.modRules.filter(rule => matchReference(rule.source, mod)),
+      dependencyState.modRules.filter(rule => (util as any).testModReference(mod, rule.source)),
     isToggleable: true,
     isDefaultVisible: false,
     edit: {},
@@ -377,6 +384,14 @@ function main(context: types.IExtensionContext) {
   context.registerDialog('mod-dependencies-connector', Connector);
   context.registerDialog('mod-dependencies-editor', Editor);
   context.registerDialog('mod-conflict-editor', ConflictEditor);
+  context.registerDialog('mod-cycle-graph', () => (
+    <ConflictGraph
+      width={500}
+      height={500}
+      nodeDistance={80}
+      nodeRadius={10}
+      modRules={dependencyState.modRules}
+    />));
 
   context.once(() => {
     const store = context.api.store;
@@ -401,6 +416,10 @@ function main(context: types.IExtensionContext) {
           dependencyState.modRules = rules;
           return null;
         });
+    });
+
+    context.api.events.on('edit-mod-cycle', (cycle: string[]) => {
+      store.dispatch(setEditCycle(cycle));
     });
 
     context.api.onStateChange(['persistent', 'mods'], (oldState, newState) => {

@@ -1,11 +1,10 @@
-import {IModLookupInfo} from '../types/IModLookupInfo';
+import { IModLookupInfo } from '../types/IModLookupInfo';
 
-import matchReference from './matchReference';
-
-import {IReference, IRule} from 'modmeta-db';
+import { IReference, IRule } from 'modmeta-db';
+import { util } from 'vortex-api';
 
 function findReference(reference: IReference, mods: IModLookupInfo[]): IModLookupInfo {
-  return mods.find(mod => matchReference(reference, mod));
+  return mods.find(mod => (util as any).testModReference(mod, reference));
 }
 
 function ruleFulfilled(enabledMods: IModLookupInfo[], rule: IRule) {

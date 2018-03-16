@@ -135,3 +135,16 @@
 .mod-conflict-list .list-group-item {
   display: flex;
 }
+
+.mod-conflict-graph {
+  svg circle {
+    fill: $text-color;
+  }
+  svg line { 
+    stroke: $brand-warning;
+    stroke-width: 4px;
+  }
+  .mod-label {
+    stroke: $text-color;
+  }
+}
