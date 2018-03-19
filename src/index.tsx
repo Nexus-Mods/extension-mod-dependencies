@@ -140,7 +140,7 @@ let loadOrder: ILoadOrderState = {};
 
 function findRule(ref: IModLookupInfo): IBiDirRule {
   return dependencyState.modRules.find(rule => {
-    return (util as any).testModReference(ref, rule.reference);
+    return util.testModReference(ref, rule.reference);
   });
 }
 
