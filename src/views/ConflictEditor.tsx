@@ -92,8 +92,8 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     if (ruleType[conflict.otherMod.name] === undefined) {
       reverseRule = modRules
         .find(rule => !rule.original
-                   && util.testModReference(rule.reference, conflict.otherMod)
-                   && util.testModReference(rule.source, mods[modId]));
+                   && util.testModReference(conflict.otherMod, rule.reference)
+                   && util.testModReference(mods[modId], rule.source));
     }
 
     return (
