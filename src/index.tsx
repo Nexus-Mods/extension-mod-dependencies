@@ -137,6 +137,7 @@ interface ILoadOrderState {
 }
 
 let loadOrder: ILoadOrderState = {};
+let loadOrderChanged: () => void = () => undefined;
 
 function findRule(ref: IModLookupInfo): IBiDirRule {
   return dependencyState.modRules.find(rule => {
@@ -339,6 +340,7 @@ function generateLoadOrder(api: types.IExtensionApi): Promise<void> {
         prev[modId] = idx;
         return prev;
       }, {});
+      loadOrderChanged();
   });
 }
 
@@ -354,8 +356,10 @@ function main(context: types.IExtensionContext) {
     isDefaultVisible: false,
     calc: (mod: types.IMod) => loadOrder[mod.id],
     edit: {},
-    isVolatile: true,
-  });
+    externalData: (onChange: () => void) => {
+      loadOrderChanged = onChange;
+    },
+  } as any);
 
   context.registerTableAttribute('mods', {
     id: 'dependencies',
