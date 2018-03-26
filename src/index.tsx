@@ -340,7 +340,7 @@ function generateLoadOrder(api: types.IExtensionApi): Promise<void> {
         prev[modId] = idx;
         return prev;
       }, {});
-      loadOrderChanged();
+    loadOrderChanged();
   });
 }
 
@@ -388,14 +388,16 @@ function main(context: types.IExtensionContext) {
   context.registerDialog('mod-dependencies-connector', Connector);
   context.registerDialog('mod-dependencies-editor', Editor);
   context.registerDialog('mod-conflict-editor', ConflictEditor);
-  context.registerDialog('mod-cycle-graph', () => (
+  context.registerDialog('mod-cycle-graph', () => {
+    return (
     <ConflictGraph
       width={500}
       height={500}
       nodeDistance={80}
       nodeRadius={10}
-      modRules={dependencyState.modRules}
-    />));
+      localState={dependencyState}
+    />);
+  });
 
   context.once(() => {
     const store = context.api.store;
