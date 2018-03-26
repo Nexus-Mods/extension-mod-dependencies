@@ -207,8 +207,10 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
         logicalFileName: mod.attributes['logicalFileName'],
       } : {
         fileExpression: mod.attributes['fileExpression']
-                     || path.basename(mod.attributes['fileName'],
-                                      path.extname(mod.attributes['fileName']))
+                     || (mod.attributes['fileName'] !== undefined)
+                          ? path.basename(mod.attributes['fileName'],
+                                          path.extname(mod.attributes['fileName']))
+                          : undefined
                      || mod.attributes['name'],
       };
   }

@@ -32,7 +32,9 @@ import { actions, ComponentEx, log, selectors, types, util } from 'vortex-api';
 
 function makeReference(mod: IModInfo): IReference {
   return {
-    fileExpression: path.basename(mod.fileName, path.extname(mod.fileName)),
+    fileExpression: mod.fileName !== undefined
+      ? path.basename(mod.fileName, path.extname(mod.fileName))
+      : undefined,
     fileMD5: mod.fileMD5,
     versionMatch: mod.fileVersion,
     logicalFileName: mod.logicalFileName,
