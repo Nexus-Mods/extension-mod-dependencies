@@ -156,6 +156,11 @@ function updateConflictInfo(api: types.IExtensionApi,
   const mods = store.getState().persistent.mods[gameMode];
   const unsolved: { [modId: string]: IConflict[] } = {};
 
+  if (mods === undefined) {
+    // TODO: how can this happen?
+    return;
+  }
+
   const encountered = new Set<string>();
 
   const mapEnc = (lhs: string, rhs: string) => [lhs, rhs].sort().join(':');
