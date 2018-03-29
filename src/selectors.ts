@@ -1,5 +1,6 @@
 import { IModLookupInfo } from './types/IModLookupInfo';
 
+import * as _ from 'lodash';
 import { createSelector } from 'reselect';
 import { selectors, types, util } from 'vortex-api';
 
@@ -9,6 +10,8 @@ const currentGameMods = createSelector(allMods, selectors.activeGameId, (inMods,
   inMods[gameId]);
 
 const modState = createSelector(selectors.activeProfile, (profile) => profile.modState);
+
+let lastLookupInfo: IModLookupInfo[];
 
 export const enabledModKeys = createSelector(currentGameMods, modState, (mods, modStateIn) => {
   const res: IModLookupInfo[] = [];
@@ -30,5 +33,12 @@ export const enabledModKeys = createSelector(currentGameMods, modState, (mods, m
       });
     }
   });
-  return res;
+
+  // avoid changing the object if content didn't change. reselect avoids recalculating unless input
+  // changes but it's very possible mods/modState changes without causing the enabled-keys to change
+  if (!_.isEqual(res, lastLookupInfo)) {
+    lastLookupInfo = res;
+  }
+
+  return lastLookupInfo;
 });
