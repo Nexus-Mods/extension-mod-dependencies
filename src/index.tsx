@@ -327,7 +327,7 @@ function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
       return checkRulesFulfilled(api);
     })
     .catch(err => {
-      api.showErrorNotification('failed to determine conflicts', err);
+      api.showErrorNotification('Failed to determine conflicts', err);
     })
     .finally(() => {
       store.dispatch(actions.stopActivity('mods', 'conflicts'));
