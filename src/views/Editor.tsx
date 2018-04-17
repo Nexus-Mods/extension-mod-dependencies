@@ -200,12 +200,10 @@ class Editor extends ComponentEx<IProps, IComponentState> {
   }
 
   private genVersionMatch(input: string): string {
-    if (input === undefined) {
+    if ((input === undefined) || !semver.valid(input)) {
       return '*';
-    } else if (semver.valid(input)) {
-      return '^' + input;
     } else {
-      return input;
+      return '^' + input;
     }
   }
 
