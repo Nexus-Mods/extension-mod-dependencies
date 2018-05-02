@@ -3,7 +3,6 @@ import * as d3Force from 'd3-force';
 import * as d3Scale from 'd3-scale';
 import { IReference, IRule } from 'modmeta-db';
 import { util } from 'vortex-api';
-import { IBiDirRule } from '../types/IBiDirRule';
 
 interface IGraphNode {
   id: string;

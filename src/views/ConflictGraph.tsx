@@ -5,9 +5,6 @@ import renderModName from '../util/renderModName';
 
 import { setEditCycle } from '../actions';
 
-import * as d3 from 'd3';
-import * as d3Force from 'd3-force';
-import * as d3Scale from 'd3-scale';
 import { IReference, IRule } from 'modmeta-db';
 import * as path from 'path';
 import * as React from 'react';
@@ -100,6 +97,9 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
 
   public render(): JSX.Element {
     const { t, editCycle, mods } = this.props;
+    if  (this.mGraph === undefined) {
+      return null;
+    }
     this.updateGraph(this.props);
     return (
       <Modal show={editCycle !== undefined} onHide={this.close}>
