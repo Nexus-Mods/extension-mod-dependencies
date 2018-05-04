@@ -269,7 +269,7 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
         return Promise.resolve(res);
       });
   })
-    .then((unfulfilled: Array<{ modId: string, rules: IRule[] }>) => {
+    .then((unfulfilled: Array<{ modId: string, rules: any[] }>) => {
       const modsUnfulfilled = unfulfilled.filter(iter => iter !== null);
 
       if (modsUnfulfilled.length === 0) {
@@ -281,7 +281,7 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
           iter.rules.map(rule => {
             const modName = renderModName(mods[iter.modId]);
             const type = renderRuleType(t, rule.type);
-            const other = renderReference(rule.reference);
+            const other = renderReference(rule.reference, mods[rule.reference.id]);
             return `${modName} ${type} ${other}`;
           }).join('\n')));
         const showDetails = () => {

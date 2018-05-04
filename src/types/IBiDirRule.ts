@@ -1,8 +1,9 @@
-import { IReference, RuleType } from 'modmeta-db';
+import { RuleType } from 'modmeta-db';
+import { types } from 'vortex-api';
 
 export interface IBiDirRule {
-  source: IReference;
+  source: any;
   type: RuleType;
-  reference: IReference;
+  reference: any;
   original: boolean;
 }

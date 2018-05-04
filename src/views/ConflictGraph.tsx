@@ -1,7 +1,6 @@
 import { IBiDirRule } from '../types/IBiDirRule';
 import { IConflict } from '../types/IConflict';
 import Graph, { IGraphLinkSpec } from '../util/graph';
-import renderModName from '../util/renderModName';
 
 import { setEditCycle } from '../actions';
 
@@ -140,7 +139,7 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
     let change: boolean = false;
     if (this.mCycle !== editCycle) {
       const nodes = editCycle.map(modId =>
-        ({ id: modId, name: renderModName(props.mods[modId]) }));
+        ({ id: modId, name: util.renderModName(props.mods[modId]) }));
       this.mGraph.setNodes(nodes);
       this.mCycle = editCycle;
       change = true;

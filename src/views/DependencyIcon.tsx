@@ -26,6 +26,7 @@ interface IDescriptionProps {
   key: string;
   onRemoveRule?: (rule: IRule) => void;
   fulfilled: boolean;
+  mod: types.IMod;
 }
 
 class RuleDescription extends React.Component<IDescriptionProps, {}> {
@@ -100,9 +101,16 @@ class RuleDescription extends React.Component<IDescriptionProps, {}> {
     return <p style={{ display: 'inline' }}>{renderString}</p>;
   }
 
-  private renderReference = (ref: IReference): JSX.Element => {
+  private renderReference = (ref: any): JSX.Element => {
+    const { mod } = this.props;
     const style = { display: 'inline' };
-    if ((ref.logicalFileName === undefined) && (ref.fileExpression === undefined)) {
+
+    if (mod !== undefined) {
+      return <p style={style}>{util.renderModName(mod, { version: true })}</p>;
+    }
+
+    if ((ref.logicalFileName === undefined)
+        && (ref.fileExpression === undefined)) {
       return <p style={style}>{ref.fileMD5}</p>;
     }
     return (
@@ -130,6 +138,7 @@ interface IConnectedProps {
   enabledMods: IModLookupInfo[];
   source: { id: string, pos: any };
   highlightConflict: boolean;
+  mods: { [modId: string]: types.IMod };
 }
 
 interface IActionProps {
@@ -350,7 +359,7 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
   }
 
   private renderConnectorIcon(mod: types.IMod) {
-    const {t, connectDragSource, enabledMods} = this.props;
+    const {t, connectDragSource, enabledMods, mods} = this.props;
 
     const classes = ['btn-dependency'];
 
@@ -362,6 +371,7 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
       if (isFulfilled === false) {
         anyUnfulfilled = true;
       }
+      const refMod: types.IMod = mods[(rule.reference as any).id];
       return (
         <RuleDescription
           t={t}
@@ -369,6 +379,7 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
           rule={rule}
           onRemoveRule={onRemove}
           fulfilled={isFulfilled}
+          mod={refMod}
         />
       );
     };
@@ -537,12 +548,13 @@ const DependencyIconDrag =
     DragSource(type, dependencySource, collectDrag)(
       DependencyIcon));
 
-function mapStateToProps(state): IConnectedProps {
+function mapStateToProps(state: types.IState): IConnectedProps {
   const gameId = selectors.activeGameId(state);
 
   return {
     gameId,
-    conflicts: state.session.dependencies.conflicts,
+    conflicts: (state.session as any).dependencies.conflicts,
+    mods: state.persistent.mods[gameId],
     enabledMods: enabledModKeys(state),
     source: util.getSafe(state, ['session', 'dependencies', 'connection', 'source'], undefined),
     highlightConflict:

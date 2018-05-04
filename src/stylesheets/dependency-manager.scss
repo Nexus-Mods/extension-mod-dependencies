@@ -94,11 +94,20 @@
 
 .conflict-rule-description {
   display: inline-block;
-  margin-left: 10px;
+  width: 100%;
 }
 
-.conflict-rule-name {
-  margin: 0px;
+.conflict-rule-reference {
+  display: flex;
+  align-items: center;
+
+  .conflict-rule-name {
+    flex: 2 1 0;
+    margin: 0 4px;
+  }
+  .conflict-rule-version {
+    flex: 1 1 0;
+  }
 }
 
 .rule-fulfilled {
@@ -132,8 +141,13 @@
   }
 }
 
+.conflict-editor-reverserule {
+  margin-left: 4px;
+}
+
 .mod-conflict-list .list-group-item {
   display: flex;
+  align-items: center;
 }
 
 .mod-conflict-graph {

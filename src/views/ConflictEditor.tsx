@@ -1,21 +1,21 @@
 import { IBiDirRule } from '../types/IBiDirRule';
 import { IConflict } from '../types/IConflict';
-import renderModName from '../util/renderModName';
 import renderReference from '../util/renderReference';
 
 import { setConflictDialog } from '../actions';
 
 import getRuleTypes, { RuleChoice } from '../util/getRuleTypes';
 
-import { IReference, IRule } from 'modmeta-db';
 import * as path from 'path';
 import * as React from 'react';
-import { Button, FormControl, ListGroup, ListGroupItem,
+import { Button, FormControl, FormGroup, ListGroup, ListGroupItem,
          Modal, OverlayTrigger, Popover } from 'react-bootstrap';
 import { translate } from 'react-i18next';
 import { connect } from 'react-redux';
 import * as ReduxThunk from 'redux-thunk';
-import { actions as vortexActions, ComponentEx, tooltip, types, util } from 'vortex-api';
+import * as semver from 'semver';
+import { actions as vortexActions, ComponentEx, FormFeedback,
+         tooltip, types, util } from 'vortex-api';
 
 interface IConnectedProps {
   gameId: string;
@@ -27,14 +27,54 @@ interface IConnectedProps {
 
 interface IActionProps {
   onClose: () => void;
-  onAddRule: (gameId: string, modId: string, rule: IRule) => void;
-  onRemoveRule: (gameId: string, modId: string, rule: IRule) => void;
+  onAddRule: (gameId: string, modId: string, rule: any) => void;
+  onRemoveRule: (gameId: string, modId: string, rule: any) => void;
 }
 
 type IProps = IConnectedProps & IActionProps;
 
+type RuleVersion = 'any' | 'compatible' | 'exact';
+
+interface IRuleSpec {
+  type: RuleChoice;
+  version: RuleVersion;
+}
+
 interface IComponentState {
-  ruleType: { [modId: string]: RuleChoice };
+  rules: { [modId: string]: IRuleSpec };
+}
+
+function importVersion(match: string): RuleVersion {
+  if ((match === undefined) || (match === '*')) {
+    return 'any';
+  } else if (match[0] === '^') {
+    return 'compatible';
+  } else {
+    return 'exact';
+  }
+}
+
+function getRuleSpec(modId: string,
+                     mods: { [modId: string]: types.IMod },
+                     conflicts: IConflict[]): { [modId: string]: IRuleSpec } {
+  const res: { [modId: string]: IRuleSpec } = {};
+  if (mods[modId] === undefined) {
+    // can this even happen?
+    return res;
+  }
+
+  conflicts.forEach(conflict => {
+    const existingRule = (mods[modId].rules || [])
+      .find(rule => (['before', 'after', 'conflicts'].indexOf(rule.type) !== -1)
+        && (util as any).testModReference(conflict.otherMod, rule.reference));
+
+    res[conflict.otherMod.id] = existingRule !== undefined
+      ? {
+        type: existingRule.type as any,
+        version: importVersion(existingRule.reference.versionMatch),
+      } : { type: undefined, version: 'any' };
+  });
+  return res;
 }
 
 /**
@@ -47,21 +87,27 @@ interface IComponentState {
 class ConflictEditor extends ComponentEx<IProps, IComponentState> {
   constructor(props: IProps) {
     super(props);
-    this.initState({ ruleType: getRuleTypes(props.modId, props.mods, props.conflicts) });
+    this.initState({
+      rules: getRuleSpec(props.modId, props.mods, props.conflicts),
+    });
   }
 
   public componentWillReceiveProps(nextProps: IProps) {
     // find existing rules for these conflicts
-    this.nextState.ruleType =
-      getRuleTypes(nextProps.modId, nextProps.mods, nextProps.conflicts);
+    this.nextState.rules =
+      getRuleSpec(nextProps.modId, nextProps.mods, nextProps.conflicts);
   }
 
   public render(): JSX.Element {
     const {t, modId, mods, conflicts} = this.props;
 
+    const modName = mods[modId] !== undefined
+      ? util.renderModName(mods[modId])
+      : '';
+
     return (
       <Modal show={modId !== undefined} onHide={this.close}>
-        <Modal.Header><Modal.Title>{renderModName(mods[modId])}</Modal.Title></Modal.Header>
+        <Modal.Header><Modal.Title>{modName}</Modal.Title></Modal.Header>
         <Modal.Body>
           <ListGroup className='mod-conflict-list'>
             {conflicts.map(this.renderConflict)}
@@ -77,7 +123,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
 
   private renderConflict = (conflict: IConflict) => {
     const {t, modId, modRules, mods} = this.props;
-    const {ruleType} = this.state;
+    const {rules} = this.state;
     const popover = (
       <Popover
         className='conflict-popover'
@@ -89,19 +135,21 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
 
     let reverseRule: IBiDirRule;
 
-    if (ruleType[conflict.otherMod.name] === undefined) {
+    if (rules[conflict.otherMod.name].type === undefined) {
       reverseRule = modRules
-        .find(rule => !rule.original
-                   && util.testModReference(conflict.otherMod, rule.reference)
-                   && util.testModReference(mods[modId], rule.source));
+        .find(iter => !iter.original
+                   && util.testModReference(conflict.otherMod, iter.reference)
+                   && util.testModReference(mods[modId], iter.source));
     }
+
+    const rule = rules[conflict.otherMod.name];
 
     return (
       <ListGroupItem key={conflict.otherMod.id}>
         <FormControl
           className='conflict-rule-select'
           componentClass='select'
-          value={ruleType[conflict.otherMod.name]}
+          value={rule.type}
           onChange={this.setRuleType}
           id={conflict.otherMod.id}
         >
@@ -111,35 +159,60 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
           <option value='conflicts'>{t('Conflicts with')}</option>
         </FormControl>
         <div className='conflict-rule-description'>
-          <p className='conflict-rule-name'>{renderModName(mods[conflict.otherMod.id])}</p>
-          <OverlayTrigger trigger='click' rootClose placement='right' overlay={popover}>
-            <a>{
-              t('{{ count }} conflicting file', {
-                count: conflict.files.length,
-                ns: 'dependency-manager',
-              })}</a>
-          </OverlayTrigger>
+          <div className='conflict-rule-reference'>
+            <p className='conflict-rule-name'>
+              <div>{util.renderModName(mods[conflict.otherMod.id])}</div>
+              <OverlayTrigger trigger='click' rootClose placement='right' overlay={popover}>
+                <a>{
+                  t('{{ count }} conflicting file', {
+                    count: conflict.files.length,
+                    ns: 'dependency-manager',
+                  })}</a>
+              </OverlayTrigger>
+            </p>
+            <FormControl
+              componentClass='select'
+              value={rule.version}
+              onChange={this.setRuleVersion}
+              id={conflict.otherMod.id}
+              className='conflict-rule-version'
+            >
+              <option value='any'>{t('Any version')}</option>
+              { (conflict.otherMod.version && semver.valid(conflict.otherMod.version))
+                  ? <option value='compatible'>{t('Compatible version')}</option>
+                  : null }
+              { conflict.otherMod.version
+                  ? <option value='exact'>{t('Only this version')}</option>
+                  : null }
+            </FormControl>
+          </div>
         </div>
+
         {this.renderReverseRule(reverseRule)}
       </ListGroupItem>
     );
   }
 
   private renderReverseRule(rule: IBiDirRule) {
-    const { t } = this.props;
+    const { t, mods } = this.props;
     if (rule === undefined) {
       return null;
     }
 
+    const tip = (
+      <div>
+        {t('{{ otherMod }} has a rule referencing {{ thisMod }}',
+          { replace: {
+              otherMod: renderReference(rule.reference, mods[rule.reference.id]),
+              thisMod: renderReference(rule.source, mods[rule.source.id]) } })}
+      </div>);
+
     return (
       <tooltip.Icon
         id={`conflict-editor-${rule.reference.fileMD5}`}
-        className='pull-right'
+        className='conflict-editor-reverserule pull-right'
         name='feedback-info'
-        tooltip={t('{{ otherMod }} has a rule referencing {{ thisMod }}',
-          { replace: {
-              otherMod: renderReference(rule.reference),
-              thisMod: renderReference(rule.source) } })}
+        tooltip={tip}
       />
     );
   }
@@ -150,46 +223,47 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
   }
 
   private setRuleType = (event) => {
-    (event.currentTarget.value === 'norule')
-      ? this.nextState.ruleType[event.currentTarget.id] = undefined
-      : this.nextState.ruleType[event.currentTarget.id] = event.currentTarget.value;
+    this.nextState.rules[event.currentTarget.id].type = (event.currentTarget.value === 'norule')
+      ? undefined
+      : event.currentTarget.value;
   }
 
-  private makeReference = (mod: types.IMod): IReference => {
-    // return a reference that matches by name but any version.
-    // The version-attribute isn't set at all because there is no pattern
-    // in semver that actually matches everything (* doesn't match versions
-    // with "-something" at the end)
-    return (mod.attributes['logicalFileName'] !== undefined)
-      ? {
-        logicalFileName: mod.attributes['logicalFileName'],
-      } : {
-        fileExpression: mod.attributes['fileExpression']
-                     || (mod.attributes['fileName'] !== undefined)
-                          ? path.basename(mod.attributes['fileName'],
-                                          path.extname(mod.attributes['fileName']))
-                          : undefined
-                     || mod.attributes['name'],
-      };
+  private setRuleVersion = (event) => {
+    this.nextState.rules[event.currentTarget.id].version = event.currentTarget.value;
+  }
+
+  private translateModVersion(mod: types.IMod, spe: RuleVersion) {
+    if (spe === 'any') {
+      return '*';
+    } else if (spe === 'compatible') {
+      return '^' + mod.attributes.version;
+    } else {
+      return mod.attributes.version;
+    }
   }
 
   private save = () => {
     const { conflicts, gameId, modId, modRules, mods, onAddRule, onRemoveRule } = this.props;
-    const { ruleType } = this.state;
-    Object.keys(ruleType).forEach(otherId => {
+    const { rules } = this.state;
+    Object.keys(rules).forEach(otherId => {
       if (mods[otherId] === undefined) {
         return;
       }
-      if (ruleType[otherId] !== undefined) {
+      const origRule = (mods[modId].rules || [])
+        .find(rule => (['before', 'after', 'conflicts'].indexOf(rule.type) !== -1)
+                      && (util as any).testModReference(mods[otherId], rule.reference));
+
+      if (origRule !== undefined) {
+        onRemoveRule(gameId, modId, origRule);
+      }
+
+      if (rules[otherId].type !== undefined) {
         onAddRule(gameId, modId, {
-          reference: this.makeReference(mods[otherId]),
-          type: ruleType[otherId],
-        });
-      } else {
-        const origTypes = getRuleTypes(modId, mods, conflicts);
-        onRemoveRule(gameId, modId, {
-          reference: this.makeReference(mods[otherId]),
-          type: origTypes[otherId],
+          reference: {
+            id: otherId,
+            versionMatch: this.translateModVersion(mods[otherId], rules[otherId].version),
+          },
+          type: rules[otherId].type,
         });
       }
     });
