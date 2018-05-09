@@ -382,6 +382,7 @@ function main(context: types.IExtensionContext) {
         onHighlight={props.onHighlight}
       />
     ),
+    // TODO: Pretty expensive
     calc: (mod: types.IMod) =>
       dependencyState.modRules.filter(rule => (util as any).testModReference(mod, rule.source)),
     isToggleable: true,
