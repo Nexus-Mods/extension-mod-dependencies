@@ -15,9 +15,11 @@ import ConflictGraph from './views/ConflictGraph';
 import Connector from './views/Connector';
 import DependencyIcon, { ILocalState } from './views/DependencyIcon';
 import Editor from './views/Editor';
+import OverrideEditor from './views/OverrideEditor';
 import ProgressFooter from './views/ProgressFooter';
 
-import { highlightConflictIcon, setConflictInfo, setEditCycle } from './actions';
+import { highlightConflictIcon, setConflictInfo, setEditCycle,
+         setFileOverrideDialog } from './actions';
 import connectionReducer from './reducers';
 import { enabledModKeys } from './selectors';
 
@@ -406,6 +408,13 @@ function main(context: types.IExtensionContext) {
       localState={dependencyState}
     />);
   });
+  context.registerDialog('mod-fileoverride-editor', OverrideEditor);
+  context.registerAction('mods-action-icons', 100, 'groups', {}, 'Manage file conflicts',
+    instanceIds => {
+      const { store } = context.api;
+      const gameMode = selectors.activeGameId(store.getState());
+      store.dispatch(setFileOverrideDialog(gameMode, instanceIds[0]));
+    });
 
   context.once(() => {
     const store = context.api.store;

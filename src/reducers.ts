@@ -47,6 +47,8 @@ const sessionReducer: types.IReducerSpec = {
         (state, payload) => util.setSafe(state, ['conflicts'], payload),
     [actions.setConflictDialog as any]:
         (state, payload) => util.setSafe(state, ['conflictDialog'], payload),
+    [actions.setFileOverrideDialog as any]:
+        (state, payload) => util.setSafe(state, ['overrideDialog'], payload),
     [actions.highlightConflictIcon as any]:
         (state, payload) => util.setSafe(state, ['highlightConflicts'], payload),
     [actions.setEditCycle as any]:
@@ -58,6 +60,7 @@ const sessionReducer: types.IReducerSpec = {
     highlightConflicts: false,
     conflicts: {},
     conflictDialog: undefined,
+    overrideDialog: undefined,
     editCycle: undefined,
   },
 };

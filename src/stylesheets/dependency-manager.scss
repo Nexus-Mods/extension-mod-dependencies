@@ -1,3 +1,5 @@
+@import "node-content-renderer.scss";
+
 .btn-embed {
   padding: 1px 5px;
   border: 0px;
@@ -164,4 +166,16 @@
   .cycle-link-highlighted {
     stroke: $brand-info;
   }
+}
+
+.file-override-dialog {
+  width: 75vw;
+}
+
+.file-override-container {
+  height: 75vh;
+}
+
+.rstcustom__rowWrapper:hover {
+  opacity: initial;
 }
