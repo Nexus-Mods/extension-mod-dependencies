@@ -171,6 +171,9 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
           rule.type === 'after'
           && util.testModReference(mods[source], rule.source)
           && util.testModReference(mods[target], rule.reference));
+        if (bidirRule === undefined) {
+          return;
+        }
         const sourceId = bidirRule.original ? source : target;
         const remRule: IRule = {
           type: bidirRule.original ? 'after' : 'before',
