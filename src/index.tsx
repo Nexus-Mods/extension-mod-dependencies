@@ -6,6 +6,7 @@ import { IBiDirRule } from './types/IBiDirRule';
 import { IConflict } from './types/IConflict';
 import { IModLookupInfo } from './types/IModLookupInfo';
 import determineConflicts from './util/conflicts';
+import DependenciesFilter from './util/DependenciesFilter';
 import renderModLookup from './util/renderModLookup';
 import renderModName from './util/renderModName';
 import renderReference from './util/renderReference';
@@ -384,14 +385,13 @@ function main(context: types.IExtensionContext) {
         onHighlight={props.onHighlight}
       />
     ),
-    // TODO: Pretty expensive
-    calc: (mod: types.IMod) =>
-      dependencyState.modRules.filter(rule => (util as any).testModReference(mod, rule.source)),
+    calc: (mod: types.IMod) => mod,
     isToggleable: true,
     isDefaultVisible: false,
     edit: {},
     isSortable: false,
     isVolatile: true,
+    filter: new DependenciesFilter(() => context.api.store, dependencyState),
   });
 
   context.registerReducer(['session', 'dependencies'], connectionReducer);
