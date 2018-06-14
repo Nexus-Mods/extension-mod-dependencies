@@ -4,7 +4,7 @@ import { setFileOverrideDialog } from '../actions';
 
 import * as path from 'path';
 import * as React from 'react';
-import { Button, Dropdown, Modal, MenuItem } from 'react-bootstrap';
+import { Button, Dropdown, MenuItem, Modal } from 'react-bootstrap';
 import { translate } from 'react-i18next';
 import { connect } from 'react-redux';
 import * as TreeT from 'react-sortable-tree';
@@ -34,6 +34,7 @@ type IProps = IConnectedProps & IActionProps;
 
 interface IComponentState {
   treeState: IFileTree[];
+  sortedMods: string[];
 }
 
 function nop() {
@@ -45,7 +46,15 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
     super(props);
     this.initState({
       treeState: [],
+      sortedMods: [],
     });
+  }
+
+  public componentWillMount() {
+    this.sortedMods(this.props)
+      .then(sorted => {
+        this.nextState.sortedMods = sorted;
+      });
   }
 
   public componentWillReceiveProps(newProps: IProps) {
@@ -54,10 +63,17 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
         || (newProps.conflicts !== this.props.conflicts)) {
       this.nextState.treeState = this.toTree(newProps);
     }
+
+    if (newProps.mods !== this.props.mods) {
+      this.sortedMods(newProps).then(sorted => {
+        this.nextState.sortedMods = sorted;
+        this.nextState.treeState = this.toTree(newProps);
+      });
+    }
   }
 
   public render(): JSX.Element {
-    const { t, conflicts, modId, mods } = this.props;
+    const { t, modId, mods } = this.props;
     const { treeState } = this.state;
 
     const modName = mods[modId] !== undefined
@@ -97,9 +113,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
     onClose();
   }
 
-  private getNodeKey = (node: TreeT.TreeNode) => {
-    return node.node.title;
-  }
+  private getNodeKey = (node: TreeT.TreeNode) => node.node.path;
 
   private generateNodeProps = (rowInfo: TreeT.ExtendedNodeData) => {
     const { t, mods } = this.props;
@@ -138,49 +152,76 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
 
   private toTree(props: IProps): IFileTree[] {
     const { conflicts, modId } = props;
-    return conflicts.reduce((tree: IFileTree[], input: IConflict) => {
+
+    const makeEmpty = (title: string, filePath: string, prov?: string) => ({
+      path: filePath,
+      title,
+      children: [],
+      providers: prov !== undefined ? [prov] : [],
+      expanded: true,
+      isDirectory: prov === undefined,
+    });
+
+    const ensure = (ele: IFileTree[], name: string, filePath: string, prov?: string) => {
+      let existing = ele.find(iter => iter.title === name);
+      if (existing === undefined) {
+        existing = makeEmpty(name, filePath, prov);
+        ele.push(existing);
+      }
+      return existing;
+    };
+
+    const result = conflicts.reduce((tree: IFileTree[], input: IConflict) => {
       input.files.forEach(file => {
         let cur = tree;
-        path.dirname(file).split(path.sep).forEach(comp => {
-          let existing = cur.find(iter => iter.title === comp);
-          if (existing === undefined) {
-            existing = {
-              title: comp,
-              children: [],
-              providers: [],
-              expanded: true,
-              isDirectory: true,
-            };
-            cur.push(existing);
-          }
-          cur = existing.children;
+
+        path.dirname(file).split(path.sep).forEach((comp, idx, segments) => {
+          cur = ensure(cur, comp, segments.slice(0, idx + 1).join(path.sep)).children;
         });
-        { // limit scope of "existing"
-          const fileName = path.basename(file);
-          let existing = cur.find(iter => iter.title === fileName);
-          if (existing === undefined) {
-            existing = {
-              title: fileName,
-              providers: [modId],
-              children: [],
-              isDirectory: false,
-              expanded: true,
-            };
-            cur.push(existing);
-          }
-          existing.providers.push(input.otherMod.id);
-        }
+        const fileName = path.basename(file);
+        ensure(cur, fileName, file, modId).providers.push(input.otherMod.id);
       });
       return tree;
     }, []);
+
+    this.sortProviders(result, props);
+
+    return result;
+  }
+
+  private sortProviders(files: IFileTree[], props: IProps, dirPath: string = ''): void {
+    const { mods } = props;
+    const { sortedMods } = this.nextState;
+    const sortFunc = (lhs: string, rhs: string, filePath: string) => {
+      if ((mods[lhs] === undefined) || (mods[rhs] === undefined)) {
+        return 0;
+      }
+      if (((mods[lhs] as any).fileOverrides || []).indexOf(filePath) !== -1) {
+        return 1;
+      }
+      if (((mods[rhs] as any).fileOverrides || []).indexOf(filePath) !== -1) {
+        return -1;
+      }
+      return sortedMods.indexOf(rhs) - sortedMods.indexOf(lhs);
+    };
+    files.forEach(file => {
+      const filePath = path.join(dirPath, file.title);
+      file.providers = file.providers.sort((lhs, rhs) => sortFunc(lhs, rhs, filePath));
+      this.sortProviders(file.children, props, filePath);
+    });
+  }
+
+  private sortedMods = (newProps: IProps) => {
+    const { gameId, mods } = newProps;
+    return util.sortMods(gameId, Object.keys(mods).map(key => mods[key]), this.context.api);
   }
 }
 
 const emptyArr = [];
 const emptyObj = {};
 
-function mapStateToProps(state: any): IConnectedProps {
-  const dialog = state.session.dependencies.overrideDialog || emptyObj;
+function mapStateToProps(state: types.IState): IConnectedProps {
+  const dialog = (state.session as any).dependencies.overrideDialog || emptyObj;
   return {
     gameId: dialog.gameId,
     modId: dialog.modId,

@@ -430,10 +430,7 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
   }
 
   private findRule(ref: IModLookupInfo): IBiDirRule {
-    return this.state.modRules.find(rule => {
-      const res = util.testModReference(ref, rule.reference);
-      return res;
-    });
+    return this.state.modRules.find(rule => util.testModReference(ref, rule.reference));
   }
 
   private renderConflictIcon(mod: types.IMod) {
