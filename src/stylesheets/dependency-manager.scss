@@ -63,6 +63,10 @@
   color: $brand-danger;
 }
 
+.btn-overrides {
+  @extend .btn-embed;
+}
+
 .line {
   border-bottom: 1px solid black;
 }
@@ -168,16 +172,29 @@
   }
 }
 
-.file-override-dialog {
-  width: 75vw;
+#file-override-dialog {
+  .modal-dialog {
+    width: 75vw;
+  }
+
+  .ReactVirtualized__Grid__innerScrollContainer {
+    height: 100%;
+    overflow: visible !important;
+  }
+
+  .rstcustom__row {
+    flex: 1 1 0;
+    .rstcustom__rowLabel {
+      flex: 1 1 auto;
+    }
+  }
+  .rstcustom__rowWrapper:hover {
+    opacity: initial;
+  }
 }
 
 .file-override-container {
   height: 75vh;
-}
-
-.rstcustom__rowWrapper:hover {
-  opacity: initial;
 }
 
 .header-dependencies {

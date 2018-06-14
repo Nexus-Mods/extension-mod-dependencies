@@ -9,11 +9,12 @@ import { translate } from 'react-i18next';
 import { connect } from 'react-redux';
 import * as TreeT from 'react-sortable-tree';
 import { } from 'react-sortable-tree-theme-file-explorer';
-import { ComponentEx, DNDContainer, Icon, types, util } from 'vortex-api';
+import { actions, ComponentEx, DNDContainer, types, util } from 'vortex-api';
 
 interface IFileTree {
   title: string;
   providers: string[];
+  selected: string;
   children: IFileTree[];
   isDirectory: boolean;
   expanded: boolean;
@@ -27,6 +28,7 @@ interface IConnectedProps {
 }
 
 interface IActionProps {
+  onSetFileOverride: (gameId: string, modId: string, files: string[]) => void;
   onClose: () => void;
 }
 
@@ -35,10 +37,6 @@ type IProps = IConnectedProps & IActionProps;
 interface IComponentState {
   treeState: IFileTree[];
   sortedMods: string[];
-}
-
-function nop() {
-  return null;
 }
 
 class OverrideEditor extends ComponentEx<IProps, IComponentState> {
@@ -102,7 +100,8 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
           </DNDContainer>
         </Modal.Body>
         <Modal.Footer>
-          <Button onClick={this.close}>{t('Close')}</Button>
+          <Button onClick={this.close}>{t('Cancel')}</Button>
+          <Button onClick={this.apply}>{t('Apply')}</Button>
         </Modal.Footer>
       </Modal>
     );
@@ -113,10 +112,61 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
     onClose();
   }
 
-  private getNodeKey = (node: TreeT.TreeNode) => node.node.path;
+  private apply = () => {
+    const { onClose, onSetFileOverride, gameId, modId, mods } = this.props;
+    const { treeState } = this.state;
+
+    const files: string[] = [];
+    const removeFrom: { [provider: string]: string[] } = {};
+
+    const walkState = (children: IFileTree[], parentPath: string) => {
+      children.forEach(iter => {
+        const filePath = path.join(parentPath, iter.title);
+        if (iter.isDirectory) {
+          walkState(iter.children, filePath);
+        } else if (iter.selected === modId) {
+          files.push(filePath);
+          iter.providers.forEach(provider =>
+            util.setdefault(removeFrom, provider, []).push(filePath));
+        }
+      });
+    };
+
+    walkState(treeState, '');
+    console.log('files', files);
+
+    // remove the override from all other providers, otherwise there could
+    // be confusion about which one wins
+    Object.keys(removeFrom).forEach(prov => {
+      const fileOverrides = (mods[prov] as any).fileOverrides || [];
+      const oldSet = new Set<string>(fileOverrides);
+      removeFrom[prov].forEach(file => {
+        oldSet.delete(file);
+      });
+      if (oldSet.size < fileOverrides.length) {
+        onSetFileOverride(gameId, prov, Array.from(oldSet));
+      }
+    });
+
+    onSetFileOverride(gameId, modId, files);
+    onClose();
+  }
+
+  private getNodeKey = (node: TreeT.TreeNode) => node.node.title;
 
   private generateNodeProps = (rowInfo: TreeT.ExtendedNodeData) => {
     const { t, mods } = this.props;
+
+    const renderName = (id: string, clip?: number) => {
+      let name: string = util.renderModName(mods[id]);
+      if (clip && name.length > clip) {
+        name = name.substr(0, clip - 3) + '...';
+      }
+      if (id === rowInfo.node.providers[0]) {
+        name += ` (${t('Default')})`;
+      }
+      return name;
+    };
 
     return {
       buttons: rowInfo.node.isDirectory ? [] : [(
@@ -124,14 +174,15 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
           id={`provider-select-${rowInfo.path.join('_')}`}
           data-filepath={rowInfo.path.join(path.sep)}
           onSelect={this.changeProvider as any}
+          pullRight
         >
           <Dropdown.Toggle>
-            <span>{util.renderModName(mods[rowInfo.node.providers[0]])}</span>
+            <span>{renderName(rowInfo.node.selected, 20)}</span>
           </Dropdown.Toggle>
           <Dropdown.Menu>
             {rowInfo.node.providers.map(provider => (
               <MenuItem key={provider} eventKey={provider}>
-                {util.renderModName(mods[provider])}
+                {renderName(provider)}
               </MenuItem>))}
           </Dropdown.Menu>
         </Dropdown>
@@ -148,16 +199,24 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
     // was attached to the Dropdown not to the menu item.
     const filePath =
       evt.currentTarget.parentNode.parentNode.parentNode.getAttribute('data-filepath');
+    let cur: IFileTree;
+    filePath.split(path.sep).forEach(comp => {
+      const findFunc = iter => iter.title === comp;
+      cur = (cur === undefined)
+        ? this.nextState.treeState.find(findFunc)
+        : cur.children.find(findFunc);
+    });
+    cur.selected = eventKey;
   }
 
   private toTree(props: IProps): IFileTree[] {
     const { conflicts, modId } = props;
 
-    const makeEmpty = (title: string, filePath: string, prov?: string) => ({
-      path: filePath,
+    const makeEmpty = (title: string, prov?: string) => ({
       title,
       children: [],
       providers: prov !== undefined ? [prov] : [],
+      selected: '',
       expanded: true,
       isDirectory: prov === undefined,
     });
@@ -165,7 +224,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
     const ensure = (ele: IFileTree[], name: string, filePath: string, prov?: string) => {
       let existing = ele.find(iter => iter.title === name);
       if (existing === undefined) {
-        existing = makeEmpty(name, filePath, prov);
+        existing = makeEmpty(name, prov);
         ele.push(existing);
       }
       return existing;
@@ -207,6 +266,12 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
     files.forEach(file => {
       const filePath = path.join(dirPath, file.title);
       file.providers = file.providers.sort((lhs, rhs) => sortFunc(lhs, rhs, filePath));
+      file.selected = file.providers[0];
+      const overrider = file.providers.find(
+        modId => ((mods[modId] as any).fileOverrides || []).indexOf(filePath) !== -1);
+      if (overrider !== undefined) {
+        file.selected = overrider;
+      }
       this.sortProviders(file.children, props, filePath);
     });
   }
@@ -233,6 +298,8 @@ function mapStateToProps(state: types.IState): IConnectedProps {
 
 function mapDispatchToProps(dispatch: Redux.Dispatch<any>): IActionProps {
   return {
+    onSetFileOverride: (gameId: string, modId: string, files: string[]) =>
+      dispatch((actions as any).setFileOverride(gameId, modId, files)),
     onClose: () => dispatch(setFileOverrideDialog(undefined, undefined)),
   };
 }

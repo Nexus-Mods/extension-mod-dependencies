@@ -2,10 +2,10 @@ import { IBiDirRule } from '../types/IBiDirRule';
 import { IConflict } from '../types/IConflict';
 import { IModLookupInfo } from '../types/IModLookupInfo';
 
-import renderModName from '../util/renderModName';
 import ruleFulfilled from '../util/ruleFulfilled';
 
-import { setConflictDialog, setCreateRule, setSource, setTarget } from '../actions';
+import { setConflictDialog, setCreateRule, setFileOverrideDialog,
+         setSource, setTarget } from '../actions';
 
 import { enabledModKeys } from '../selectors';
 
@@ -31,7 +31,7 @@ interface IDescriptionProps {
 
 class RuleDescription extends React.Component<IDescriptionProps, {}> {
   public render(): JSX.Element {
-    const {onRemoveRule, rule} = this.props;
+    const {rule} = this.props;
 
     const key = this.key(rule);
     return (
@@ -147,6 +147,7 @@ interface IActionProps {
   onEditDialog: (gameId: string, modId: string, reference: IReference, defaultType: string) => void;
   onRemoveRule: (gameId: string, modId: string, rule: IRule) => void;
   onConflictDialog: (gameId: string, modId: string, modRules: IBiDirRule[]) => void;
+  onOverrideDialog: (gameId: string, modId: string) => void;
 }
 
 interface IComponentState {
@@ -169,10 +170,6 @@ interface IDropProps {
 }
 
 type IProps = IBaseProps & IConnectedProps & IActionProps & IDragProps & IDropProps;
-
-interface IDragInfo {
-  onUpdateLine: (targetX: number, targetY: number, isConnect: boolean) => void;
-}
 
 function componentCenter(component: React.Component<any, any>) {
   const box = findDOMNode(component).getBoundingClientRect();
@@ -355,6 +352,7 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
       <div className={classes.join(' ')}>
         {this.renderConnectorIcon(mod)}
         {this.renderConflictIcon(mod)}
+        {this.renderOverrideIcon(mod)}
       </div>);
   }
 
@@ -433,6 +431,24 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
     return this.state.modRules.find(rule => util.testModReference(ref, rule.reference));
   }
 
+  private renderOverrideIcon(mod: types.IMod) {
+    const { t } = this.props;
+    if (!(mod as any).fileOverrides) {
+      return null;
+    }
+
+    return (
+      <tooltip.IconButton
+        id={`btn-meta-overrides-${mod.id}`}
+        className='btn-overrides'
+        key={`conflicts-${mod.id}`}
+        tooltip={t('This mod has files override the install order')}
+        icon='override'
+        onClick={this.openOverrideDialog}
+      />
+    );
+  }
+
   private renderConflictIcon(mod: types.IMod) {
     const { t, conflicts, highlightConflict } = this.props;
     if (conflicts[mod.id] === undefined) {
@@ -503,6 +519,11 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
     onConflictDialog(gameId, mod.id, modRules);
   }
 
+  private openOverrideDialog = () => {
+    const { gameId, mod, onOverrideDialog } = this.props;
+    onOverrideDialog(gameId, mod.id);
+  }
+
   private key = (rule: IRule) => {
     return rule.type + '_' +
       rule.reference.logicalFileName
@@ -568,6 +589,8 @@ function mapDispatchToProps(dispatch): IActionProps {
     onRemoveRule: (gameId, modId, rule) => dispatch(actions.removeModRule(gameId, modId, rule)),
     onConflictDialog: (gameId, modId, modRules) =>
       dispatch(setConflictDialog(gameId, modId, modRules)),
+    onOverrideDialog: (gameId: string, modId: string) =>
+      dispatch(setFileOverrideDialog(gameId, modId)),
   };
 }
 
