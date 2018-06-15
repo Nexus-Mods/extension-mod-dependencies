@@ -2,19 +2,18 @@ import { IBiDirRule } from '../types/IBiDirRule';
 import { IConflict } from '../types/IConflict';
 import renderReference from '../util/renderReference';
 
-import { setConflictDialog } from '../actions';
+import { setConflictDialog, setFileOverrideDialog } from '../actions';
 
-import getRuleTypes, { RuleChoice } from '../util/getRuleTypes';
+import { RuleChoice } from '../util/getRuleTypes';
 
-import * as path from 'path';
 import * as React from 'react';
-import { Button, FormControl, FormGroup, ListGroup, ListGroupItem,
+import { Button, FormControl, ListGroup, ListGroupItem,
          Modal, OverlayTrigger, Popover } from 'react-bootstrap';
 import { translate } from 'react-i18next';
 import { connect } from 'react-redux';
-import * as ReduxThunk from 'redux-thunk';
+import {} from 'redux-thunk';
 import * as semver from 'semver';
-import { actions as vortexActions, ComponentEx, FormFeedback,
+import { actions as vortexActions, ComponentEx,
          tooltip, types, util } from 'vortex-api';
 
 interface IConnectedProps {
@@ -29,6 +28,7 @@ interface IActionProps {
   onClose: () => void;
   onAddRule: (gameId: string, modId: string, rule: any) => void;
   onRemoveRule: (gameId: string, modId: string, rule: any) => void;
+  onOverrideDialog: (gameId: string, modId: string) => void;
 }
 
 type IProps = IConnectedProps & IActionProps;
@@ -130,6 +130,9 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
         id={`conflict-popover-${conflict.otherMod}`}
       >
         {conflict.files.slice(0).sort().map(fileName => <p key={fileName}>{fileName}</p>)}
+        <Button onClick={this.openOverrideDialog}>
+          {t('Edit individual files')}
+        </Button>
       </Popover>
     );
 
@@ -242,8 +245,13 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     }
   }
 
+  private openOverrideDialog = () => {
+    const { gameId, modId, onOverrideDialog } = this.props;
+    onOverrideDialog(gameId, modId);
+  }
+
   private save = () => {
-    const { conflicts, gameId, modId, modRules, mods, onAddRule, onRemoveRule } = this.props;
+    const { gameId, modId, mods, onAddRule, onRemoveRule } = this.props;
     const { rules } = this.state;
     Object.keys(rules).forEach(otherId => {
       if (mods[otherId] === undefined) {
@@ -294,6 +302,8 @@ function mapDispatchToProps(dispatch: Redux.Dispatch<any>): IActionProps {
       dispatch(vortexActions.addModRule(gameId, modId, rule)),
     onRemoveRule: (gameId, modId, rule) =>
       dispatch(vortexActions.removeModRule(gameId, modId, rule)),
+    onOverrideDialog: (gameId: string, modId: string) =>
+      dispatch(setFileOverrideDialog(gameId, modId)),
   };
 }
 

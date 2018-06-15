@@ -100,10 +100,10 @@
   max-width: 500px;
   max-height: 600px;
   overflow-y: auto;
-}
 
-.conflict-popover p {
-  margin-bottom: 0px;
+  p {
+    margin: 0px;
+  }
 }
 
 .conflict-rule-select {
@@ -209,8 +209,14 @@
 
 .file-override-container {
   height: 75vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .header-dependencies {
   min-width: 110px;
+}
+
+.search-box-input {
+  padding-left: 20px;
 }

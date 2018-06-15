@@ -2,7 +2,9 @@ import { IConflict } from '../types/IConflict';
 
 import { setFileOverrideDialog } from '../actions';
 
-import * as path from 'path';
+import SearchBox, { ISearchMatch } from './SearchBox';
+
+import * as nodePath from 'path';
 import * as React from 'react';
 import { Button, Dropdown, MenuItem, Modal } from 'react-bootstrap';
 import { translate } from 'react-i18next';
@@ -37,6 +39,9 @@ type IProps = IConnectedProps & IActionProps;
 interface IComponentState {
   treeState: IFileTree[];
   sortedMods: string[];
+  searchString: string;
+  searchIndex: number;
+  searchMatches: ISearchMatch[];
 }
 
 class OverrideEditor extends ComponentEx<IProps, IComponentState> {
@@ -45,6 +50,9 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
     this.initState({
       treeState: [],
       sortedMods: [],
+      searchString: '',
+      searchIndex: 0,
+      searchMatches: [],
     });
   }
 
@@ -72,7 +80,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
 
   public render(): JSX.Element {
     const { t, modId, mods } = this.props;
-    const { treeState } = this.state;
+    const { searchString, searchIndex, searchMatches, treeState } = this.state;
 
     const modName = mods[modId] !== undefined
       ? util.renderModName(mods[modId])
@@ -88,6 +96,14 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
         <Modal.Body>
           <DNDContainer>
             <div className='file-override-container'>
+              <SearchBox
+                t={t}
+                searchFocusIndex={searchIndex}
+                searchString={searchString}
+                matches={searchMatches}
+                onSetSearch={this.setSearch}
+                onSetSearchFocus={this.setSearchFocus}
+              />
               <Tree
                 treeData={treeState}
                 onChange={this.onChangeTree}
@@ -95,6 +111,10 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
                 canDrag={false}
                 getNodeKey={this.getNodeKey}
                 generateNodeProps={this.generateNodeProps}
+                searchMethod={this.searchMethod}
+                searchQuery={searchString}
+                searchFocusOffset={searchIndex}
+                searchFinishCallback={this.searchFinishCallback}
               />
             </div>
           </DNDContainer>
@@ -121,7 +141,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
 
     const walkState = (children: IFileTree[], parentPath: string) => {
       children.forEach(iter => {
-        const filePath = path.join(parentPath, iter.title);
+        const filePath = nodePath.join(parentPath, iter.title);
         if (iter.isDirectory) {
           walkState(iter.children, filePath);
         } else if (iter.selected === modId) {
@@ -151,6 +171,25 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
     onClose();
   }
 
+  private searchMethod = ({ node, path, treeIndex, searchQuery }:
+    { node: IFileTree, path: number[] | string[],
+      treeIndex: number, searchQuery: any }) => {
+    return (searchQuery.length > 0) &&
+      (node.title.toLowerCase().indexOf(searchQuery.toLowerCase()) !== -1);
+  }
+
+  private searchFinishCallback = (matches: ISearchMatch[]) => {
+    this.nextState.searchMatches = matches;
+  }
+
+  private setSearch = (search: string) => {
+    this.nextState.searchString = search;
+  }
+
+  private setSearchFocus = (index: number) => {
+    this.nextState.searchIndex = index;
+  }
+
   private getNodeKey = (node: TreeT.TreeNode) => node.node.title;
 
   private generateNodeProps = (rowInfo: TreeT.ExtendedNodeData) => {
@@ -171,12 +210,12 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
       buttons: rowInfo.node.isDirectory ? [] : [(
         <Dropdown
           id={`provider-select-${rowInfo.path.join('_')}`}
-          data-filepath={rowInfo.path.join(path.sep)}
+          data-filepath={rowInfo.path.join(nodePath.sep)}
           onSelect={this.changeProvider as any}
           pullRight
         >
           <Dropdown.Toggle>
-            <span>{renderName(rowInfo.node.selected, 20)}</span>
+            <span>{renderName(rowInfo.node.selected, 30)}</span>
           </Dropdown.Toggle>
           <Dropdown.Menu>
             {rowInfo.node.providers.map(provider => (
@@ -199,7 +238,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
     const filePath =
       evt.currentTarget.parentNode.parentNode.parentNode.getAttribute('data-filepath');
     let cur: IFileTree;
-    filePath.split(path.sep).forEach(comp => {
+    filePath.split(nodePath.sep).forEach(comp => {
       const findFunc = iter => iter.title === comp;
       cur = (cur === undefined)
         ? this.nextState.treeState.find(findFunc)
@@ -233,10 +272,10 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
       input.files.forEach(file => {
         let cur = tree;
 
-        path.dirname(file).split(path.sep).forEach((comp, idx, segments) => {
-          cur = ensure(cur, comp, segments.slice(0, idx + 1).join(path.sep)).children;
+        nodePath.dirname(file).split(nodePath.sep).forEach((comp, idx, segments) => {
+          cur = ensure(cur, comp, segments.slice(0, idx + 1).join(nodePath.sep)).children;
         });
-        const fileName = path.basename(file);
+        const fileName = nodePath.basename(file);
         ensure(cur, fileName, file, modId).providers.push(input.otherMod.id);
       });
       return tree;
@@ -263,7 +302,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
       return sortedMods.indexOf(rhs) - sortedMods.indexOf(lhs);
     };
     files.forEach(file => {
-      const filePath = path.join(dirPath, file.title);
+      const filePath = nodePath.join(dirPath, file.title);
       file.providers = file.providers.sort((lhs, rhs) => sortFunc(lhs, rhs, filePath));
       file.selected = file.providers[0];
       const overrider = file.providers.find(
