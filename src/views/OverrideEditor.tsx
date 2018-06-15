@@ -133,7 +133,6 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
     };
 
     walkState(treeState, '');
-    console.log('files', files);
 
     // remove the override from all other providers, otherwise there could
     // be confusion about which one wins

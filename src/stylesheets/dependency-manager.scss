@@ -46,12 +46,26 @@
   transition: box-shadow 1s;
 }
 
-.btn-conflict-unsolved svg {
-  fill: $brand-danger;
+.btn-conflict-unsolved {
+  svg {
+    color: $brand-danger;
+  }
+  &:hover {
+    svg {
+      color: $link-hover-color;
+    }
+  }
 }
 
-.btn-conflict-allsolved svg {
-  fill: $brand-success;
+.btn-conflict-allsolved {
+  svg {
+    color: $brand-success;
+  }
+  &:hover {
+    svg {
+      color: $link-hover-color;
+    }
+  }
 }
 
 .btn-conflict-highlight {
