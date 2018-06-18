@@ -17,7 +17,6 @@ import Connector from './views/Connector';
 import DependencyIcon, { ILocalState } from './views/DependencyIcon';
 import Editor from './views/Editor';
 import OverrideEditor from './views/OverrideEditor';
-import ProgressFooter from './views/ProgressFooter';
 
 import { highlightConflictIcon, setConflictInfo, setEditCycle,
          setFileOverrideDialog } from './actions';
@@ -26,12 +25,13 @@ import { enabledModKeys } from './selectors';
 
 import * as Promise from 'bluebird';
 import * as I18next from 'i18next';
+import * as _ from 'lodash';
 import { ILookupResult, IModInfo, IReference, IRule, RuleType } from 'modmeta-db';
 import * as path from 'path';
 import * as React from 'react';
 import * as Redux from 'redux';
 import {} from 'redux-thunk';
-import { actions, ComponentEx, log, selectors, types, util } from 'vortex-api';
+import { actions, log, selectors, types, util } from 'vortex-api';
 
 function makeReference(mod: IModInfo): IReference {
   return {
@@ -325,7 +325,9 @@ function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
   store.dispatch(actions.startActivity('mods', 'conflicts'));
   return determineConflicts(modPath, mods)
     .then(conflictMap => {
-      store.dispatch(setConflictInfo(conflictMap));
+      if (!_.isEqual(conflictMap, state.session.dependencies.conflicts)) {
+        store.dispatch(setConflictInfo(conflictMap));
+      }
       updateConflictInfo(api, conflictMap);
       return checkRulesFulfilled(api);
     })

@@ -433,7 +433,8 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
 
   private renderOverrideIcon(mod: types.IMod) {
     const { t } = this.props;
-    if (!(mod as any).fileOverrides) {
+    if (((mod as any).fileOverrides === undefined)
+        || ((mod as any).fileOverrides.length === 0)) {
       return null;
     }
 

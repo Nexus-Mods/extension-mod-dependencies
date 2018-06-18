@@ -1,7 +1,6 @@
 import { types, util } from 'vortex-api';
 
 import * as actions from './actions';
-import { highlightConflictIcon } from './actions';
 
 /**
  * reducer for changes to ephemeral session state
@@ -40,7 +39,7 @@ const sessionReducer: types.IReducerSpec = {
     [actions.setCreateRule as any]:
         (state, payload) => util.setSafe(state, ['dialog'], payload),
     [actions.closeDialog as any]:
-        (state, payload) => util.setSafe(state, ['dialog'], undefined),
+        (state) => util.setSafe(state, ['dialog'], undefined),
     [actions.setType as any]:
         (state, payload) => util.setSafe(state, ['dialog', 'type'], payload),
     [actions.setConflictInfo as any]:

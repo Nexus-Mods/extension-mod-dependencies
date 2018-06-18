@@ -219,4 +219,13 @@
 
 .search-box-input {
   padding-left: 20px;
+  padding-right: 50px;
+  border-width: 0 0 1px 0;
+  background-color: initial;
+}
+
+.override-editor-usage {
+  opacity: 0.75;
+  border: $border-width solid $border-color;
+  padding: 4px;
 }
