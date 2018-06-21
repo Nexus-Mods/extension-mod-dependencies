@@ -519,15 +519,16 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
   }
 
   private updateMod(mod: types.IMod) {
+    const attributes = mod.attributes || {};
     this.nextState.reference = {
-      fileMD5: mod.attributes['fileMD5'],
-      versionMatch: mod.attributes['version'],
+      fileMD5: attributes['fileMD5'],
+      versionMatch: attributes['version'],
       fileExpression: mod.installationPath,
-      logicalFileName: mod.attributes['logicalFileName'],
+      logicalFileName: attributes['logicalFileName'],
     };
     this.context.api.lookupModMeta({
-      fileMD5: mod.attributes['fileMD5'],
-      fileSize: mod.attributes['fileSize'],
+      fileMD5: attributes['fileMD5'],
+      fileSize: attributes['fileSize'],
       gameId: this.props.gameId,
     })
       .then((meta: ILookupResult[]) => {

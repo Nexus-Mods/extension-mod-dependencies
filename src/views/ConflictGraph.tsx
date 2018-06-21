@@ -4,8 +4,7 @@ import Graph, { IGraphLinkSpec } from '../util/graph';
 
 import { setEditCycle } from '../actions';
 
-import { IReference, IRule } from 'modmeta-db';
-import * as path from 'path';
+import { IRule } from 'modmeta-db';
 import * as React from 'react';
 import { Button, Modal } from 'react-bootstrap';
 import { withFauxDOM } from 'react-faux-dom';
@@ -198,28 +197,9 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
       });
     }
   }
-
-  private makeReference = (mod: types.IMod): IReference => {
-    // return a reference that matches by name but any version.
-    // The version-attribute isn't set at all because there is no pattern
-    // in semver that actually matches everything (* doesn't match versions
-    // with "-something" at the end)
-    return (mod.attributes['logicalFileName'] !== undefined)
-      ? {
-        logicalFileName: mod.attributes['logicalFileName'],
-      } : {
-        fileExpression: mod.attributes['fileExpression']
-                     || (mod.attributes['fileName'] !== undefined)
-                          ? path.basename(mod.attributes['fileName'],
-                                          path.extname(mod.attributes['fileName']))
-                          : undefined
-                     || mod.attributes['name'],
-      };
-  }
 }
 
 const emptyObj = {};
-const emptyArr = [];
 
 function mapStateToProps(state): IConnectedProps {
   const gameId = selectors.activeGameId(state);

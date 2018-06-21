@@ -251,8 +251,8 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
     const mod: types.IMod = mods[modLookup.id];
 
     return api.lookupModMeta({
-      fileMD5: mod.attributes['fileMD5'],
-      fileSize: mod.attributes['fileSize'],
+      fileMD5: util.getSafe(mod.attributes, ['fileMD5'], undefined),
+      fileSize: util.getSafe(mod.attributes, ['fileSize'], undefined),
       gameId: gameMode,
     })
       .then((meta: ILookupResult[]) => {

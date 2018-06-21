@@ -1,7 +1,7 @@
 import { types } from 'vortex-api';
 
 function renderModName(mod: types.IMod) {
-  if (mod === undefined) {
+  if ((mod === undefined) || (mod.attributes === undefined)) {
     return undefined;
   }
   const id = mod.attributes['customFileName']
