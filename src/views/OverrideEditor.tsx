@@ -119,10 +119,10 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
               />
               <div className='override-editor-usage'>
                 <div>{t('Use this dialog to select which mod should provide a file.')}</div>
-                <div>{t('The mod marked as "Default" is the one that would provide the '
-                      + 'file based on current mod rules.')}</div>
-                <div>{t('Please try to minimize the number of changes you do here, preferring '
-                      + 'mod rules to order entire mods.')}</div>
+                <div>{t('The mod marked as "Default" is the one that will provide the '
+                      + 'file based on current mod rules, if you make no change.')}</div>
+                <div>{t('Please try to minimize the number of overrides you set up here. '
+                      + 'Use mod rules to order entire mods.')}</div>
                 <div>{t('This lists only the files in the selected mod that aren\'t exclusive '
                       + 'to it.')}</div>
               </div>
