@@ -416,6 +416,12 @@ function main(context: types.IExtensionContext) {
       const { store } = context.api;
       const gameMode = selectors.activeGameId(store.getState());
       store.dispatch(setFileOverrideDialog(gameMode, instanceIds[0]));
+    }, instanceIds => {
+      const { store, translate } = context.api;
+      return (util.getSafe(store.getState(),
+                           ['session', 'dependencies', 'conflicts', instanceIds[0]],
+                           [])
+        .length > 0) ? true : translate('No file conflicts');
     });
 
   context.once(() => {
