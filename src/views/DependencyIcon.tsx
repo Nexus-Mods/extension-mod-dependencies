@@ -196,12 +196,16 @@ function updateCursorPos(monitor: __ReactDnd.DragSourceMonitor,
     const dist = Math.abs(curPos.x - lastUpdatePos.x) + Math.abs(curPos.y - lastUpdatePos.y);
     if (dist > 2) {
       const sourceId = (monitor.getItem() as any).id;
+      lastUpdatePos = curPos;
+      onSetTarget(null, curPos);
       try {
         onSetSource(sourceId, componentCenter(component));
-        lastUpdatePos = curPos;
-        onSetTarget(null, curPos);
       } catch (err) {
-        log('warn', 'failed to set connection coordinates', { error: err.message });
+        // TODO: this is actually ok atm. The only thing that can throw is the call to findDOMNode
+        //   in componentCenter which will happen if the component is off-screen and outside the
+        //   scroll window.
+        //   In this case just leave the source where it was, which should be just outside the
+        //   table
       }
     }
   }

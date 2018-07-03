@@ -1,3 +1,4 @@
+import * as _ from 'lodash';
 import { types, util } from 'vortex-api';
 
 import * as actions from './actions';
@@ -9,8 +10,7 @@ import { highlightConflictIcon } from './actions';
 const sessionReducer: types.IReducerSpec = {
   reducers: {
     [actions.setSource as any]: (state, payload) => {
-      if ((payload.id === util.getSafe(state, ['connection', 'source', 'id'], undefined))
-          && (payload.pos !== undefined)) {
+      if (_.isEqual(payload, util.getSafe(state, ['connection', 'source'], undefined))) {
         // unchanged
         return state;
       }
