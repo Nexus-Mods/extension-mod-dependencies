@@ -160,7 +160,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
         </FormControl>
         <div className='conflict-rule-description'>
           <div className='conflict-rule-reference'>
-            <p className='conflict-rule-name'>
+            <div className='conflict-rule-name'>
               <div>{util.renderModName(mods[conflict.otherMod.id])}</div>
               <OverlayTrigger trigger='click' rootClose placement='right' overlay={popover}>
                 <a>{
@@ -169,7 +169,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
                     ns: 'dependency-manager',
                   })}</a>
               </OverlayTrigger>
-            </p>
+            </div>
             <FormControl
               componentClass='select'
               value={rule.version}
