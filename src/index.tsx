@@ -6,6 +6,7 @@ import { IBiDirRule } from './types/IBiDirRule';
 import { IConflict } from './types/IConflict';
 import { IModLookupInfo } from './types/IModLookupInfo';
 import determineConflicts from './util/conflicts';
+import DependenciesFilter from './util/DependenciesFilter';
 import renderModLookup from './util/renderModLookup';
 import renderModName from './util/renderModName';
 import renderReference from './util/renderReference';
@@ -390,6 +391,8 @@ function main(context: types.IExtensionContext) {
     edit: {},
     isSortable: false,
     isVolatile: true,
+    filter: new DependenciesFilter(dependencyState, () =>
+      util.getSafe(context.api.store.getState(), ['session', 'dependencies', 'conflicts'], {})),
   });
 
   context.registerReducer(['session', 'dependencies'], connectionReducer);
