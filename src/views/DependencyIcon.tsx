@@ -59,9 +59,9 @@ class RuleDescription extends React.Component<IDescriptionProps, {}> {
   }
 
   private key(rule: IRule) {
-    return rule.type + '_' + rule.reference.logicalFileName
+    return rule.type + '_' + (rule.reference.logicalFileName
       || rule.reference.fileExpression
-      || rule.reference.fileMD5;
+      || rule.reference.fileMD5);
   }
 
   private renderRemove = () => {
@@ -139,6 +139,7 @@ interface IConnectedProps {
   source: { id: string, pos: any };
   highlightConflict: boolean;
   mods: { [modId: string]: types.IMod };
+  modState: { [id: string]: any };
 }
 
 interface IActionProps {
@@ -363,18 +364,26 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
   }
 
   private renderConnectorIcon(mod: types.IMod) {
-    const {t, connectDragSource, enabledMods, mods} = this.props;
+    const {t, connectDragSource, enabledMods, modState, mods} = this.props;
 
     const classes = ['btn-dependency'];
 
     let anyUnfulfilled: boolean = false;
 
     const renderRule = (rule: IRule, onRemove: (rule: IRule) => void) => {
-      const isFulfilled = ruleFulfilled(enabledMods, rule);
+      const isFulfilled = util.getSafe(modState, [mod.id, 'enabled'], false)
+        ? ruleFulfilled(enabledMods, rule)
+        : true;
+
       // isFulfilled could be null
       if (isFulfilled === false) {
         anyUnfulfilled = true;
       }
+
+      if (mods === undefined) {
+        return null;
+      }
+
       const refMod: types.IMod = mods[(rule.reference as any).id];
       return (
         <RuleDescription
@@ -512,9 +521,9 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
 
   private key = (rule: IRule) => {
     return rule.type + '_' +
-      rule.reference.logicalFileName
+      (rule.reference.logicalFileName
       || rule.reference.fileExpression
-      || rule.reference.fileMD5;
+      || rule.reference.fileMD5);
   }
 
   private removeRule = (rule: IRule) => {
@@ -554,13 +563,15 @@ const DependencyIconDrag =
       DependencyIcon));
 
 function mapStateToProps(state: types.IState): IConnectedProps {
-  const gameId = selectors.activeGameId(state);
+  const profile = selectors.activeProfile(state);
+  const gameId = profile.gameId;
 
   return {
     gameId,
     conflicts: (state.session as any).dependencies.conflicts,
     mods: state.persistent.mods[gameId],
     enabledMods: enabledModKeys(state),
+    modState: profile.modState,
     source: util.getSafe(state, ['session', 'dependencies', 'connection', 'source'], undefined),
     highlightConflict:
       util.getSafe(state, ['session', 'dependencies', 'highlightConflicts'], false),
