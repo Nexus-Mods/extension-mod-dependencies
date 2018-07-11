@@ -340,16 +340,19 @@ function generateLoadOrder(api: types.IExtensionApi): Promise<void> {
   const gameMode = selectors.activeGameId(store.getState());
   const state: types.IState = store.getState();
   const gameMods = state.persistent.mods[gameMode] || [];
-  const mods = Object.keys(gameMods).map(key => gameMods[key]);
+  const profile = selectors.activeProfile(state);
+  const mods = Object.keys(gameMods)
+    .map(key => gameMods[key])
+    .filter((mod: types.IMod) => util.getSafe(profile.modState, [mod.id, 'enabled'], false));
   return util.sortMods(gameMode, mods, api)
-  .then(sortedMods => {
-    loadOrder = sortedMods.reduce(
-      (prev: { [id: string]: number }, modId: string, idx: number) => {
-        prev[modId] = idx;
-        return prev;
-      }, {});
-    loadOrderChanged();
-  });
+    .then(sortedMods => {
+      loadOrder = sortedMods.reduce(
+        (prev: { [id: string]: number }, modId: string, idx: number) => {
+          prev[modId] = idx;
+          return prev;
+        }, {});
+      loadOrderChanged();
+    });
 }
 
 function main(context: types.IExtensionContext) {
