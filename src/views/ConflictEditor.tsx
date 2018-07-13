@@ -236,7 +236,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
   }
 
   private translateModVersion(mod: types.IMod, spe: RuleVersion) {
-    if (spe === 'any') {
+    if ((spe === 'any') || (mod.attributes === undefined)) {
       return '*';
     } else if (spe === 'compatible') {
       return '^' + mod.attributes.version;

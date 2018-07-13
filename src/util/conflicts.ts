@@ -12,15 +12,16 @@ interface IFileMap {
 }
 
 function toLookupInfo(mod: types.IMod): IModLookupInfo {
+  const attributes = mod.attributes || {};
   return {
     id: mod.id,
-    fileMD5: mod.attributes['fileMD5'],
-    customFileName: mod.attributes['customFileName'],
-    fileName: mod.attributes['fileName'],
-    fileSizeBytes: mod.attributes['fileSizeBytes'],
-    logicalFileName: mod.attributes['logicalFileName'],
-    name: mod.attributes['name'],
-    version: mod.attributes['version'],
+    fileMD5: attributes['fileMD5'],
+    customFileName: attributes['customFileName'],
+    fileName: attributes['fileName'],
+    fileSizeBytes: attributes['fileSizeBytes'],
+    logicalFileName: attributes['logicalFileName'],
+    name: attributes['name'],
+    version: attributes['version'],
   };
 }
 
@@ -64,12 +65,7 @@ function getConflictMap(files: IFileMap): IConflictMap {
 
 function findConflicts(basePath: string,
                        mods: types.IMod[]): Promise<{ [modId: string]: IConflict[] }> {
-  let normFunc: (input: string) => string;
-  return util.getNormalizeFunc(basePath)
-    .then(func => {
-      normFunc = func;
-      return getAllFiles(basePath, mods);
-    })
+  return getAllFiles(basePath, mods)
     .then((files: IFileMap) => {
       const conflictMap = getConflictMap(files);
       const conflictsByMod: { [modId: string]: IConflict[] } = {};
