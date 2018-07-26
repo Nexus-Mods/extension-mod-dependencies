@@ -141,6 +141,7 @@ interface ILoadOrderState {
 
 let loadOrder: ILoadOrderState = {};
 let loadOrderChanged: () => void = () => undefined;
+let dependenciesChanged :() => void = () => undefined;
 
 function findRule(ref: IModLookupInfo): IBiDirRule {
   return dependencyState.modRules.find(rule => {
@@ -391,9 +392,11 @@ function main(context: types.IExtensionContext) {
       dependencyState.modRules.filter(rule => (util as any).testModReference(mod, rule.source)),
     isToggleable: true,
     isDefaultVisible: false,
+    externalData: (onChange: () => void) => {
+      dependenciesChanged = onChange;
+    },
     edit: {},
     isSortable: false,
-    isVolatile: true,
     filter: new DependenciesFilter(dependencyState, () =>
       util.getSafe(context.api.store.getState(), ['session', 'dependencies', 'conflicts'], {})),
   });
@@ -424,6 +427,7 @@ function main(context: types.IExtensionContext) {
       updateMetaRules(context.api, gameMode, store.getState().persistent.mods[gameMode])
       .then(rules => {
         dependencyState.modRules = rules;
+        dependenciesChanged();
         updateConflictTimer.schedule(undefined);
       });
     });
@@ -434,6 +438,7 @@ function main(context: types.IExtensionContext) {
         .then(() => updateMetaRules(context.api, gameMode, state.persistent.mods[gameMode]))
         .then(rules => {
           dependencyState.modRules = rules;
+          dependenciesChanged();
           return null;
         });
     });
@@ -449,6 +454,7 @@ function main(context: types.IExtensionContext) {
           .then(() => updateMetaRules(context.api, gameMode, newState[gameMode]))
           .then(rules => {
             dependencyState.modRules = rules;
+            dependenciesChanged();
             updateConflictTimer.schedule(undefined);
             return null;
           });
