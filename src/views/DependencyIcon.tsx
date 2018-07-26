@@ -31,7 +31,7 @@ interface IDescriptionProps {
 
 class RuleDescription extends React.Component<IDescriptionProps, {}> {
   public render(): JSX.Element {
-    const {onRemoveRule, rule} = this.props;
+    const {rule} = this.props;
 
     const key = this.key(rule);
     return (
@@ -58,10 +58,11 @@ class RuleDescription extends React.Component<IDescriptionProps, {}> {
     }
   }
 
-  private key(rule: IRule) {
+  private key(rule: any) {
     return rule.type + '_' + (rule.reference.logicalFileName
       || rule.reference.fileExpression
-      || rule.reference.fileMD5);
+      || rule.reference.fileMD5
+      || rule.reference.id);
   }
 
   private renderRemove = () => {
@@ -564,14 +565,14 @@ const DependencyIconDrag =
 
 function mapStateToProps(state: types.IState): IConnectedProps {
   const profile = selectors.activeProfile(state);
-  const gameId = profile.gameId;
+  const gameId = profile !== undefined ? profile.gameId : undefined;
 
   return {
     gameId,
     conflicts: (state.session as any).dependencies.conflicts,
     mods: state.persistent.mods[gameId],
     enabledMods: enabledModKeys(state),
-    modState: profile.modState,
+    modState: profile !== undefined ? profile.modState : undefined,
     source: util.getSafe(state, ['session', 'dependencies', 'connection', 'source'], undefined),
     highlightConflict:
       util.getSafe(state, ['session', 'dependencies', 'highlightConflicts'], false),

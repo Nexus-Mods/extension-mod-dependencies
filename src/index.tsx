@@ -16,7 +16,6 @@ import ConflictGraph from './views/ConflictGraph';
 import Connector from './views/Connector';
 import DependencyIcon, { ILocalState } from './views/DependencyIcon';
 import Editor from './views/Editor';
-import ProgressFooter from './views/ProgressFooter';
 
 import { highlightConflictIcon, setConflictInfo, setEditCycle } from './actions';
 import connectionReducer from './reducers';
@@ -29,7 +28,7 @@ import * as path from 'path';
 import * as React from 'react';
 import * as Redux from 'redux';
 import {} from 'redux-thunk';
-import { actions, ComponentEx, log, selectors, types, util } from 'vortex-api';
+import { actions, log, selectors, types, util } from 'vortex-api';
 
 function makeReference(mod: IModInfo): IReference {
   return {
