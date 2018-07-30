@@ -190,7 +190,7 @@ function updateConflictInfo(api: types.IExtensionApi,
       '[table][tbody]',
     ].concat(Object.keys(unsolved).map(modId =>
       '[tr]' + t('[td]{{modName}}[/td]'
-                + '[td][color="red"][svg]flash[/svg][/color][/td]'
+                + '[td][color="red"][svg]conflict[/svg][/color][/td]'
                 + '[td][list]{{conflicts}}[/list][/td][/tr]', {
           replace: {
             modName: renderModName(mods[modId]),
