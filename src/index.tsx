@@ -396,8 +396,12 @@ function main(context: types.IExtensionContext) {
     },
     edit: {},
     isSortable: false,
-    filter: new DependenciesFilter(dependencyState, () =>
-      util.getSafe(context.api.store.getState(), ['session', 'dependencies', 'conflicts'], {})),
+    filter: new DependenciesFilter(dependencyState,
+      () => {
+        const state = context.api.store.getState();
+        return util.getSafe(state, ['persistent', 'mods', selectors.activeGameId(state)], {});
+      },
+      () => util.getSafe(context.api.store.getState(), ['session', 'dependencies', 'conflicts'], {})),
   });
 
   context.registerReducer(['session', 'dependencies'], connectionReducer);

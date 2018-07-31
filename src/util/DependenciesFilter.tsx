@@ -21,6 +21,8 @@ export class DependenciesFilterComponent extends React.Component<types.IFilterPr
         options={options}
         value={filter}
         onChange={this.changeFilter}
+        searchable={false}
+        onInputChange={() => null}
       />
     );
   }
@@ -37,10 +39,14 @@ class DependenciesFilter implements types.ITableFilter {
   public dataId = 'id';
 
   private mLocalState: ILocalState;
+  private mGetMods: () => { [modId: string]: types.IMod };
   private mGetConflicts: () => { [modId: string]: IConflict[] };
 
-  constructor(localState: ILocalState, getConflicts: () => { [modId: string]: IConflict[] }) {
+  constructor(localState: ILocalState,
+              getMods: () => { [modId: string]: types.IMod },
+              getConflicts: () => { [modId: string]: IConflict[] }) {
     this.mLocalState = localState;
+    this.mGetMods = getMods;
     this.mGetConflicts = getConflicts;
   }
 
@@ -52,9 +58,10 @@ class DependenciesFilter implements types.ITableFilter {
       return (conflicts[value] !== undefined) && (conflicts[value].length > 0);
     } else if (filter === 'has-unsolved') {
       const conflicts = this.mGetConflicts();
+      const mods = this.mGetMods();
 
       const unsolvedConflict = (conflicts[value] || []).find(conflict => {
-        const rule = this.findRule(conflict.otherMod);
+        const rule = this.findRule(mods[value], conflict.otherMod);
         return rule === undefined;
       });
 
@@ -64,11 +71,10 @@ class DependenciesFilter implements types.ITableFilter {
     }
   }
 
-  private findRule(ref: IModLookupInfo): IBiDirRule {
-    return this.mLocalState.modRules.find(rule => {
-      const res = util.testModReference(ref, rule.reference);
-      return res;
-    });
+  private findRule(source: types.IMod, ref: IModLookupInfo): IBiDirRule {
+    return this.mLocalState.modRules.find(rule =>
+      util.testModReference(source, rule.source)
+      && util.testModReference(ref, rule.reference));
   }
 }
 
