@@ -345,10 +345,10 @@ function generateLoadOrder(api: types.IExtensionApi): Promise<void> {
     .map(key => gameMods[key])
     .filter((mod: types.IMod) => util.getSafe(profile.modState, [mod.id, 'enabled'], false));
   return util.sortMods(gameMode, mods, api)
-    .then(sortedMods => {
+    .then((sortedMods: any) => {
       loadOrder = sortedMods.reduce(
-        (prev: { [id: string]: number }, modId: string, idx: number) => {
-          prev[modId] = idx;
+        (prev: { [id: string]: number }, mod: types.IMod, idx: number) => {
+          prev[mod.id] = idx;
           return prev;
         }, {});
       loadOrderChanged();
