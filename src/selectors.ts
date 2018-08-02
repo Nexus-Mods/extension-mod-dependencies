@@ -9,7 +9,8 @@ const allMods = (state: types.IState) => state.persistent.mods;
 const currentGameMods = createSelector(allMods, selectors.activeGameId, (inMods, gameId) =>
   inMods[gameId]);
 
-const modState = createSelector(selectors.activeProfile, (profile) => profile.modState);
+const modState = createSelector(selectors.activeProfile, (profile) =>
+  profile ? profile.modState : {});
 
 let lastLookupInfo: IModLookupInfo[];
 
@@ -17,7 +18,7 @@ export const enabledModKeys = createSelector(currentGameMods, modState, (mods, m
   const res: IModLookupInfo[] = [];
 
   Object.keys(mods || {}).forEach(modId => {
-    const attributes = mods[modId].attributes;
+    const attributes = mods[modId].attributes || {};
     if (util.getSafe(modStateIn, [modId, 'enabled'], false)
         && (attributes['fileMD5'] || attributes['fileName']
             || attributes['logicalFileName'] || attributes['name'])) {

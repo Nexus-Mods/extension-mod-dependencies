@@ -229,3 +229,7 @@
   border: $border-width solid $border-color;
   padding: 4px;
 }
+
+#table-mods .header-dependencies {
+  min-width: 10em;
+}

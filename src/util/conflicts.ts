@@ -27,7 +27,7 @@ function toLookupInfo(mod: types.IMod): IModLookupInfo {
 
 function getAllFiles(basePath: string, mods: types.IMod[]): Promise<IFileMap> {
   const files: IFileMap = {};
-  return Promise.map(mods, (mod: types.IMod) => {
+  return Promise.map(mods.filter(mod => mod.installationPath !== undefined), (mod: types.IMod) => {
     const modPath = path.join(basePath, mod.installationPath);
     return util.walk(modPath, (iterPath: string, stat: fs.Stats) => {
       if (stat.isFile()) {

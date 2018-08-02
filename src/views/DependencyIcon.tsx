@@ -58,10 +58,11 @@ class RuleDescription extends React.Component<IDescriptionProps, {}> {
     }
   }
 
-  private key(rule: IRule) {
-    return rule.type + '_' + rule.reference.logicalFileName
+  private key(rule: any) {
+    return rule.type + '_' + (rule.reference.logicalFileName
       || rule.reference.fileExpression
-      || rule.reference.fileMD5;
+      || rule.reference.fileMD5
+      || rule.reference.id);
   }
 
   private renderRemove = () => {
@@ -139,6 +140,7 @@ interface IConnectedProps {
   source: { id: string, pos: any };
   highlightConflict: boolean;
   mods: { [modId: string]: types.IMod };
+  modState: { [id: string]: any };
 }
 
 interface IActionProps {
@@ -193,12 +195,16 @@ function updateCursorPos(monitor: __ReactDnd.DragSourceMonitor,
     const dist = Math.abs(curPos.x - lastUpdatePos.x) + Math.abs(curPos.y - lastUpdatePos.y);
     if (dist > 2) {
       const sourceId = (monitor.getItem() as any).id;
+      lastUpdatePos = curPos;
+      onSetTarget(null, curPos);
       try {
         onSetSource(sourceId, componentCenter(component));
-        lastUpdatePos = curPos;
-        onSetTarget(null, curPos);
       } catch (err) {
-        log('warn', 'failed to set connection coordinates', { error: err.message });
+        // TODO: this is actually ok atm. The only thing that can throw is the call to findDOMNode
+        //   in componentCenter which will happen if the component is off-screen and outside the
+        //   scroll window.
+        //   In this case just leave the source where it was, which should be just outside the
+        //   table
       }
     }
   }
@@ -357,18 +363,26 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
   }
 
   private renderConnectorIcon(mod: types.IMod) {
-    const {t, connectDragSource, enabledMods, mods} = this.props;
+    const {t, connectDragSource, enabledMods, modState, mods} = this.props;
 
     const classes = ['btn-dependency'];
 
     let anyUnfulfilled: boolean = false;
 
     const renderRule = (rule: IRule, onRemove: (rule: IRule) => void) => {
-      const isFulfilled = ruleFulfilled(enabledMods, rule);
+      const isFulfilled = util.getSafe(modState, [mod.id, 'enabled'], false)
+        ? ruleFulfilled(enabledMods, rule)
+        : true;
+
       // isFulfilled could be null
       if (isFulfilled === false) {
         anyUnfulfilled = true;
       }
+
+      if (mods === undefined) {
+        return null;
+      }
+
       const refMod: types.IMod = mods[(rule.reference as any).id];
       return (
         <RuleDescription
@@ -527,9 +541,9 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
 
   private key = (rule: IRule) => {
     return rule.type + '_' +
-      rule.reference.logicalFileName
+      (rule.reference.logicalFileName
       || rule.reference.fileExpression
-      || rule.reference.fileMD5;
+      || rule.reference.fileMD5);
   }
 
   private removeRule = (rule: IRule) => {
@@ -569,13 +583,15 @@ const DependencyIconDrag =
       DependencyIcon));
 
 function mapStateToProps(state: types.IState): IConnectedProps {
-  const gameId = selectors.activeGameId(state);
+  const profile = selectors.activeProfile(state);
+  const gameId = profile !== undefined ? profile.gameId : undefined;
 
   return {
     gameId,
     conflicts: (state.session as any).dependencies.conflicts,
     mods: state.persistent.mods[gameId],
     enabledMods: enabledModKeys(state),
+    modState: profile !== undefined ? profile.modState : undefined,
     source: util.getSafe(state, ['session', 'dependencies', 'connection', 'source'], undefined),
     highlightConflict:
       util.getSafe(state, ['session', 'dependencies', 'highlightConflicts'], false),

@@ -1,10 +1,11 @@
+import { ILocalState } from '../views/DependencyIcon';
+
 import * as React from 'react';
 import Select from 'react-select';
 import { types, util } from 'vortex-api';
 import { IBiDirRule } from '../types/IBiDirRule';
 import { IConflict } from '../types/IConflict';
 import { IModLookupInfo } from '../types/IModLookupInfo';
-import { ILocalState } from '../views/DependencyIcon';
 
 export class DependenciesFilterComponent extends React.Component<types.IFilterProps, {}> {
   public render(): JSX.Element {
@@ -20,6 +21,8 @@ export class DependenciesFilterComponent extends React.Component<types.IFilterPr
         options={options}
         value={filter}
         onChange={this.changeFilter}
+        searchable={false}
+        onInputChange={() => null}
       />
     );
   }
@@ -32,38 +35,46 @@ export class DependenciesFilterComponent extends React.Component<types.IFilterPr
 
 class DependenciesFilter implements types.ITableFilter {
   public component = DependenciesFilterComponent;
-  public raw = false;
+  public raw = true;
+  public dataId = 'id';
 
-  private mGetStore: () => Redux.Store<types.IState>;
   private mLocalState: ILocalState;
+  private mGetMods: () => { [modId: string]: types.IMod };
+  private mGetConflicts: () => { [modId: string]: IConflict[] };
 
-  constructor(store: () => Redux.Store<types.IState>, state: ILocalState) {
-    this.mGetStore = store;
-    this.mLocalState = state;
+  constructor(localState: ILocalState,
+              getMods: () => { [modId: string]: types.IMod },
+              getConflicts: () => { [modId: string]: IConflict[] }) {
+    this.mLocalState = localState;
+    this.mGetMods = getMods;
+    this.mGetConflicts = getConflicts;
   }
 
-  public matches(filter: string, value: types.IMod): boolean {
-    const state = this.mGetStore().getState();
-    const conflicts: { [modId: string]: IConflict[] } =
-      (state.session as any).dependencies.conflicts;
-
+  public matches(filter: string, value: string): boolean {
     // TODO: not trivial to implement, because the value doesn't contain
     //   any information about file conflicts
     if (filter === 'has-conflict') {
-      return conflicts[value.id] !== undefined;
+      const conflicts = this.mGetConflicts();
+      return (conflicts[value] !== undefined) && (conflicts[value].length > 0);
     } else if (filter === 'has-unsolved') {
-      return (conflicts[value.id] !== undefined)
-        && (conflicts[value.id].find(conflict => {
-          const rule = this.findRule(conflict.otherMod);
-          return rule === undefined;
-        }) !== undefined);
+      const conflicts = this.mGetConflicts();
+      const mods = this.mGetMods();
+
+      const unsolvedConflict = (conflicts[value] || []).find(conflict => {
+        const rule = this.findRule(mods[value], conflict.otherMod);
+        return rule === undefined;
+      });
+
+      return unsolvedConflict !== undefined;
     } else {
       return true;
     }
   }
 
-  private findRule(ref: IModLookupInfo): IBiDirRule {
-    return this.mLocalState.modRules.find(rule => util.testModReference(ref, rule.reference));
+  private findRule(source: types.IMod, ref: IModLookupInfo): IBiDirRule {
+    return this.mLocalState.modRules.find(rule =>
+      util.testModReference(source, rule.source)
+      && util.testModReference(ref, rule.reference));
   }
 }
 

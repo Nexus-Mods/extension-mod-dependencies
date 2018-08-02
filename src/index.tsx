@@ -143,6 +143,7 @@ interface ILoadOrderState {
 
 let loadOrder: ILoadOrderState = {};
 let loadOrderChanged: () => void = () => undefined;
+let dependenciesChanged :() => void = () => undefined;
 
 function findRule(ref: IModLookupInfo): IBiDirRule {
   return dependencyState.modRules.find(rule => {
@@ -192,7 +193,7 @@ function updateConflictInfo(api: types.IExtensionApi,
       '[table][tbody]',
     ].concat(Object.keys(unsolved).map(modId =>
       '[tr]' + t('[td]{{modName}}[/td]'
-                + '[td][color="red"][svg]flash[/svg][/color][/td]'
+                + '[td][color="red"][svg]conflict[/svg][/color][/td]'
                 + '[td][list]{{conflicts}}[/list][/td][/tr]', {
           replace: {
             modName: renderModName(mods[modId]),
@@ -344,16 +345,19 @@ function generateLoadOrder(api: types.IExtensionApi): Promise<void> {
   const gameMode = selectors.activeGameId(store.getState());
   const state: types.IState = store.getState();
   const gameMods = state.persistent.mods[gameMode] || [];
-  const mods = Object.keys(gameMods).map(key => gameMods[key]);
+  const profile = selectors.activeProfile(state);
+  const mods = Object.keys(gameMods)
+    .map(key => gameMods[key])
+    .filter((mod: types.IMod) => util.getSafe(profile.modState, [mod.id, 'enabled'], false));
   return util.sortMods(gameMode, mods, api)
-  .then(sortedMods => {
-    loadOrder = sortedMods.reduce(
-      (prev: { [id: string]: number }, modId: string, idx: number) => {
-        prev[modId] = idx;
-        return prev;
-      }, {});
-    loadOrderChanged();
-  });
+    .then((sortedMods: any) => {
+      loadOrder = sortedMods.reduce(
+        (prev: { [id: string]: number }, mod: types.IMod, idx: number) => {
+          prev[mod.id] = idx;
+          return prev;
+        }, {});
+      loadOrderChanged();
+    });
 }
 
 function main(context: types.IExtensionContext) {
@@ -390,10 +394,18 @@ function main(context: types.IExtensionContext) {
     calc: (mod: types.IMod) => mod,
     isToggleable: true,
     isDefaultVisible: false,
+    externalData: (onChange: () => void) => {
+      dependenciesChanged = onChange;
+    },
     edit: {},
     isSortable: false,
     isVolatile: true,
-    filter: new DependenciesFilter(() => context.api.store, dependencyState),
+    filter: new DependenciesFilter(dependencyState,
+      () => {
+        const state = context.api.store.getState();
+        return util.getSafe(state, ['persistent', 'mods', selectors.activeGameId(state)], {});
+      },
+      () => util.getSafe(context.api.store.getState(), ['session', 'dependencies', 'conflicts'], {})),
   });
 
   context.registerReducer(['session', 'dependencies'], connectionReducer);
@@ -435,6 +447,7 @@ function main(context: types.IExtensionContext) {
       updateMetaRules(context.api, gameMode, store.getState().persistent.mods[gameMode])
       .then(rules => {
         dependencyState.modRules = rules;
+        dependenciesChanged();
         updateConflictTimer.schedule(undefined);
       });
     });
@@ -445,6 +458,7 @@ function main(context: types.IExtensionContext) {
         .then(() => updateMetaRules(context.api, gameMode, state.persistent.mods[gameMode]))
         .then(rules => {
           dependencyState.modRules = rules;
+          dependenciesChanged();
           return null;
         });
     });
@@ -460,6 +474,7 @@ function main(context: types.IExtensionContext) {
           .then(() => updateMetaRules(context.api, gameMode, newState[gameMode]))
           .then(rules => {
             dependencyState.modRules = rules;
+            dependenciesChanged();
             updateConflictTimer.schedule(undefined);
             return null;
           });
