@@ -74,10 +74,13 @@ function findConflicts(basePath: string,
           if (conflictsByMod[lhsId] === undefined) {
             conflictsByMod[lhsId] = [];
           }
-          conflictsByMod[lhsId].push({
-            otherMod: toLookupInfo(mods.find(mod => mod.id === rhsId)),
-            files: conflictMap[lhsId][rhsId],
-          });
+          const mod = mods.find(mod => mod.id === rhsId);
+          if (mod !== undefined) {
+            conflictsByMod[lhsId].push({
+              otherMod: toLookupInfo(mod),
+              files: conflictMap[lhsId][rhsId],
+            });
+          }
         });
       });
       return conflictsByMod;
