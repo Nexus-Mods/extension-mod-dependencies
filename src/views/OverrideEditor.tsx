@@ -144,14 +144,14 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
   }
 
   private apply = () => {
-    const { onClose, onSetFileOverride, gameId, modId, mods } = this.props;
+    const { onClose, onSetFileOverride, gameId, mods } = this.props;
     const { treeState } = this.state;
 
     const files: { [provider: string]: string[] } = {};
 
     const initProvider = (provId: string) => {
       if (files[provId] === undefined) {
-        files[provId] = ((mods[provId] as any).fileOverrides || {});
+        files[provId] = ((mods[provId] as any).fileOverrides || []);
       }
     };
 
