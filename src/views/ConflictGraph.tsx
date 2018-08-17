@@ -10,6 +10,8 @@ import { Button, Modal } from 'react-bootstrap';
 import { withFauxDOM } from 'react-faux-dom';
 import { translate } from 'react-i18next';
 import { connect } from 'react-redux';
+import * as Redux from 'redux';
+import { ThunkDispatch } from 'redux-thunk';
 import { actions, ComponentEx, selectors, types, util } from 'vortex-api';
 
 interface ILocalState {
@@ -212,7 +214,7 @@ function mapStateToProps(state): IConnectedProps {
   };
 }
 
-function mapDispatchToProps(dispatch: Redux.Dispatch<any>): IActionProps {
+function mapDispatchToProps(dispatch: ThunkDispatch<any, null, Redux.Action>): IActionProps {
   return {
     onClose: () => dispatch(setEditCycle(undefined)),
     onAddRule: (gameId, modId, rule) =>

@@ -8,6 +8,8 @@ import * as React from 'react';
 import { Button, Col, ControlLabel, Form, FormControl, FormGroup, Modal } from 'react-bootstrap';
 import { translate } from 'react-i18next';
 import { connect } from 'react-redux';
+import * as Redux from 'redux';
+import { ThunkDispatch } from 'redux-thunk';
 import * as semver from 'semver';
 import { actions, ComponentEx, FormFeedback, More, types, util } from 'vortex-api';
 
@@ -268,7 +270,7 @@ function mapStateToProps(state: any): IConnectedProps {
   };
 }
 
-function mapDispatchToProps(dispatch: Redux.Dispatch<any>): IActionProps {
+function mapDispatchToProps(dispatch: ThunkDispatch<any, null, Redux.Action>): IActionProps {
   return {
     onCloseDialog: () => dispatch(closeDialog()),
     onSetType: (type) => dispatch(setType(type)),

@@ -290,7 +290,7 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
 
   public componentDidMount() {
     this.mIsMounted = true;
-    this.props.connectDragPreview(getEmptyImage());
+    this.props.connectDragPreview(getEmptyImage() as any);
   }
 
   public componentWillUnmount() {

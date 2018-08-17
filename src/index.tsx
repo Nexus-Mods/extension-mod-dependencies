@@ -154,7 +154,7 @@ function findRule(ref: IModLookupInfo): IBiDirRule {
 function updateConflictInfo(api: types.IExtensionApi,
                             conflicts: { [modId: string]: IConflict[] }) {
   const t: I18next.TranslationFunction = api.translate;
-  const store: Redux.Store<types.IState> = api.store;
+  const store: any = api.store;
 
   const gameMode: string = selectors.activeGameId(store.getState());
   const mods = store.getState().persistent.mods[gameMode];
@@ -245,7 +245,7 @@ function renderRuleType(t: I18next.TranslationFunction, type: RuleType): string 
 
 function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
   const t = api.translate;
-  const store = api.store;
+  const store: any = api.store;
   const state = store.getState();
   const enabledMods: IModLookupInfo[] = enabledModKeys(state);
   const gameMode = selectors.activeGameId(state);

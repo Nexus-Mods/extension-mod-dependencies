@@ -11,7 +11,8 @@ import { Button, FormControl, ListGroup, ListGroupItem,
          Modal, OverlayTrigger, Popover } from 'react-bootstrap';
 import { translate } from 'react-i18next';
 import { connect } from 'react-redux';
-import {} from 'redux-thunk';
+import * as Redux from 'redux';
+import { ThunkDispatch } from 'redux-thunk';
 import * as semver from 'semver';
 import { actions as vortexActions, ComponentEx,
          tooltip, types, util } from 'vortex-api';
@@ -295,7 +296,7 @@ function mapStateToProps(state): IConnectedProps {
   };
 }
 
-function mapDispatchToProps(dispatch: Redux.Dispatch<any>): IActionProps {
+function mapDispatchToProps(dispatch: ThunkDispatch<any, null, Redux.Action>): IActionProps {
   return {
     onClose: () => dispatch(setConflictDialog(undefined, undefined, undefined)),
     onAddRule: (gameId, modId, rule) =>

@@ -11,6 +11,7 @@ import { translate } from 'react-i18next';
 import { connect } from 'react-redux';
 import * as TreeT from 'react-sortable-tree';
 import { } from 'react-sortable-tree-theme-file-explorer';
+import * as Redux from 'redux';
 import { actions, ComponentEx, DNDContainer, types, util } from 'vortex-api';
 
 interface IFileTree {
