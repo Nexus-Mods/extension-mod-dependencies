@@ -259,7 +259,9 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
         ? this.nextState.treeState.find(findFunc)
         : cur.children.find(findFunc);
     });
-    cur.selected = eventKey;
+    if (cur !== undefined) {
+      cur.selected = eventKey;
+    }
   }
 
   private toTree(props: IProps): IFileTree[] {
