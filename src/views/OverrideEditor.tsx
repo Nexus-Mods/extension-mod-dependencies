@@ -267,8 +267,8 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
         : cur.children.find(findFunc);
     });
     if (cur !== undefined) {
-    cur.selected = eventKey;
-  }
+      cur.selected = eventKey;
+    }
   }
 
   private toTree(props: IProps): IFileTree[] {
@@ -335,7 +335,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
 
   private sortedMods = (newProps: IProps) => {
     const { gameId, mods } = newProps;
-    return util.sortMods(gameId, Object.keys(mods).map(key => mods[key]), this.context.api);
+    return util.sortMods(gameId, Object.keys(mods).map(key => mods[key]), this.context.api).map(mod => (mod as any).id);
   }
 }
 
