@@ -253,13 +253,22 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
     const filePath =
       evt.currentTarget.parentNode.parentNode.parentNode.getAttribute('data-filepath');
     let cur: IFileTree;
+
+    // skip the top level "." directory
+    let searchPos: IFileTree[] = this.nextState.treeState;
+    if ((searchPos.length === 1) && (searchPos[0].title === '.')) {
+      cur = searchPos[0];
+    }
+
     filePath.split(nodePath.sep).forEach(comp => {
       const findFunc = iter => iter.title === comp;
       cur = (cur === undefined)
         ? this.nextState.treeState.find(findFunc)
         : cur.children.find(findFunc);
     });
+    if (cur !== undefined) {
     cur.selected = eventKey;
+  }
   }
 
   private toTree(props: IProps): IFileTree[] {
