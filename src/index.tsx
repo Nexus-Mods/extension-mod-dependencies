@@ -371,6 +371,10 @@ function main(context: types.IExtensionContext) {
     isSortable: true,
     isDefaultVisible: false,
     calc: (mod: types.IMod) => loadOrder[mod.id],
+    condition: () => {
+      const gameMode = selectors.activeGameId(context.api.store.getState());
+      return util.getGame(gameMode).mergeMods;
+    },
     edit: {},
     externalData: (onChange: () => void) => {
       loadOrderChanged = onChange;
@@ -391,6 +395,11 @@ function main(context: types.IExtensionContext) {
         onHighlight={props.onHighlight}
       />
     ),
+    condition: () => {
+      const gameMode = selectors.activeGameId(context.api.store.getState());
+      return util.getGame(gameMode).mergeMods;
+    },
+    // TODO: Pretty expensive
     calc: (mod: types.IMod) => mod,
     isToggleable: true,
     isDefaultVisible: false,
@@ -406,7 +415,7 @@ function main(context: types.IExtensionContext) {
         return util.getSafe(state, ['persistent', 'mods', selectors.activeGameId(state)], {});
       },
       () => util.getSafe(context.api.store.getState(), ['session', 'dependencies', 'conflicts'], {})),
-  });
+  } as any);
 
   context.registerReducer(['session', 'dependencies'], connectionReducer);
   context.registerDialog('mod-dependencies-connector', Connector);

@@ -4009,8 +4009,8 @@ void-elements@^2.0.1:
   resolved "https://registry.yarnpkg.com/void-elements/-/void-elements-2.0.1.tgz#c066afb582bb1cb4128d60ea92392e94d5e9dbec"
 
 vortex-api@Nexus-Mods/vortex-api:
-  version "0.14.2"
-  resolved "https://codeload.github.com/Nexus-Mods/vortex-api/tar.gz/ef0abcd8519cfac78b30e5230b3d2f11fa1b0683"
+  version "0.15.7"
+  resolved "https://codeload.github.com/Nexus-Mods/vortex-api/tar.gz/746c9da2e68964e0e061044fa1dbc7b40bb70bce"
 
 warning@^3.0.0:
   version "3.0.0"
