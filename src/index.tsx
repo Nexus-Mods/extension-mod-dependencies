@@ -210,6 +210,7 @@ function updateConflictInfo(api: types.IExtensionApi,
           { label: 'Close' },
           { label: 'Show', action: () => {
             store.dispatch(actions.setAttributeVisible('mods', 'dependencies', true));
+            store.dispatch(actions.setAttributeFilter('mods', 'dependencies', 'has-unsolved'));
             api.events.emit('show-main-page', 'Mods');
             setTimeout(() => {
               store.dispatch(highlightConflictIcon(true));
