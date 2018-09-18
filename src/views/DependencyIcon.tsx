@@ -174,7 +174,7 @@ interface IDropProps {
 type IProps = IBaseProps & IConnectedProps & IActionProps & IDragProps & IDropProps;
 
 function componentCenter(component: React.Component<any, any>) {
-  const box = findDOMNode(component).getBoundingClientRect();
+  const box = (findDOMNode(component) as Element).getBoundingClientRect();
   return {
     x: box.left + box.width / 2,
     y: box.top + box.height / 2,
