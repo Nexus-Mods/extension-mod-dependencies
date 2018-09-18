@@ -1,3 +1,3 @@
-let webpack = require('vortex-api').webpack.default;
+let webpack = require('vortex-api/bin/webpack').default;
 
-module.exports = webpack('mod-dependency-manager', __dirname);
+module.exports = webpack('mod-dependency-manager', __dirname, 4);
