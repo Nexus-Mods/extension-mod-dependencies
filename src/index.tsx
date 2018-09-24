@@ -433,7 +433,7 @@ function main(context: types.IExtensionContext) {
     />);
   });
   context.registerDialog('mod-fileoverride-editor', OverrideEditor);
-  context.registerAction('mods-action-icons', 100, 'groups', {}, 'Manage file conflicts',
+  context.registerAction('mods-action-icons', 100, 'groups', {}, 'Manage File Conflicts',
     instanceIds => {
       const { store } = context.api;
       const gameMode = selectors.activeGameId(store.getState());
