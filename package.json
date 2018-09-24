@@ -46,7 +46,7 @@
     "immutability-helper": "^2.6.6",
     "json-loader": "^0.5.4",
     "modmeta-db": "Nexus-Mods/modmeta-db",
-    "vortex-api": "Nexus-Mods/vortex-api#0.16.0",
+    "vortex-api": "Nexus-Mods/vortex-api",
     "react": "^16.2.0",
     "react-bootstrap": "^0.32.1",
     "react-dnd": "^2.5.4",
