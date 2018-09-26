@@ -247,8 +247,9 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
   }
 
   private openOverrideDialog = () => {
-    const { gameId, modId, onOverrideDialog } = this.props;
+    const { gameId, modId, onClose, onOverrideDialog } = this.props;
     onOverrideDialog(gameId, modId);
+    onClose();
   }
 
   private save = () => {

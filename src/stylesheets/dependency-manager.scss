@@ -197,11 +197,16 @@
   }
 
   .rstcustom__row {
+    &:hover {
+      background-color: $table-bg-hover;
+    }
+
     flex: 1 1 0;
     .rstcustom__rowLabel {
       flex: 1 1 auto;
     }
   }
+
   .rstcustom__rowWrapper:hover {
     opacity: initial;
   }
