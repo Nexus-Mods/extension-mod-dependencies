@@ -494,7 +494,7 @@ function main(context: types.IExtensionContext) {
     const updateConflictTimer = new util.Debouncer(() =>
       checkConflictsAndRules(context.api), 2000);
 
-    context.api.events.on('mods-enabled', (mods: string[], enabled: boolean) => {
+    context.api.events.on('mods-enabled', () => {
       updateConflictTimer.schedule(undefined);
     });
   });
