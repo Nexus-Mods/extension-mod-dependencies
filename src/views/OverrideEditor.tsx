@@ -322,7 +322,9 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
     };
     files.forEach(file => {
       const filePath = nodePath.join(dirPath, file.title);
-      file.providers = file.providers.sort((lhs, rhs) => sortFunc(lhs, rhs, filePath));
+      file.providers = file.providers
+        .filter(modId => mods[modId] !== undefined)
+        .sort((lhs, rhs) => sortFunc(lhs, rhs, filePath));
       file.selected = file.providers[0];
       const overrider = file.providers.find(
         modId => ((mods[modId] as any).fileOverrides || []).indexOf(filePath) !== -1);
