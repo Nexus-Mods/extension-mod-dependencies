@@ -59,13 +59,14 @@ function getRuleSpec(modId: string,
                      mods: { [modId: string]: types.IMod },
                      conflicts: IConflict[]): { [modId: string]: IRuleSpec } {
   const res: { [modId: string]: IRuleSpec } = {};
-  if (mods[modId] === undefined) {
-    // can this even happen?
-    return res;
-  }
+
+  // paranoia check, mods[modId] should never be undefined
+  const modRules = (mods[modId] !== undefined)
+    ? (mods[modId].rules || [])
+    : [];
 
   conflicts.forEach(conflict => {
-    const existingRule = (mods[modId].rules || [])
+    const existingRule = modRules
       .find(rule => (['before', 'after', 'conflicts'].indexOf(rule.type) !== -1)
         && (util as any).testModReference(conflict.otherMod, rule.reference));
 
@@ -139,14 +140,14 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
 
     let reverseRule: IBiDirRule;
 
-    if (rules[conflict.otherMod.name].type === undefined) {
+    if (rules[conflict.otherMod.id].type === undefined) {
       reverseRule = modRules
         .find(iter => !iter.original
                    && util.testModReference(conflict.otherMod, iter.reference)
                    && util.testModReference(mods[modId], iter.source));
     }
 
-    const rule = rules[conflict.otherMod.name];
+    const rule = rules[conflict.otherMod.id];
 
     return (
       <ListGroupItem key={conflict.otherMod.id}>
