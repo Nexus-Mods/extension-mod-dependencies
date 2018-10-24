@@ -60,7 +60,14 @@ class DependenciesFilter implements types.ITableFilter {
       const conflicts = this.mGetConflicts();
       const mods = this.mGetMods();
 
+      if (mods[value] === undefined) {
+        return false;
+      }
+
       const unsolvedConflict = (conflicts[value] || []).find(conflict => {
+        if (conflict.otherMod === undefined) {
+          return false;
+        }
         const rule = this.findRule(mods[value], conflict.otherMod);
         return rule === undefined;
       });
