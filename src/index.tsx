@@ -11,6 +11,7 @@ import renderModLookup from './util/renderModLookup';
 import renderModName from './util/renderModName';
 import renderReference from './util/renderReference';
 import ruleFulfilled from './util/ruleFulfilled';
+import showConflicts from './util/showConflicts';
 import ConflictEditor from './views/ConflictEditor';
 import ConflictGraph from './views/ConflictGraph';
 import Connector from './views/Connector';
@@ -22,6 +23,7 @@ import { highlightConflictIcon, setConflictInfo, setEditCycle,
          setFileOverrideDialog } from './actions';
 import connectionReducer from './reducers';
 import { enabledModKeys } from './selectors';
+import unsolvedConflictsCheck from './unsolvedConflictsCheck';
 
 import * as Promise from 'bluebird';
 import * as I18next from 'i18next';
@@ -208,19 +210,7 @@ function updateConflictInfo(api: types.IExtensionApi,
           options: { translated: true, wrap: true },
         }, [
           { label: 'Close' },
-          { label: 'Show', action: () => {
-            store.dispatch(actions.setAttributeVisible('mods', 'dependencies', true));
-            store.dispatch(actions.setAttributeFilter('mods', undefined, undefined));
-            store.dispatch(actions.setAttributeFilter('mods', 'dependencies', 'has-unsolved'));
-            api.events.emit('show-main-page', 'Mods');
-            setTimeout(() => {
-              store.dispatch(highlightConflictIcon(true));
-              api.events.emit('mods-scroll-to', Object.keys(unsolved)[0]);
-            }, 1000);
-            setTimeout(() => {
-              store.dispatch(highlightConflictIcon(false));
-            }, 3000);
-          } },
+          { label: 'Show', action: () => showConflicts(api) },
       ]));
     };
 
@@ -446,6 +436,9 @@ function main(context: types.IExtensionContext) {
                            [])
         .length > 0) ? true : translate('No file conflicts');
     });
+
+  (context as any).registerStartHook(50, 'check-unsolved-conflicts',
+    input => unsolvedConflictsCheck(context.api, dependencyState.modRules, input));
 
   context.once(() => {
     const store = context.api.store;
