@@ -1,4 +1,4 @@
-import { IConflict } from '../types/IConflict';
+import { IConflict, ConflictSuggestion } from '../types/IConflict';
 import { IModLookupInfo } from '../types/IModLookupInfo';
 
 import isBlacklisted from './blacklist';
@@ -8,7 +8,7 @@ import * as path from 'path';
 import { fs, types, util } from 'vortex-api';
 
 interface IFileMap {
-  [filePath: string]: types.IMod[];
+  [filePath: string]: Array<{ mod: types.IMod, time: number }>;
 }
 
 function toLookupInfo(mod: types.IMod): IModLookupInfo {
@@ -27,12 +27,13 @@ function toLookupInfo(mod: types.IMod): IModLookupInfo {
 
 function getAllFiles(basePath: string, mods: types.IMod[]): Promise<IFileMap> {
   const files: IFileMap = {};
+
   return Promise.map(mods.filter(mod => mod.installationPath !== undefined), (mod: types.IMod) => {
     const modPath = path.join(basePath, mod.installationPath);
     return util.walk(modPath, (iterPath: string, stat: fs.Stats) => {
       if (stat.isFile()) {
         const relPath = path.relative(modPath, iterPath);
-        util.setdefault(files, relPath.toLowerCase(), []).push(mod);
+        util.setdefault(files, relPath.toLowerCase(), []).push({ mod, time: stat.mtimeMs });
       }
       return Promise.resolve();
     }, { ignoreErrors: ['EPERM'] });
@@ -41,7 +42,7 @@ function getAllFiles(basePath: string, mods: types.IMod[]): Promise<IFileMap> {
 }
 
 interface IConflictMap {
-  [lhsId: string]: { [rhsId: string]: string[] };
+  [lhsId: string]: { [rhsId: string]: { files: string[], suggestion: ConflictSuggestion } };
 }
 
 function getConflictMap(files: IFileMap): IConflictMap {
@@ -54,8 +55,21 @@ function getConflictMap(files: IFileMap): IConflictMap {
     for (let i = 0; i < file.length; ++i) {
       for (let j = 0; j < file.length; ++j) {
         if (i !== j) {
-          util.setdefault(util.setdefault(conflicts, file[i].id, {}), file[j].id, [])
-            .push(filePath);
+          let suggestion = file[i].time < file[j].time
+            ? 'before'
+            : file[i].time > file[j].time
+            ? 'after'
+            : undefined;
+          const entry = util.setdefault(util.setdefault(conflicts, file[i].mod.id, {}),
+                          file[j].mod.id, { files: [], suggestion: undefined });
+          entry.files.push(filePath);
+          if (suggestion !== undefined) {
+            if (entry.suggestion === undefined) {
+              entry.suggestion = suggestion;
+            } else if ((entry.suggestion !== null) && (entry.suggestion !== suggestion)) {
+              entry.suggestion = null;
+            }
+          }
         }
       }
     }
@@ -76,9 +90,11 @@ function findConflicts(basePath: string,
           }
           const mod = mods.find(mod => mod.id === rhsId);
           if (mod !== undefined) {
+            const entry = conflictMap[lhsId][rhsId];
             conflictsByMod[lhsId].push({
               otherMod: toLookupInfo(mod),
-              files: conflictMap[lhsId][rhsId],
+              files: entry.files,
+              suggestion: entry.suggestion || null,
             });
           }
         });

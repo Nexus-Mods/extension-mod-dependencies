@@ -108,7 +108,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       : '';
 
     return (
-      <Modal show={modId !== undefined} onHide={this.close}>
+      <Modal id='conflict-editor-dialog' show={modId !== undefined} onHide={this.close}>
         <Modal.Header><Modal.Title>{modName}</Modal.Title></Modal.Header>
         <Modal.Body>
           <ListGroup className='mod-conflict-list'>
@@ -138,29 +138,33 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       </Popover>
     );
 
+    const rule = rules[conflict.otherMod.id];
+
     let reverseRule: IBiDirRule;
 
-    if (rules[conflict.otherMod.id].type === undefined) {
+    if (rule.type === undefined) {
       reverseRule = modRules
         .find(iter => !iter.original
                    && util.testModReference(conflict.otherMod, iter.reference)
                    && util.testModReference(mods[modId], iter.source));
     }
 
-    const rule = rules[conflict.otherMod.id];
-
     return (
       <ListGroupItem key={conflict.otherMod.id}>
+        <div className='conflict-rule-owner'>
+          <div>{util.renderModName(mods[modId])}</div>
+        </div>
         <FormControl
           className='conflict-rule-select'
           componentClass='select'
-          value={rule.type}
+          value={rule.type || (reverseRule !== undefined ? reverseRule.type : undefined) || 'norule'}
           onChange={this.setRuleType}
           id={conflict.otherMod.id}
+          disabled={reverseRule !== undefined}
         >
           <option value='norule'>{t('No rule')}</option>
-          <option value='before'>{t('Load before')}</option>
-          <option value='after'>{t('Load after')}</option>
+          <option value='before'>{conflict.suggestion === 'before' ? t('Load before (Suggested)') : t('Load before')}</option>
+          <option value='after'>{conflict.suggestion === 'after' ? t('Load after (Suggested)') : t('Load after')}</option>
           <option value='conflicts'>{t('Conflicts with')}</option>
         </FormControl>
         <div className='conflict-rule-description'>
@@ -175,23 +179,24 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
                   })}</a>
               </OverlayTrigger>
             </div>
-            <FormControl
-              componentClass='select'
-              value={rule.version}
-              onChange={this.setRuleVersion}
-              id={conflict.otherMod.id}
-              className='conflict-rule-version'
-            >
-              <option value='any'>{t('Any version')}</option>
-              { (conflict.otherMod.version && semver.valid(conflict.otherMod.version))
-                  ? <option value='compatible'>{t('Compatible version')}</option>
-                  : null }
-              { conflict.otherMod.version
-                  ? <option value='exact'>{t('Only this version')}</option>
-                  : null }
-            </FormControl>
           </div>
         </div>
+        <FormControl
+          componentClass='select'
+          value={rule.version}
+          onChange={this.setRuleVersion}
+          id={conflict.otherMod.id}
+          className='conflict-rule-version'
+          disabled={reverseRule !== undefined}
+        >
+          <option value='any'>{t('Any version')}</option>
+          {(conflict.otherMod.version && semver.valid(conflict.otherMod.version))
+            ? <option value='compatible'>{t('Compatible version')}</option>
+            : null}
+          {conflict.otherMod.version
+            ? <option value='exact'>{t('Only this version')}</option>
+            : null}
+        </FormControl>
 
         {this.renderReverseRule(reverseRule)}
       </ListGroupItem>
@@ -213,13 +218,47 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       </div>);
 
     return (
-      <tooltip.Icon
+      <tooltip.IconButton
         id={`conflict-editor-${rule.reference.fileMD5}`}
         className='conflict-editor-reverserule pull-right'
-        name='feedback-info'
+        icon='locked'
         tooltip={tip}
+        data-rule={JSON.stringify(rule)}
+        onClick={this.unlock}
+        disabled={rule.source.id === undefined}
       />
     );
+  }
+
+  private unlock = (evt: React.MouseEvent<HTMLDivElement>) => {
+    const { t, gameId, modId, mods, onRemoveRule } = this.props;
+    const rule = JSON.parse(evt.currentTarget.getAttribute('data-rule'));
+    // rule is the "reverse" rule, we need the original.
+
+    const reverseType = rule.type === 'before' ? 'after' : 'before';
+
+    const findRule = iter =>
+      (iter.type === reverseType)
+      && util.testModReference(mods[modId], iter.reference)
+
+    const refMod: types.IMod = Object.keys(mods).map(modId => mods[modId])
+      .find(iter => util.testModReference(iter, rule.reference)
+                 && iter.rules !== undefined
+                 && (iter.rules.find(findRule) !== undefined));
+
+    const originalRule = refMod.rules.find(findRule);
+
+    this.context.api.showDialog('question', t('Confirm'), {
+      text: t('This will delete the existing rule so you can set a new one on this mod.'),
+    }, [
+        { label: 'Cancel' },
+        { label: 'Confirm', action: () => {
+          onRemoveRule(gameId, refMod.id, {
+            type: originalRule.type,
+            reference: originalRule.reference,
+          });
+        } },
+    ]);
   }
 
   private close = () => {

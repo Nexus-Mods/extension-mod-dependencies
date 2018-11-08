@@ -303,6 +303,14 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
     });
 }
 
+interface IConflictMap {
+  [modId: string]: IConflict[];
+}
+
+function showNewConflictsDialog(api: types.IExtensionApi, oldConflicts: IConflictMap, newConflicts: IConflictMap) {
+  
+}
+
 function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
   const store = api.store;
   const state = store.getState();
@@ -319,6 +327,7 @@ function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
   return determineConflicts(modPath, mods)
     .then(conflictMap => {
       if (!_.isEqual(conflictMap, state.session.dependencies.conflicts)) {
+        showNewConflictsDialog(api, conflictMap, state.session.dependencies.conflicts);
         store.dispatch(setConflictInfo(conflictMap));
       }
       updateConflictInfo(api, conflictMap);
@@ -423,7 +432,9 @@ function main(context: types.IExtensionContext) {
       localState={dependencyState}
     />);
   });
-  context.registerDialog('mod-fileoverride-editor', OverrideEditor);
+  context.registerDialog('mod-fileoverride-editor', OverrideEditor, () => ({
+    localState: dependencyState,
+  }));
   context.registerAction('mods-action-icons', 100, 'groups', {}, 'Manage File Conflicts',
     instanceIds => {
       const { store } = context.api;
@@ -443,6 +454,17 @@ function main(context: types.IExtensionContext) {
   context.once(() => {
     const store = context.api.store;
 
+    const updateRulesDebouncer = new util.Debouncer((gameMode: string) => {
+      const state = store.getState();
+      return generateLoadOrder(context.api)
+        .then(() => updateMetaRules(context.api, gameMode, state.persistent.mods[gameMode]))
+        .then(rules => {
+          dependencyState.modRules = rules;
+          dependenciesChanged();
+          return null;
+        });
+    }, 200);
+
     context.api.setStylesheet('dependency-manager',
                               path.join(__dirname, 'dependency-manager.scss'));
 
@@ -457,14 +479,8 @@ function main(context: types.IExtensionContext) {
     });
 
     context.api.events.on('gamemode-activated', (gameMode: string) => {
-      const state: types.IState = store.getState();
-      generateLoadOrder(context.api)
-        .then(() => updateMetaRules(context.api, gameMode, state.persistent.mods[gameMode]))
-        .then(rules => {
-          dependencyState.modRules = rules;
-          dependenciesChanged();
-          return null;
-        });
+      console.log('gamemode activated');
+      updateRulesDebouncer.schedule(undefined, gameMode);
     });
 
     context.api.events.on('edit-mod-cycle', (cycle: string[]) => {
@@ -474,14 +490,9 @@ function main(context: types.IExtensionContext) {
     context.api.onStateChange(['persistent', 'mods'], (oldState, newState) => {
       const gameMode = selectors.activeGameId(store.getState());
       if (oldState[gameMode] !== newState[gameMode]) {
-        generateLoadOrder(context.api)
-          .then(() => updateMetaRules(context.api, gameMode, newState[gameMode]))
-          .then(rules => {
-            dependencyState.modRules = rules;
-            dependenciesChanged();
-            updateConflictTimer.schedule(undefined);
-            return null;
-          });
+        updateRulesDebouncer.schedule(() => {
+          updateConflictTimer.schedule(undefined);
+        }, gameMode);
       }
     });
 

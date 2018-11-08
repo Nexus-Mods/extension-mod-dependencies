@@ -6,13 +6,16 @@ import SearchBox, { ISearchMatch } from './SearchBox';
 
 import * as nodePath from 'path';
 import * as React from 'react';
-import { Button, Dropdown, MenuItem, Modal } from 'react-bootstrap';
+import { Button, Dropdown, MenuItem, Modal, Alert } from 'react-bootstrap';
 import { translate } from 'react-i18next';
 import { connect } from 'react-redux';
 import * as TreeT from 'react-sortable-tree';
 import { } from 'react-sortable-tree-theme-file-explorer';
 import * as Redux from 'redux';
 import { actions, ComponentEx, DNDContainer, types, util } from 'vortex-api';
+import { IModLookupInfo } from '../types/IModLookupInfo';
+import { IBiDirRule } from '../types/IBiDirRule';
+import { ILocalState } from './DependencyIcon';
 
 interface IFileTree {
   title: string;
@@ -22,6 +25,10 @@ interface IFileTree {
   children: IFileTree[];
   isDirectory: boolean;
   expanded: boolean;
+}
+
+export interface IOverrideEditorProps {
+  localState: ILocalState;
 }
 
 interface IConnectedProps {
@@ -36,7 +43,7 @@ interface IActionProps {
   onClose: () => void;
 }
 
-type IProps = IConnectedProps & IActionProps;
+type IProps = IOverrideEditorProps & IConnectedProps & IActionProps;
 
 interface IComponentState {
   treeState: IFileTree[];
@@ -44,6 +51,7 @@ interface IComponentState {
   searchString: string;
   searchIndex: number;
   searchMatches: ISearchMatch[];
+  hasUnsolved: boolean;
 }
 
 class OverrideEditor extends ComponentEx<IProps, IComponentState> {
@@ -55,6 +63,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
       searchString: '',
       searchIndex: 0,
       searchMatches: [],
+      hasUnsolved: this.hasUnsolved(props),
     });
   }
 
@@ -70,6 +79,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
         || (newProps.gameId !== this.props.gameId)
         || (newProps.conflicts !== this.props.conflicts)) {
       this.nextState.treeState = this.toTree(newProps);
+      this.nextState.hasUnsolved = this.hasUnsolved(newProps);
     }
 
     if (newProps.mods !== this.props.mods) {
@@ -82,58 +92,72 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
 
   public render(): JSX.Element {
     const { t, modId, mods } = this.props;
-    const { searchString, searchIndex, searchMatches, treeState } = this.state;
+    const { hasUnsolved, searchString, searchIndex, searchMatches, treeState } = this.state;
 
     const modName = mods[modId] !== undefined
       ? util.renderModName(mods[modId])
       : '';
 
-    const Tree: typeof TreeT.SortableTreeWithoutDndContext =
-      require('react-sortable-tree').SortableTreeWithoutDndContext;
-    const FileExplorerTheme = require('react-sortable-tree-theme-file-explorer');
+    let content: JSX.Element;
+    if (hasUnsolved) {
+      content = (
+        <div className='file-override-unsolved'>
+          {t('This mod has unsolved conflicts. '
+           + 'Please create mod rules to establish a default load order and only use this screen to make exceptions.')}
+        </div>
+      );
+    } else {
+      const Tree: typeof TreeT.SortableTreeWithoutDndContext =
+        require('react-sortable-tree').SortableTreeWithoutDndContext;
+      const FileExplorerTheme = require('react-sortable-tree-theme-file-explorer');
+
+      content = (
+        <DNDContainer>
+          <div className='file-override-container'>
+            <SearchBox
+              t={t}
+              searchFocusIndex={searchIndex}
+              searchString={searchString}
+              matches={searchMatches}
+              onSetSearch={this.setSearch}
+              onSetSearchFocus={this.setSearchFocus}
+            />
+            <Tree
+              treeData={treeState}
+              onChange={this.onChangeTree}
+              theme={FileExplorerTheme}
+              canDrag={false}
+              getNodeKey={this.getNodeKey}
+              generateNodeProps={this.generateNodeProps}
+              searchMethod={this.searchMethod}
+              searchQuery={searchString}
+              searchFocusOffset={searchIndex}
+              searchFinishCallback={this.searchFinishCallback}
+            />
+            <div className='override-editor-usage'>
+              <div>{t('Use this dialog to select which mod should provide a file.')}</div>
+              <div>{t('The mod marked as "Default" is the one that will provide the '
+                + 'file based on current mod rules, if you make no change.')}</div>
+              <div>{t('Please try to minimize the number of overrides you set up here. '
+                + 'Use mod rules to order entire mods.')}</div>
+              <div>{t('This lists only the files in the selected mod that aren\'t exclusive '
+                + 'to it.')}</div>
+            </div>
+
+          </div>
+        </DNDContainer>
+      );
+    }
 
     return (
       <Modal id='file-override-dialog' show={modId !== undefined} onHide={this.close}>
         <Modal.Header><Modal.Title>{modName}</Modal.Title></Modal.Header>
         <Modal.Body>
-          <DNDContainer>
-            <div className='file-override-container'>
-              <SearchBox
-                t={t}
-                searchFocusIndex={searchIndex}
-                searchString={searchString}
-                matches={searchMatches}
-                onSetSearch={this.setSearch}
-                onSetSearchFocus={this.setSearchFocus}
-              />
-              <Tree
-                treeData={treeState}
-                onChange={this.onChangeTree}
-                theme={FileExplorerTheme}
-                canDrag={false}
-                getNodeKey={this.getNodeKey}
-                generateNodeProps={this.generateNodeProps}
-                searchMethod={this.searchMethod}
-                searchQuery={searchString}
-                searchFocusOffset={searchIndex}
-                searchFinishCallback={this.searchFinishCallback}
-              />
-              <div className='override-editor-usage'>
-                <div>{t('Use this dialog to select which mod should provide a file.')}</div>
-                <div>{t('The mod marked as "Default" is the one that will provide the '
-                      + 'file based on current mod rules, if you make no change.')}</div>
-                <div>{t('Please try to minimize the number of overrides you set up here. '
-                      + 'Use mod rules to order entire mods.')}</div>
-                <div>{t('This lists only the files in the selected mod that aren\'t exclusive '
-                      + 'to it.')}</div>
-              </div>
-
-            </div>
-          </DNDContainer>
+          {content}
         </Modal.Body>
         <Modal.Footer>
           <Button onClick={this.close}>{t('Cancel')}</Button>
-          <Button onClick={this.apply}>{t('Save')}</Button>
+          <Button disabled={hasUnsolved} onClick={this.apply}>{t('Save')}</Button>
         </Modal.Footer>
       </Modal>
     );
@@ -203,6 +227,23 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
 
   private setSearchFocus = (index: number) => {
     this.nextState.searchIndex = index;
+  }
+
+  private findRule(localState: ILocalState, mod: types.IMod, ref: IModLookupInfo): IBiDirRule {
+    return localState.modRules.find(rule =>
+      util.testModReference(mod, rule.source)
+      && util.testModReference(ref, rule.reference));
+  }
+
+  private hasUnsolved(props: IProps): boolean {
+    const { conflicts, localState, modId, mods } = props;
+    if (modId === undefined) {
+      return false;
+    }
+    return conflicts.find(conflict => {
+      const rule = this.findRule(localState, mods[modId], conflict.otherMod);
+      return rule === undefined;
+    }) !== undefined;
   }
 
   private getNodeKey = (node: TreeT.TreeNode) => node.node.path;
