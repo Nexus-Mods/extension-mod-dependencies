@@ -1,13 +1,13 @@
 import { IConflict } from '../types/IConflict';
 
-import { setFileOverrideDialog } from '../actions';
+import { setFileOverrideDialog, setConflictDialog } from '../actions';
 
 import SearchBox, { ISearchMatch } from './SearchBox';
 
 import * as nodePath from 'path';
 import * as React from 'react';
 import { Button, Dropdown, MenuItem, Modal, Alert } from 'react-bootstrap';
-import { translate } from 'react-i18next';
+import { Trans, translate } from 'react-i18next';
 import { connect } from 'react-redux';
 import * as TreeT from 'react-sortable-tree';
 import { } from 'react-sortable-tree-theme-file-explorer';
@@ -41,6 +41,7 @@ interface IConnectedProps {
 interface IActionProps {
   onSetFileOverride: (gameId: string, modId: string, files: string[]) => void;
   onClose: () => void;
+  onConflictDialog: (gameId: string, modId: string, modRules: IBiDirRule[]) => void;
 }
 
 type IProps = IOverrideEditorProps & IConnectedProps & IActionProps;
@@ -52,18 +53,24 @@ interface IComponentState {
   searchIndex: number;
   searchMatches: ISearchMatch[];
   hasUnsolved: boolean;
+  modRules: IBiDirRule[];
 }
 
 class OverrideEditor extends ComponentEx<IProps, IComponentState> {
   constructor(props: IProps) {
     super(props);
+
+    const modRules = props.localState.modRules.filter(
+        rule => util.testModReference(props.mods[props.modId], rule.source));
+
     this.initState({
       treeState: [],
       sortedMods: [],
       searchString: '',
       searchIndex: 0,
       searchMatches: [],
-      hasUnsolved: this.hasUnsolved(props),
+      modRules,
+      hasUnsolved: this.hasUnsolved(props, modRules),
     });
   }
 
@@ -77,9 +84,15 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
   public componentWillReceiveProps(newProps: IProps) {
     if ((newProps.modId !== this.props.modId)
         || (newProps.gameId !== this.props.gameId)
-        || (newProps.conflicts !== this.props.conflicts)) {
+        || (newProps.conflicts !== this.props.conflicts)
+        || (newProps.localState.modRules !== this.props.localState.modRules)) {
       this.nextState.treeState = this.toTree(newProps);
-      this.nextState.hasUnsolved = this.hasUnsolved(newProps);
+
+      const newModRules = newProps.localState.modRules.filter(rule =>
+        util.testModReference(newProps.mods[newProps.modId], rule.source))
+      this.nextState.modRules = newModRules;
+
+      this.nextState.hasUnsolved = this.hasUnsolved(newProps, newModRules);
     }
 
     if (newProps.mods !== this.props.mods) {
@@ -102,8 +115,12 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
     if (hasUnsolved) {
       content = (
         <div className='file-override-unsolved'>
-          {t('This mod has unsolved conflicts. '
-           + 'Please create mod rules to establish a default load order and only use this screen to make exceptions.')}
+          <div>
+            <Trans i18nKey='unsolved-conflicts-first'>
+              This mod has unsolved conflicts.
+              Please <a onClick={this.openConflictEditor}>create mod rules</a> to establish a default load order and only use this screen to make exceptions.
+            </Trans>
+          </div>
         </div>
       );
     } else {
@@ -168,6 +185,13 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
     onClose();
   }
 
+  private openConflictEditor = () => {
+    const { gameId, modId, onConflictDialog } = this.props;
+    const { modRules } = this.state;
+
+    onConflictDialog(gameId, modId, modRules)
+  }
+
   private apply = () => {
     const { onClose, onSetFileOverride, gameId, mods } = this.props;
     const { treeState } = this.state;
@@ -229,19 +253,17 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
     this.nextState.searchIndex = index;
   }
 
-  private findRule(localState: ILocalState, mod: types.IMod, ref: IModLookupInfo): IBiDirRule {
-    return localState.modRules.find(rule =>
-      util.testModReference(mod, rule.source)
-      && util.testModReference(ref, rule.reference));
+  private findRule(ref: IModLookupInfo, modRules: IBiDirRule[]): IBiDirRule {
+    return modRules.find(rule => util.testModReference(ref, rule.reference));
   }
 
-  private hasUnsolved(props: IProps): boolean {
-    const { conflicts, localState, modId, mods } = props;
+  private hasUnsolved(props: IProps, modRules: IBiDirRule[]): boolean {
+    const { conflicts, modId } = props;
     if (modId === undefined) {
       return false;
     }
     return conflicts.find(conflict => {
-      const rule = this.findRule(localState, mods[modId], conflict.otherMod);
+      const rule = this.findRule(conflict.otherMod, modRules);
       return rule === undefined;
     }) !== undefined;
   }
@@ -401,6 +423,8 @@ function mapDispatchToProps(dispatch: Redux.Dispatch<any>): IActionProps {
     onSetFileOverride: (gameId: string, modId: string, files: string[]) =>
       dispatch((actions as any).setFileOverride(gameId, modId, files)),
     onClose: () => dispatch(setFileOverrideDialog(undefined, undefined)),
+    onConflictDialog: (gameId, modId, modRules) =>
+      dispatch(setConflictDialog(gameId, modId, modRules)),
   };
 }
 

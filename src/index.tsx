@@ -19,8 +19,8 @@ import DependencyIcon, { ILocalState } from './views/DependencyIcon';
 import Editor from './views/Editor';
 import OverrideEditor from './views/OverrideEditor';
 
-import { highlightConflictIcon, setConflictInfo, setEditCycle,
-         setFileOverrideDialog } from './actions';
+import { setConflictInfo, setEditCycle,
+         setFileOverrideDialog, setConflictDialog} from './actions';
 import connectionReducer from './reducers';
 import { enabledModKeys } from './selectors';
 import unsolvedConflictsCheck from './unsolvedConflictsCheck';
@@ -400,7 +400,6 @@ function main(context: types.IExtensionContext) {
       const gameMode = selectors.activeGameId(context.api.store.getState());
       return util.getGame(gameMode).mergeMods;
     },
-    // TODO: Pretty expensive
     calc: (mod: types.IMod) => mod,
     isToggleable: true,
     isDefaultVisible: false,
@@ -460,6 +459,11 @@ function main(context: types.IExtensionContext) {
         .then(() => updateMetaRules(context.api, gameMode, state.persistent.mods[gameMode]))
         .then(rules => {
           dependencyState.modRules = rules;
+          // need to manually update any open conflict dialog - that's not pretty...
+          const { conflictDialog } = store.getState().session.dependencies;
+          if (conflictDialog !== undefined) {
+            store.dispatch(setConflictDialog(conflictDialog.gameId, conflictDialog.modId, rules));
+          }
           dependenciesChanged();
           return null;
         });
@@ -479,7 +483,6 @@ function main(context: types.IExtensionContext) {
     });
 
     context.api.events.on('gamemode-activated', (gameMode: string) => {
-      console.log('gamemode activated');
       updateRulesDebouncer.schedule(undefined, gameMode);
     });
 

@@ -7,8 +7,8 @@ import { setConflictDialog, setFileOverrideDialog } from '../actions';
 import { RuleChoice } from '../util/getRuleTypes';
 
 import * as React from 'react';
-import { Button, FormControl, ListGroup, ListGroupItem,
-         Modal, OverlayTrigger, Popover } from 'react-bootstrap';
+import { Button, FormControl,
+         Modal, OverlayTrigger, Popover, Table } from 'react-bootstrap';
 import { translate } from 'react-i18next';
 import { connect } from 'react-redux';
 import * as Redux from 'redux';
@@ -111,9 +111,11 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       <Modal id='conflict-editor-dialog' show={modId !== undefined} onHide={this.close}>
         <Modal.Header><Modal.Title>{modName}</Modal.Title></Modal.Header>
         <Modal.Body>
-          <ListGroup className='mod-conflict-list'>
-            {conflicts.map(this.renderConflict)}
-          </ListGroup>
+          <Table className='mod-conflict-list'>
+            <tbody>
+              {conflicts.map(this.renderConflict)}
+            </tbody>
+          </Table>
         </Modal.Body>
         <Modal.Footer>
           <Button onClick={this.close}>{t('Cancel')}</Button>
@@ -150,24 +152,29 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     }
 
     return (
-      <ListGroupItem key={conflict.otherMod.id}>
-        <div className='conflict-rule-owner'>
+      <tr>
+        <td>
+          {t('Load')}
+        </td>
+        <td className='conflict-rule-owner'>
           <div>{util.renderModName(mods[modId])}</div>
-        </div>
-        <FormControl
-          className='conflict-rule-select'
-          componentClass='select'
-          value={rule.type || (reverseRule !== undefined ? reverseRule.type : undefined) || 'norule'}
-          onChange={this.setRuleType}
-          id={conflict.otherMod.id}
-          disabled={reverseRule !== undefined}
-        >
-          <option value='norule'>{t('No rule')}</option>
-          <option value='before'>{conflict.suggestion === 'before' ? t('Load before (Suggested)') : t('Load before')}</option>
-          <option value='after'>{conflict.suggestion === 'after' ? t('Load after (Suggested)') : t('Load after')}</option>
-          <option value='conflicts'>{t('Conflicts with')}</option>
-        </FormControl>
-        <div className='conflict-rule-description'>
+        </td>
+        <td>
+          <FormControl
+            className='conflict-rule-select'
+            componentClass='select'
+            value={rule.type || (reverseRule !== undefined ? reverseRule.type : undefined) || 'norule'}
+            onChange={this.setRuleType}
+            id={conflict.otherMod.id}
+            disabled={reverseRule !== undefined}
+          >
+            <option value='norule'>???</option>
+            <option value='before'>{conflict.suggestion === 'before' ? t('before (suggested)') : t('before')}</option>
+            <option value='after'>{conflict.suggestion === 'after' ? t('after (suggested)') : t('after')}</option>
+            <option value='conflicts'>{t('never together with')}</option>
+          </FormControl>
+        </td>
+        <td className='conflict-rule-description'>
           <div className='conflict-rule-reference'>
             <div className='conflict-rule-name'>
               <div>{util.renderModName(mods[conflict.otherMod.id])}</div>
@@ -180,26 +187,29 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
               </OverlayTrigger>
             </div>
           </div>
-        </div>
-        <FormControl
-          componentClass='select'
-          value={rule.version}
-          onChange={this.setRuleVersion}
-          id={conflict.otherMod.id}
-          className='conflict-rule-version'
-          disabled={reverseRule !== undefined}
-        >
-          <option value='any'>{t('Any version')}</option>
-          {(conflict.otherMod.version && semver.valid(conflict.otherMod.version))
-            ? <option value='compatible'>{t('Compatible version')}</option>
-            : null}
-          {conflict.otherMod.version
-            ? <option value='exact'>{t('Only this version')}</option>
-            : null}
-        </FormControl>
-
-        {this.renderReverseRule(reverseRule)}
-      </ListGroupItem>
+        </td>
+        <td>
+          <FormControl
+            componentClass='select'
+            value={rule.version}
+            onChange={this.setRuleVersion}
+            id={conflict.otherMod.id}
+            className='conflict-rule-version'
+            disabled={reverseRule !== undefined}
+          >
+            <option value='any'>{t('Any version')}</option>
+            {(conflict.otherMod.version && semver.valid(conflict.otherMod.version))
+              ? <option value='compatible'>{t('Compatible version')}</option>
+              : null}
+            {conflict.otherMod.version
+              ? <option value='exact'>{t('Only this version')}</option>
+              : null}
+          </FormControl>
+        </td>
+        <td>
+          {this.renderReverseRule(reverseRule)}
+        </td>
+      </tr>
     );
   }
 
@@ -249,10 +259,10 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     const originalRule = refMod.rules.find(findRule);
 
     this.context.api.showDialog('question', t('Confirm'), {
-      text: t('This will delete the existing rule so you can set a new one on this mod.'),
+      text: t('This will remove the existing rule so you can set a new one on this mod.'),
     }, [
         { label: 'Cancel' },
-        { label: 'Confirm', action: () => {
+        { label: 'Remove Rule', action: () => {
           onRemoveRule(gameId, refMod.id, {
             type: originalRule.type,
             reference: originalRule.reference,
