@@ -60,6 +60,7 @@
     "redux-thunk": "^2.3.0",
     "semvish": "^1.1.0",
     "ts-loader": "^5.1.1",
+    "turbowalk": "Nexus-Mods/node-turbowalk",
     "webpack": "^4.19.1"
   }
 }

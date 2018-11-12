@@ -5,6 +5,7 @@ import isBlacklisted from './blacklist';
 
 import * as Promise from 'bluebird';
 import * as path from 'path';
+import turbowalk from 'turbowalk';
 import { fs, types, util } from 'vortex-api';
 
 interface IFileMap {
@@ -30,13 +31,14 @@ function getAllFiles(basePath: string, mods: types.IMod[]): Promise<IFileMap> {
 
   return Promise.map(mods.filter(mod => mod.installationPath !== undefined), (mod: types.IMod) => {
     const modPath = path.join(basePath, mod.installationPath);
-    return util.walk(modPath, (iterPath: string, stat: fs.Stats) => {
-      if (stat.isFile()) {
-        const relPath = path.relative(modPath, iterPath);
-        util.setdefault(files, relPath.toLowerCase(), []).push({ mod, time: stat.mtimeMs });
-      }
-      return Promise.resolve();
-    }, { ignoreErrors: ['EPERM'] });
+    return turbowalk(modPath, entries => {
+      entries.forEach(entry => {
+        if (!entry.isDirectory) {
+          const relPath = path.relative(modPath, entry.filePath);
+          util.setdefault(files, relPath.toLowerCase(), []).push({ mod, time: entry.mtime });
+        }
+      });
+    }, { });
   })
     .then(() => files);
 }

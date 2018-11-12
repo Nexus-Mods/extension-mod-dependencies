@@ -152,7 +152,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     }
 
     return (
-      <tr>
+      <tr key={JSON.stringify(conflict)}>
         <td>
           {t('Load')}
         </td>

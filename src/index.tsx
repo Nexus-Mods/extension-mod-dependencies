@@ -311,6 +311,7 @@ function showNewConflictsDialog(api: types.IExtensionApi, oldConflicts: IConflic
   
 }
 
+// determine all conflicts and check if they are fulfilled or not
 function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
   const store = api.store;
   const state = store.getState();
@@ -359,6 +360,24 @@ function generateLoadOrder(api: types.IExtensionApi): Promise<void> {
         }, {});
       loadOrderChanged();
     });
+}
+
+function changeMayAffectRules(before: types.IMod, after: types.IMod): boolean {
+  // if the mod is new or if it previously had no attributes and now has them,
+  // this could affect the rules, if it had no rules before and now has them,
+  // that most definitively affects rules
+  if ((before === undefined)
+    || ((before.attributes !== undefined) !== (after.attributes !== undefined))
+    || ((before.rules !== undefined) !== (after.rules !== undefined))) {
+    return true;
+  }
+
+  if (after.attributes === undefined) {
+    return false;
+  }
+
+  return (before.rules !== after.rules)
+      || (before.attributes['version'] !== after.attributes['version']);
 }
 
 function main(context: types.IExtensionContext) {
@@ -469,6 +488,9 @@ function main(context: types.IExtensionContext) {
         });
     }, 200);
 
+    const updateConflictDebouncer = new util.Debouncer(() =>
+      checkConflictsAndRules(context.api), 2000);
+
     context.api.setStylesheet('dependency-manager',
                               path.join(__dirname, 'dependency-manager.scss'));
 
@@ -478,7 +500,7 @@ function main(context: types.IExtensionContext) {
       .then(rules => {
         dependencyState.modRules = rules;
         dependenciesChanged();
-        updateConflictTimer.schedule(undefined);
+        updateConflictDebouncer.schedule(undefined);
       });
     });
 
@@ -493,17 +515,20 @@ function main(context: types.IExtensionContext) {
     context.api.onStateChange(['persistent', 'mods'], (oldState, newState) => {
       const gameMode = selectors.activeGameId(store.getState());
       if (oldState[gameMode] !== newState[gameMode]) {
-        updateRulesDebouncer.schedule(() => {
-          updateConflictTimer.schedule(undefined);
-        }, gameMode);
+        const relevantChange = Object.keys(newState[gameMode])
+          .find(modId => (oldState[gameMode][modId] !== newState[gameMode][modId])
+                      && (changeMayAffectRules(oldState[gameMode][modId], newState[gameMode][modId])));
+
+        if (relevantChange !== undefined) {
+          updateRulesDebouncer.schedule(() => {
+            updateConflictDebouncer.schedule(undefined);
+          }, gameMode);
+        }
       }
     });
 
-    const updateConflictTimer = new util.Debouncer(() =>
-      checkConflictsAndRules(context.api), 2000);
-
     context.api.events.on('mods-enabled', () => {
-      updateConflictTimer.schedule(undefined);
+      updateConflictDebouncer.schedule(undefined);
     });
   });
 

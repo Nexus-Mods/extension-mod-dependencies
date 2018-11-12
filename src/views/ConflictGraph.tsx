@@ -84,6 +84,10 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
   }
 
   public componentWillReceiveProps(newProps: IProps) {
+    if (newProps.editCycle === undefined) {
+      return;
+    }
+
     if ((this.props.conflicts !== newProps.conflicts)
         || (this.props.mods !== newProps.mods)
         || (this.props.localState.modRules !== newProps.localState.modRules)
@@ -97,7 +101,7 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
 
   public render(): JSX.Element {
     const { t, editCycle, mods } = this.props;
-    if  (this.mGraph === undefined) {
+    if (this.mGraph === undefined) {
       return null;
     }
     this.updateGraph(this.props);
