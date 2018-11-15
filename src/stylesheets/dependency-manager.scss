@@ -198,7 +198,8 @@
     width: 75vw;
 
     .modal-body {
-      .file-override-unsolved {
+      .file-override-unsolved,
+      .file-override-sorting {
         font-size: medium;
         height: 60vh;
         display: flex;

@@ -12,7 +12,7 @@ import { connect } from 'react-redux';
 import * as TreeT from 'react-sortable-tree';
 import { } from 'react-sortable-tree-theme-file-explorer';
 import * as Redux from 'redux';
-import { actions, ComponentEx, DNDContainer, types, util } from 'vortex-api';
+import { actions, ComponentEx, DNDContainer, types, util, Spinner } from 'vortex-api';
 import { IModLookupInfo } from '../types/IModLookupInfo';
 import { IBiDirRule } from '../types/IBiDirRule';
 import { ILocalState } from './DependencyIcon';
@@ -54,6 +54,7 @@ interface IComponentState {
   searchMatches: ISearchMatch[];
   hasUnsolved: boolean;
   modRules: IBiDirRule[];
+  sorting: boolean;
 }
 
 class OverrideEditor extends ComponentEx<IProps, IComponentState> {
@@ -71,6 +72,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
       searchMatches: [],
       modRules,
       hasUnsolved: this.hasUnsolved(props, modRules),
+      sorting: false,
     });
   }
 
@@ -105,7 +107,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
 
   public render(): JSX.Element {
     const { t, modId, mods } = this.props;
-    const { hasUnsolved, searchString, searchIndex, searchMatches, treeState } = this.state;
+    const { hasUnsolved, searchString, searchIndex, searchMatches, sorting, treeState } = this.state;
 
     const modName = mods[modId] !== undefined
       ? util.renderModName(mods[modId])
@@ -120,6 +122,15 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
               This mod has unsolved conflicts.
               Please <a onClick={this.openConflictEditor}>create mod rules</a> to establish a default load order and only use this screen to make exceptions.
             </Trans>
+          </div>
+        </div>
+      );
+    } else if (sorting) {
+      content = (
+        <div className='file-override-sorting'>
+          <div>
+            <Spinner />
+            <div style={{ marginLeft: 8, display: 'inline' }}>{t('Sorting mods')}</div>
           </div>
         </div>
       );
@@ -274,7 +285,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
     const { t, mods } = this.props;
 
     const renderName = (id: string, clip?: number) => {
-      let name: string = util.renderModName(mods[id]);
+      let name: string = mods[id] !== undefined ? util.renderModName(mods[id]) : '';
       if (clip && name.length > clip) {
         name = name.substr(0, clip - 3) + '...';
       }
@@ -400,7 +411,12 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
 
   private sortedMods = (newProps: IProps) => {
     const { gameId, mods } = newProps;
-    return util.sortMods(gameId, Object.keys(mods).map(key => mods[key]), this.context.api).map(mod => (mod as any).id);
+    this.nextState.sorting = true;
+    return util.sortMods(gameId, Object.keys(mods).map(key => mods[key]), this.context.api)
+      .map(mod => (mod as any).id)
+      .finally(() => {
+        this.nextState.sorting = false;
+      });
   }
 }
 
