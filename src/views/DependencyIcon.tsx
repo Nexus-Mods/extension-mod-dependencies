@@ -148,7 +148,7 @@ interface IActionProps {
   onSetTarget: (id: string, pos: { x: number, y: number }) => void;
   onEditDialog: (gameId: string, modId: string, reference: IReference, defaultType: string) => void;
   onRemoveRule: (gameId: string, modId: string, rule: IRule) => void;
-  onConflictDialog: (gameId: string, modId: string, modRules: IBiDirRule[]) => void;
+  onConflictDialog: (gameId: string, modIds: string[], modRules: IBiDirRule[]) => void;
   onOverrideDialog: (gameId: string, modId: string) => void;
 }
 
@@ -531,7 +531,7 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
   private openConflictDialog = () => {
     const { gameId, mod, onConflictDialog } = this.props;
     const { modRules } = this.state;
-    onConflictDialog(gameId, mod.id, modRules);
+    onConflictDialog(gameId, [mod.id], modRules);
   }
 
   private openOverrideDialog = () => {
@@ -605,8 +605,8 @@ function mapDispatchToProps(dispatch): IActionProps {
     onEditDialog: (gameId, modId, reference, defaultType) =>
       dispatch(setCreateRule(gameId, modId, reference, defaultType)),
     onRemoveRule: (gameId, modId, rule) => dispatch(actions.removeModRule(gameId, modId, rule)),
-    onConflictDialog: (gameId, modId, modRules) =>
-      dispatch(setConflictDialog(gameId, modId, modRules)),
+    onConflictDialog: (gameId, modIds, modRules) =>
+      dispatch(setConflictDialog(gameId, modIds, modRules)),
     onOverrideDialog: (gameId: string, modId: string) =>
       dispatch(setFileOverrideDialog(gameId, modId)),
   };

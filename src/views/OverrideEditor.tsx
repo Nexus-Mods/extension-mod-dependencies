@@ -41,7 +41,7 @@ interface IConnectedProps {
 interface IActionProps {
   onSetFileOverride: (gameId: string, modId: string, files: string[]) => void;
   onClose: () => void;
-  onConflictDialog: (gameId: string, modId: string, modRules: IBiDirRule[]) => void;
+  onConflictDialog: (gameId: string, modIds: string[], modRules: IBiDirRule[]) => void;
 }
 
 type IProps = IOverrideEditorProps & IConnectedProps & IActionProps;
@@ -200,7 +200,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
     const { gameId, modId, onConflictDialog } = this.props;
     const { modRules } = this.state;
 
-    onConflictDialog(gameId, modId, modRules)
+    onConflictDialog(gameId, [modId], modRules)
   }
 
   private apply = () => {
@@ -439,8 +439,8 @@ function mapDispatchToProps(dispatch: Redux.Dispatch<any>): IActionProps {
     onSetFileOverride: (gameId: string, modId: string, files: string[]) =>
       dispatch((actions as any).setFileOverride(gameId, modId, files)),
     onClose: () => dispatch(setFileOverrideDialog(undefined, undefined)),
-    onConflictDialog: (gameId, modId, modRules) =>
-      dispatch(setConflictDialog(gameId, modId, modRules)),
+    onConflictDialog: (gameId, modIds, modRules) =>
+      dispatch(setConflictDialog(gameId, modIds, modRules)),
   };
 }
 

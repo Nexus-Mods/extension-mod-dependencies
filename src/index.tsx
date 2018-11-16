@@ -147,11 +147,12 @@ let loadOrder: ILoadOrderState = {};
 let loadOrderChanged: () => void = () => undefined;
 let dependenciesChanged :() => void = () => undefined;
 
-function findRule(ref: IModLookupInfo): IBiDirRule {
-  return dependencyState.modRules.find(rule => {
-    return util.testModReference(ref, rule.reference);
-  });
+function findRule(source: types.IMod, ref: IModLookupInfo): IBiDirRule {
+  return dependencyState.modRules.find(rule =>
+    ((source === undefined) || util.testModReference(source, rule.source))
+    && util.testModReference(ref, rule.reference));
 }
+
 
 function updateConflictInfo(api: types.IExtensionApi,
                             conflicts: { [modId: string]: IConflict[] }) {
@@ -174,7 +175,7 @@ function updateConflictInfo(api: types.IExtensionApi,
   // see if there is a mod that has conflicts for which there are no rules
   Object.keys(conflicts).forEach(modId => {
     const filtered = conflicts[modId].filter(conflict =>
-      (findRule(conflict.otherMod) === undefined)
+      (findRule(undefined, conflict.otherMod) === undefined)
       && !encountered.has(mapEnc(modId, conflict.otherMod.id)));
 
     if (filtered.length !== 0) {
@@ -210,7 +211,9 @@ function updateConflictInfo(api: types.IExtensionApi,
           options: { translated: true, wrap: true },
         }, [
           { label: 'Close' },
-          { label: 'Show', action: () => showConflicts(api) },
+          { label: 'Show', action: () => {
+            showUnsolvedConflictsDialog(api);
+           } },
       ]));
     };
 
@@ -307,8 +310,23 @@ interface IConflictMap {
   [modId: string]: IConflict[];
 }
 
-function showNewConflictsDialog(api: types.IExtensionApi, oldConflicts: IConflictMap, newConflicts: IConflictMap) {
-  
+function showUnsolvedConflictsDialog(api: types.IExtensionApi) {
+  const state: types.IState = api.store.getState();
+  const gameMode = selectors.activeGameId(state);
+  const mods = state.persistent.mods[gameMode]
+
+  const conflicts = (state.session as any).dependencies.conflicts;
+
+  const unsolvedMods = Object.keys(conflicts).filter(modId => conflicts[modId].find(conflict => {
+    if (conflict.otherMod === undefined) {
+      return false;
+    }
+    const rule = findRule(mods[modId], conflict.otherMod);
+    return rule === undefined;
+  }) !== undefined);
+  if (unsolvedMods.length > 0) {
+    api.store.dispatch(setConflictDialog(gameMode, unsolvedMods, dependencyState.modRules));
+  }
 }
 
 // determine all conflicts and check if they are fulfilled or not
@@ -328,7 +346,6 @@ function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
   return determineConflicts(modPath, mods)
     .then(conflictMap => {
       if (!_.isEqual(conflictMap, state.session.dependencies.conflicts)) {
-        showNewConflictsDialog(api, conflictMap, state.session.dependencies.conflicts);
         store.dispatch(setConflictInfo(conflictMap));
       }
       updateConflictInfo(api, conflictMap);
@@ -482,7 +499,7 @@ function main(context: types.IExtensionContext) {
           // need to manually update any open conflict dialog - that's not pretty...
           const { conflictDialog } = store.getState().session.dependencies;
           if (conflictDialog !== undefined) {
-            store.dispatch(setConflictDialog(conflictDialog.gameId, conflictDialog.modId, rules));
+            store.dispatch(setConflictDialog(conflictDialog.gameId, conflictDialog.modIds, rules));
           }
           dependenciesChanged();
           return null;
