@@ -12,7 +12,7 @@ import { connect } from 'react-redux';
 import * as TreeT from 'react-sortable-tree';
 import { } from 'react-sortable-tree-theme-file-explorer';
 import * as Redux from 'redux';
-import { actions, ComponentEx, DNDContainer, types, util, Spinner } from 'vortex-api';
+import { actions, ComponentEx, DNDContainer, selectors, types, util, Spinner, Icon } from 'vortex-api';
 import { IModLookupInfo } from '../types/IModLookupInfo';
 import { IBiDirRule } from '../types/IBiDirRule';
 import { ILocalState } from './DependencyIcon';
@@ -36,6 +36,7 @@ interface IConnectedProps {
   modId: string;
   conflicts: IConflict[];
   mods: { [modId: string]: types.IMod };
+  profile: types.IProfile;
 }
 
 interface IActionProps {
@@ -55,6 +56,7 @@ interface IComponentState {
   hasUnsolved: boolean;
   modRules: IBiDirRule[];
   sorting: boolean;
+  sortError: boolean;
 }
 
 class OverrideEditor extends ComponentEx<IProps, IComponentState> {
@@ -73,6 +75,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
       modRules,
       hasUnsolved: this.hasUnsolved(props, modRules),
       sorting: false,
+      sortError: false,
     });
   }
 
@@ -107,7 +110,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
 
   public render(): JSX.Element {
     const { t, modId, mods } = this.props;
-    const { hasUnsolved, searchString, searchIndex, searchMatches, sorting, treeState } = this.state;
+    const { hasUnsolved, searchString, searchIndex, searchMatches, sortError, sorting, treeState } = this.state;
 
     const modName = mods[modId] !== undefined
       ? util.renderModName(mods[modId])
@@ -131,6 +134,15 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
           <div>
             <Spinner />
             <div style={{ marginLeft: 8, display: 'inline' }}>{t('Sorting mods')}</div>
+          </div>
+        </div>
+      );
+    } else if (sortError) {
+      content = (
+        <div className='file-override-sorting'>
+          <div>
+            <Icon name='feedback-error' />
+            <div style={{ marginLeft: 8, display: 'inline' }}>{t('Mods were not sorted. You need to fix that before setting file overrides.')}</div>
           </div>
         </div>
       );
@@ -185,7 +197,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
         </Modal.Body>
         <Modal.Footer>
           <Button onClick={this.close}>{t('Cancel')}</Button>
-          <Button disabled={hasUnsolved} onClick={this.apply}>{t('Save')}</Button>
+          <Button disabled={hasUnsolved || sorting || sortError} onClick={this.apply}>{t('Save')}</Button>
         </Modal.Footer>
       </Modal>
     );
@@ -410,10 +422,18 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
   }
 
   private sortedMods = (newProps: IProps) => {
-    const { gameId, mods } = newProps;
+    const { gameId, mods, profile } = newProps;
     this.nextState.sorting = true;
-    return util.sortMods(gameId, Object.keys(mods).map(key => mods[key]), this.context.api)
+    const enabled = Object.keys(mods)
+      .filter(key => util.getSafe(profile, ['modState', key, 'enabled'], false))
+      .map(key => mods[key]);
+    return util.sortMods(gameId, enabled, this.context.api)
       .map(mod => (mod as any).id)
+      .tap(() => this.nextState.sortError = false)
+      .catch(() => {
+        this.nextState.sortError = true
+        return [];
+      })
       .finally(() => {
         this.nextState.sorting = false;
       });
@@ -429,6 +449,7 @@ function mapStateToProps(state: types.IState): IConnectedProps {
     gameId: dialog.gameId,
     modId: dialog.modId,
     mods: dialog.gameId !== undefined ? state.persistent.mods[dialog.gameId] : emptyObj,
+    profile: selectors.activeProfile(state),
     conflicts:
       util.getSafe(state, ['session', 'dependencies', 'conflicts', dialog.modId], emptyArr),
   };
