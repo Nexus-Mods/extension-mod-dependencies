@@ -584,7 +584,9 @@ function main(context: types.IExtensionContext) {
     });
 
   (context as any).registerStartHook(50, 'check-unsolved-conflicts',
-    (input: types.IRunParameters) => unsolvedConflictsCheck(context.api, dependencyState.modRules, input));
+    (input: types.IRunParameters) => (input.options.suggestDeploy !== false)
+      ? unsolvedConflictsCheck(context.api, dependencyState.modRules, input)
+      : input);
 
   context.once(() => once(context.api));
 
