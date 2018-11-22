@@ -189,9 +189,8 @@ function updateConflictInfo(api: types.IExtensionApi,
     store.dispatch(actions.dismissNotification('mod-file-conflict'));
   } else {
     const message: string[] = [
-      t('There are unsolved file conflicts. Such conflicts are not necessarily '
-        + 'a problem but you should set up a rule to decide the priorities between '
-        + 'these mods, otherwise it will be random (not really but it might as well be).\n'),
+      t('There are unsolved file conflicts. This just means that two or more mods contain the same files '
+        + 'and you need to decide which of them loads last and thus provides the files.\n'),
       '[table][tbody]',
     ].concat(Object.keys(unsolved).map(modId =>
       '[tr]' + t('[td]{{modName}}[/td]'
@@ -389,6 +388,7 @@ function generateLoadOrder(api: types.IExtensionApi): Promise<void> {
         id: 'mod-cycle-warning',
         type: 'warning',
         message: 'Mod rules contain cycles',
+        noDismiss: true,
         actions: [
           {
             title: 'Show', action: () => {
