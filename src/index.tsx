@@ -477,8 +477,8 @@ function main(context: types.IExtensionContext) {
         });
     });
 
-    context.api.events.on('edit-mod-cycle', (cycle: string[]) => {
-      store.dispatch(setEditCycle(cycle));
+    context.api.events.on('edit-mod-cycle', (gameId: string, cycle: string[]) => {
+      store.dispatch(setEditCycle(gameId, cycle));
     });
 
     context.api.onStateChange(['persistent', 'mods'], (oldState, newState) => {

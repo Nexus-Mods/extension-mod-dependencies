@@ -27,10 +27,9 @@ export interface IConflictGraphProps {
 }
 
 interface IConnectedProps {
-  gameId: string;
   conflicts: { [modId: string]: IConflict[] };
   mods: { [modId: string]: types.IMod };
-  editCycle: string[];
+  editCycle: { gameId: string, modIds: string[] };
 }
 
 interface IActionProps {
@@ -55,7 +54,7 @@ interface IComponentState {
 }
 
 class ConflictGraph extends ComponentEx<IProps, IComponentState> {
-  private mCycle: string[];
+  private mCycle: { gameId: string, modIds: string[] };
   private mRules: IBiDirRule[];
   private mGraph: Graph;
   private mHighlighted: { source: string, target: string };
@@ -131,7 +130,7 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
   }
 
   private updateGraph(props: IProps) {
-    const { editCycle, gameId, localState, mods, onRemoveRule } = props;
+    const { editCycle, localState, mods, onRemoveRule } = props;
     const { highlighted } = this.state;
     if (editCycle === undefined) {
       return;
@@ -139,7 +138,7 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
 
     let change: boolean = false;
     if (this.mCycle !== editCycle) {
-      const nodes = editCycle.map(modId =>
+      const nodes = editCycle.modIds.map(modId =>
         ({ id: modId, name: util.renderModName(props.mods[modId]) }));
       this.mGraph.setNodes(nodes);
       this.mCycle = editCycle;
@@ -148,12 +147,12 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
 
     if ((this.mRules !== localState.modRules)
       || (this.mHighlighted !== highlighted)) {
-      const links: IGraphLinkSpec[] = editCycle.reduce((prev: IGraphLinkSpec[], modId: string) => {
+      const links: IGraphLinkSpec[] = editCycle.modIds.reduce((prev: IGraphLinkSpec[], modId: string) => {
         localState.modRules
           .filter(rule => (rule.type === 'after')
             && util.testModReference(mods[modId], rule.source))
           .forEach(rule => {
-            const otherMods: string[] = editCycle.filter(refId =>
+            const otherMods: string[] = editCycle.modIds.filter(refId =>
               util.testModReference(mods[refId], rule.reference));
             otherMods.forEach(otherMod => {
               prev.push({
@@ -180,7 +179,7 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
           type: bidirRule.original ? 'after' : 'before',
           reference: bidirRule.original ? bidirRule.reference : bidirRule.source,
         };
-        onRemoveRule(gameId, sourceId, remRule);
+        onRemoveRule(editCycle.gameId, sourceId, remRule);
       }, (source: string, target: string, highlight: boolean) => {
         this.nextState.highlighted = highlight
           ? { source, target }
@@ -203,20 +202,25 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
 
 const emptyObj = {};
 
-function mapStateToProps(state): IConnectedProps {
-  const gameId = selectors.activeGameId(state);
+function mapStateToProps(state: types.IState, props: IProps): IConnectedProps {
+  let editCycle = util.getSafe(state, ['session', 'dependencies', 'editCycle'], undefined);
+  const gameMode = selectors.activeGameId(state);
+  let gameId = editCycle !== undefined ? editCycle.gameId : undefined;
+  if (gameMode !== gameId) {
+    editCycle = undefined;
+    gameId = undefined;
+  }
   return {
-    gameId,
     conflicts:
       util.getSafe(state, ['session', 'dependencies', 'conflicts'], emptyObj),
-    mods: gameId !== undefined ? state.persistent.mods[gameId] : emptyObj,
-    editCycle: util.getSafe(state, ['session', 'dependencies', 'editCycle'], undefined),
+    mods: (gameId !== undefined) ? state.persistent.mods[gameId] : emptyObj,
+    editCycle,
   };
 }
 
 function mapDispatchToProps(dispatch: ThunkDispatch<any, null, Redux.Action>): IActionProps {
   return {
-    onClose: () => dispatch(setEditCycle(undefined)),
+    onClose: () => dispatch(setEditCycle(undefined, undefined)),
     onAddRule: (gameId, modId, rule) =>
       dispatch(actions.addModRule(gameId, modId, rule)),
     onRemoveRule: (gameId, modId, rule) =>

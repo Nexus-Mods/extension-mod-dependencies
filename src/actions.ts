@@ -27,4 +27,5 @@ export const setConflictDialog = createAction('SET_CONFLICT_DIALOG',
 export const setFileOverrideDialog = createAction('SET_FILE_OVERRIDE_DIALOG',
   (gameId: string, modId: string) => ({ gameId, modId }));
 
-export const setEditCycle = createAction('SET_EDIT_MOD_CYCLE', (modIds: string[]) => modIds);
+export const setEditCycle = createAction('SET_EDIT_MOD_CYCLE',
+  (gameId: string, modIds: string[]) => (gameId !== undefined) ? ({ gameId, modIds }) : undefined);
