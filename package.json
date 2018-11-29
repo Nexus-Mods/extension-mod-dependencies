@@ -41,12 +41,11 @@
     "d3": "^4.13.0",
     "d3-force": "^1.1.0",
     "d3-scale": "^2.0.0",
-    "minimatch": "^3.0.4",
     "i18next": "^10.5.0",
     "immutability-helper": "^2.6.6",
     "json-loader": "^0.5.4",
+    "minimatch": "^3.0.4",
     "modmeta-db": "Nexus-Mods/modmeta-db",
-    "vortex-api": "Nexus-Mods/vortex-api",
     "react": "^16.2.0",
     "react-bootstrap": "^0.32.1",
     "react-dnd": "^2.5.4",
@@ -60,6 +59,7 @@
     "redux-thunk": "^2.3.0",
     "semvish": "^1.1.0",
     "ts-loader": "^5.1.1",
+    "vortex-api": "Nexus-Mods/vortex-api",
     "webpack": "^4.19.1"
   }
 }

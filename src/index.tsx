@@ -19,7 +19,7 @@ import DependencyIcon, { ILocalState } from './views/DependencyIcon';
 import Editor from './views/Editor';
 import OverrideEditor from './views/OverrideEditor';
 
-import { highlightConflictIcon, setConflictInfo, setEditCycle,
+import { setConflictInfo, setEditCycle,
          setFileOverrideDialog } from './actions';
 import connectionReducer from './reducers';
 import { enabledModKeys } from './selectors';
@@ -153,13 +153,12 @@ function findRule(ref: IModLookupInfo): IBiDirRule {
   });
 }
 
-function updateConflictInfo(api: types.IExtensionApi,
+function updateConflictInfo(api: types.IExtensionApi, gameId: string,
                             conflicts: { [modId: string]: IConflict[] }) {
   const t: I18next.TranslationFunction = api.translate;
   const store: any = api.store;
 
-  const gameMode: string = selectors.activeGameId(store.getState());
-  const mods = store.getState().persistent.mods[gameMode];
+  const mods = store.getState().persistent.mods[gameId];
   const unsolved: { [modId: string]: IConflict[] } = {};
 
   if (mods === undefined) {
@@ -321,7 +320,7 @@ function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
       if (!_.isEqual(conflictMap, state.session.dependencies.conflicts)) {
         store.dispatch(setConflictInfo(conflictMap));
       }
-      updateConflictInfo(api, conflictMap);
+      updateConflictInfo(api, gameId, conflictMap);
       return checkRulesFulfilled(api);
     })
     .catch(err => {
@@ -349,6 +348,14 @@ function generateLoadOrder(api: types.IExtensionApi): Promise<void> {
           return prev;
         }, {});
       loadOrderChanged();
+    })
+    .catch(util.CycleError, () => {
+      api.sendNotification({
+        type: 'warning',
+        title: 'Sorting mods failed',
+        message: 'Rules contain cycles',
+        displayMS: 5000,
+      });
     });
 }
 
@@ -464,6 +471,9 @@ function main(context: types.IExtensionContext) {
           dependencyState.modRules = rules;
           dependenciesChanged();
           return null;
+        })
+        .catch(err => {
+          context.api.showErrorNotification('Sorting mods failed', err);
         });
     });
 
