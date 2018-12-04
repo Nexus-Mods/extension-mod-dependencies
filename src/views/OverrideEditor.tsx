@@ -13,6 +13,7 @@ import * as TreeT from 'react-sortable-tree';
 import { } from 'react-sortable-tree-theme-file-explorer';
 import * as Redux from 'redux';
 import { actions, ComponentEx, DNDContainer, types, util } from 'vortex-api';
+const { Usage } = require('vortex-api');
 
 interface IFileTree {
   title: string;
@@ -118,7 +119,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
                 searchFocusOffset={searchIndex}
                 searchFinishCallback={this.searchFinishCallback}
               />
-              <div className='override-editor-usage'>
+              <Usage persistent infoId='override-editor'>
                 <div>{t('Use this dialog to select which mod should provide a file.')}</div>
                 <div>{t('The mod marked as "Default" is the one that will provide the '
                       + 'file based on current mod rules, if you make no change.')}</div>
@@ -126,7 +127,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
                       + 'Use mod rules to order entire mods.')}</div>
                 <div>{t('This lists only the files in the selected mod that aren\'t exclusive '
                       + 'to it.')}</div>
-              </div>
+              </Usage>
 
             </div>
           </DNDContainer>
