@@ -256,28 +256,30 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
   private save = () => {
     const { gameId, modId, mods, onAddRule, onRemoveRule } = this.props;
     const { rules } = this.state;
-    Object.keys(rules).forEach(otherId => {
-      if (mods[otherId] === undefined) {
-        return;
-      }
-      const origRule = (mods[modId].rules || [])
-        .find(rule => (['before', 'after', 'conflicts'].indexOf(rule.type) !== -1)
-                      && (util as any).testModReference(mods[otherId], rule.reference));
+    if (mods[modId] !== undefined) {
+      Object.keys(rules).forEach(otherId => {
+        if (mods[otherId] === undefined) {
+          return;
+        }
+        const origRule = (mods[modId].rules || [])
+          .find(rule => (['before', 'after', 'conflicts'].indexOf(rule.type) !== -1)
+            && (util as any).testModReference(mods[otherId], rule.reference));
 
-      if (origRule !== undefined) {
-        onRemoveRule(gameId, modId, origRule);
-      }
+        if (origRule !== undefined) {
+          onRemoveRule(gameId, modId, origRule);
+        }
 
-      if (rules[otherId].type !== undefined) {
-        onAddRule(gameId, modId, {
-          reference: {
-            id: otherId,
-            versionMatch: this.translateModVersion(mods[otherId], rules[otherId].version),
-          },
-          type: rules[otherId].type,
-        });
-      }
-    });
+        if (rules[otherId].type !== undefined) {
+          onAddRule(gameId, modId, {
+            reference: {
+              id: otherId,
+              versionMatch: this.translateModVersion(mods[otherId], rules[otherId].version),
+            },
+            type: rules[otherId].type,
+          });
+        }
+      });
+    };
 
     this.close();
   }
