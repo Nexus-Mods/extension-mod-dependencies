@@ -256,6 +256,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
   private save = () => {
     const { gameId, modId, mods, onAddRule, onRemoveRule } = this.props;
     const { rules } = this.state;
+
     if (mods[modId] !== undefined) {
       Object.keys(rules).forEach(otherId => {
         if (mods[otherId] === undefined) {
@@ -279,7 +280,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
           });
         }
       });
-    };
+    }
 
     this.close();
   }

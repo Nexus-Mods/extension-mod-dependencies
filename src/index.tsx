@@ -351,6 +351,7 @@ function generateLoadOrder(api: types.IExtensionApi): Promise<void> {
     })
     .catch(util.CycleError, () => {
       api.sendNotification({
+        id: 'sorting-mods-failed',
         type: 'warning',
         title: 'Sorting mods failed',
         message: 'Rules contain cycles',
