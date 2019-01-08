@@ -22,7 +22,7 @@ export const highlightConflictIcon = createAction<boolean, {}>('HIGHLIGHT_CONFLI
 export const setConflictInfo = createAction<any, {}>('SET_CONFLICT_INFO');
 
 export const setConflictDialog = createAction('SET_CONFLICT_DIALOG',
-  (gameId: string, modId: string, modRules: IBiDirRule[]) => ({ gameId, modId, modRules }));
+  (gameId: string, modIds: string[], modRules: IBiDirRule[]) => ({ gameId, modIds, modRules }));
 
 export const setFileOverrideDialog = createAction('SET_FILE_OVERRIDE_DIALOG',
   (gameId: string, modId: string) => ({ gameId, modId }));

@@ -1,3 +1,7 @@
 let webpack = require('vortex-api/bin/webpack').default;
 
-module.exports = webpack('mod-dependency-manager', __dirname, 4);
+const config = webpack('mod-dependency-manager', __dirname, 4);
+
+config.externals.turbowalk = 'turbowalk';
+
+module.exports = config;

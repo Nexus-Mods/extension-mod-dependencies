@@ -11,7 +11,6 @@ import renderModLookup from './util/renderModLookup';
 import renderModName from './util/renderModName';
 import renderReference from './util/renderReference';
 import ruleFulfilled from './util/ruleFulfilled';
-import showConflicts from './util/showConflicts';
 import ConflictEditor from './views/ConflictEditor';
 import ConflictGraph from './views/ConflictGraph';
 import Connector from './views/Connector';
@@ -20,7 +19,7 @@ import Editor from './views/Editor';
 import OverrideEditor from './views/OverrideEditor';
 
 import { setConflictInfo, setEditCycle,
-         setFileOverrideDialog } from './actions';
+         setFileOverrideDialog, setConflictDialog} from './actions';
 import connectionReducer from './reducers';
 import { enabledModKeys } from './selectors';
 import unsolvedConflictsCheck from './unsolvedConflictsCheck';
@@ -31,7 +30,6 @@ import * as _ from 'lodash';
 import { ILookupResult, IModInfo, IReference, IRule, RuleType } from 'modmeta-db';
 import * as path from 'path';
 import * as React from 'react';
-import * as Redux from 'redux';
 import {} from 'redux-thunk';
 import { actions, log, selectors, types, util } from 'vortex-api';
 
@@ -147,10 +145,10 @@ let loadOrder: ILoadOrderState = {};
 let loadOrderChanged: () => void = () => undefined;
 let dependenciesChanged :() => void = () => undefined;
 
-function findRule(ref: IModLookupInfo): IBiDirRule {
-  return dependencyState.modRules.find(rule => {
-    return util.testModReference(ref, rule.reference);
-  });
+function findRule(source: types.IMod, ref: IModLookupInfo): IBiDirRule {
+  return dependencyState.modRules.find(rule =>
+    ((source === undefined) || util.testModReference(source, rule.source))
+    && util.testModReference(ref, rule.reference));
 }
 
 function updateConflictInfo(api: types.IExtensionApi, gameId: string,
@@ -173,7 +171,7 @@ function updateConflictInfo(api: types.IExtensionApi, gameId: string,
   // see if there is a mod that has conflicts for which there are no rules
   Object.keys(conflicts).forEach(modId => {
     const filtered = conflicts[modId].filter(conflict =>
-      (findRule(conflict.otherMod) === undefined)
+      (findRule(undefined, conflict.otherMod) === undefined)
       && !encountered.has(mapEnc(modId, conflict.otherMod.id)));
 
     if (filtered.length !== 0) {
@@ -188,9 +186,8 @@ function updateConflictInfo(api: types.IExtensionApi, gameId: string,
     store.dispatch(actions.dismissNotification('mod-file-conflict'));
   } else {
     const message: string[] = [
-      t('There are unsolved file conflicts. Such conflicts are not necessarily '
-        + 'a problem but you should set up a rule to decide the priorities between '
-        + 'these mods, otherwise it will be random (not really but it might as well be).\n'),
+      t('There are unsolved file conflicts. This just means that two or more mods contain the same files '
+        + 'and you need to decide which of them loads last and thus provides the files.\n'),
       '[table][tbody]',
     ].concat(Object.keys(unsolved).map(modId =>
       '[tr]' + t('[td]{{modName}}[/td]'
@@ -209,7 +206,9 @@ function updateConflictInfo(api: types.IExtensionApi, gameId: string,
           options: { translated: true, wrap: true },
         }, [
           { label: 'Close' },
-          { label: 'Show', action: () => showConflicts(api) },
+          { label: 'Show', action: () => {
+            showUnsolvedConflictsDialog(api);
+           } },
       ]));
     };
 
@@ -302,6 +301,26 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
     });
 }
 
+function showUnsolvedConflictsDialog(api: types.IExtensionApi) {
+  const state: types.IState = api.store.getState();
+  const gameMode = selectors.activeGameId(state);
+  const mods = state.persistent.mods[gameMode]
+
+  const conflicts = (state.session as any).dependencies.conflicts;
+
+  const unsolvedMods = Object.keys(conflicts).filter(modId => conflicts[modId].find(conflict => {
+    if (conflict.otherMod === undefined) {
+      return false;
+    }
+    const rule = findRule(mods[modId], conflict.otherMod);
+    return rule === undefined;
+  }) !== undefined);
+  if (unsolvedMods.length > 0) {
+    api.store.dispatch(setConflictDialog(gameMode, unsolvedMods, dependencyState.modRules));
+  }
+}
+
+// determine all conflicts and check if they are fulfilled or not
 function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
   const store = api.store;
   const state = store.getState();
@@ -331,6 +350,23 @@ function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
     });
 }
 
+function showCycles(api: types.IExtensionApi, cycles: string[][]) {
+  const gameId = selectors.activeGameId(api.store.getState());
+  api.showDialog('error', 'Cycles', {
+    text: 'Dependency rules between your mods contain cycles, '
+      + 'like "A after B" and "B after A". You need to remove one of the '
+      + 'rules causing the cycle, otherwise your mods can\'t be '
+      + 'applied in the right order.',
+    links: cycles.map((cycle, idx) => (
+      { label: cycle.join(', '), action: () => {
+        api.store.dispatch(setEditCycle(gameId, cycle));
+      } }
+    )),
+  }, [
+    { label: 'Close' },
+  ]);
+}
+
 function generateLoadOrder(api: types.IExtensionApi): Promise<void> {
   const store = api.store;
   const gameMode = selectors.activeGameId(store.getState());
@@ -338,15 +374,34 @@ function generateLoadOrder(api: types.IExtensionApi): Promise<void> {
   const gameMods = state.persistent.mods[gameMode] || [];
   const profile = selectors.activeProfile(state);
   const mods = Object.keys(gameMods)
-    .map(key => gameMods[key])
-    .filter((mod: types.IMod) => util.getSafe(profile.modState, [mod.id, 'enabled'], false));
+    .filter(key => util.getSafe(profile, ['modState', key, 'enabled'], false))
+    .map(key => gameMods[key]);
   return util.sortMods(gameMode, mods, api)
-    .then((sortedMods: any) => {
-      loadOrder = sortedMods.reduce(
-        (prev: { [id: string]: number }, mod: types.IMod, idx: number) => {
-          prev[mod.id] = idx;
-          return prev;
-        }, {});
+    .catch((util as any).CycleError, err => {
+      api.sendNotification({
+        id: 'mod-cycle-warning',
+        type: 'warning',
+        message: 'Mod rules contain cycles',
+        noDismiss: true,
+        actions: [
+          {
+            title: 'Show', action: () => {
+              showCycles(api, err.cycles);
+            },
+          },
+        ],
+      });
+      // return unsorted
+      return Promise.resolve(mods);
+    })
+    .then((sortedMods: types.IMod[]) => {
+      loadOrder = sortedMods
+        .filter((mod: types.IMod) => util.getSafe(profile.modState, [mod.id, 'enabled'], false))
+        .reduce(
+          (prev: { [id: string]: number }, mod: types.IMod, idx: number) => {
+            prev[mod.id] = idx;
+            return prev;
+          }, {});
       loadOrderChanged();
     })
     .catch(util.CycleError, () => {
@@ -360,8 +415,26 @@ function generateLoadOrder(api: types.IExtensionApi): Promise<void> {
     });
 }
 
-function main(context: types.IExtensionContext) {
-  context.registerTableAttribute('mods', {
+function changeMayAffectRules(before: types.IMod, after: types.IMod): boolean {
+  // if the mod is new or if it previously had no attributes and now has them,
+  // this could affect the rules, if it had no rules before and now has them,
+  // that most definitively affects rules
+  if ((before === undefined)
+    || ((before.attributes !== undefined) !== (after.attributes !== undefined))
+    || ((before.rules !== undefined) !== (after.rules !== undefined))) {
+    return true;
+  }
+
+  if (after.attributes === undefined) {
+    return false;
+  }
+
+  return (before.rules !== after.rules)
+      || (before.attributes['version'] !== after.attributes['version']);
+}
+
+function makeLoadOrderAttribute(api: types.IExtensionApi): types.ITableAttribute<types.IMod> {
+  return {
     id: 'loadOrder',
     name: 'Install Order',
     description: 'Install order derived from mod dependencies',
@@ -372,16 +445,18 @@ function main(context: types.IExtensionContext) {
     isDefaultVisible: false,
     calc: (mod: types.IMod) => loadOrder[mod.id],
     condition: () => {
-      const gameMode = selectors.activeGameId(context.api.store.getState());
-      return util.getGame(gameMode).mergeMods;
+      const gameMode = selectors.activeGameId(api.store.getState());
+      return util.getGame(gameMode).mergeMods === true;
     },
     edit: {},
     externalData: (onChange: () => void) => {
       loadOrderChanged = onChange;
     },
-  } as any);
+  }
+}
 
-  context.registerTableAttribute('mods', {
+function makeDependenciesAttribute(api: types.IExtensionApi): types.ITableAttribute<types.IMod> {
+  return {
     id: 'dependencies',
     name: 'Dependencies',
     description: 'Relations to other mods',
@@ -389,17 +464,16 @@ function main(context: types.IExtensionContext) {
     placement: 'table',
     customRenderer: (mod, detailCell, t, props) => (
       <DependencyIcon
-        mod={mod}
+        mod={Array.isArray(mod) ? mod[0] : mod}
         t={t}
         localState={dependencyState}
         onHighlight={props.onHighlight}
       />
     ),
     condition: () => {
-      const gameMode = selectors.activeGameId(context.api.store.getState());
-      return util.getGame(gameMode).mergeMods;
+      const gameMode = selectors.activeGameId(api.store.getState());
+      return util.getGame(gameMode).mergeMods === true;
     },
-    // TODO: Pretty expensive
     calc: (mod: types.IMod) => mod,
     isToggleable: true,
     isDefaultVisible: false,
@@ -411,27 +485,98 @@ function main(context: types.IExtensionContext) {
     isVolatile: true,
     filter: new DependenciesFilter(dependencyState,
       () => {
-        const state = context.api.store.getState();
+        const state = api.store.getState();
         return util.getSafe(state, ['persistent', 'mods', selectors.activeGameId(state)], {});
       },
-      () => util.getSafe(context.api.store.getState(), ['session', 'dependencies', 'conflicts'], {})),
-  } as any);
+      () => util.getSafe(api.store.getState(), ['session', 'dependencies', 'conflicts'], {})),
+  };
+}
 
+function once(api: types.IExtensionApi) {
+  const store = api.store;
+
+  const updateRulesDebouncer = new util.Debouncer((gameMode: string) => {
+    const state = store.getState();
+    return generateLoadOrder(api)
+      .then(() => updateMetaRules(api, gameMode, state.persistent.mods[gameMode]))
+      .then(rules => {
+        dependencyState.modRules = rules;
+        // need to manually update any open conflict dialog - that's not pretty...
+        const { conflictDialog } = store.getState().session.dependencies;
+        if (conflictDialog !== undefined) {
+          store.dispatch(setConflictDialog(conflictDialog.gameId, conflictDialog.modIds, rules));
+        }
+        dependenciesChanged();
+        return null;
+      });
+  }, 200);
+
+  const updateConflictDebouncer = new util.Debouncer(() =>
+    checkConflictsAndRules(api), 2000);
+
+  api.setStylesheet('dependency-manager',
+    path.join(__dirname, 'dependency-manager.scss'));
+
+  api.events.on('profile-did-change', () => {
+    const gameMode = selectors.activeGameId(store.getState());
+    updateMetaRules(api, gameMode, store.getState().persistent.mods[gameMode])
+      .then(rules => {
+        dependencyState.modRules = rules;
+        dependenciesChanged();
+        updateConflictDebouncer.schedule(undefined);
+      });
+  });
+
+  api.events.on('gamemode-activated', (gameMode: string) => {
+    updateRulesDebouncer.schedule(undefined, gameMode);
+  });
+
+  api.events.on('edit-mod-cycle', (gameId: string, cycle: string[]) => {
+    store.dispatch(setEditCycle(gameId, cycle));
+  });
+
+  api.onStateChange(['persistent', 'mods'], (oldState, newState) => {
+    const gameMode = selectors.activeGameId(store.getState());
+    if (oldState[gameMode] !== newState[gameMode]) {
+      const relevantChange = Object.keys(newState[gameMode])
+        .find(modId => (oldState[gameMode][modId] !== newState[gameMode][modId])
+          && (changeMayAffectRules(oldState[gameMode][modId], newState[gameMode][modId])));
+
+      if (relevantChange !== undefined) {
+        updateRulesDebouncer.schedule(() => {
+          updateConflictDebouncer.schedule(undefined);
+        }, gameMode);
+      }
+    }
+  });
+
+  api.events.on('mods-enabled', (modIds: string[], enabled: boolean, gameMode: string) => {
+    if (gameMode === selectors.activeGameId(store.getState())) {
+      updateRulesDebouncer.schedule(() => {
+        updateConflictDebouncer.schedule(undefined);
+      }, gameMode);
+    }
+  });
+}
+
+function main(context: types.IExtensionContext) {
+  context.registerTableAttribute('mods', makeLoadOrderAttribute(context.api));
+  context.registerTableAttribute('mods', makeDependenciesAttribute(context.api));
   context.registerReducer(['session', 'dependencies'], connectionReducer);
   context.registerDialog('mod-dependencies-connector', Connector);
   context.registerDialog('mod-dependencies-editor', Editor);
   context.registerDialog('mod-conflict-editor', ConflictEditor);
-  context.registerDialog('mod-cycle-graph', () => {
-    return (
+  context.registerDialog('mod-cycle-graph', () => (
     <ConflictGraph
       width={500}
       height={500}
       nodeDistance={80}
       nodeRadius={10}
       localState={dependencyState}
-    />);
-  });
-  context.registerDialog('mod-fileoverride-editor', OverrideEditor);
+    />));
+  context.registerDialog('mod-fileoverride-editor', OverrideEditor, () => ({
+    localState: dependencyState,
+  }));
   context.registerAction('mods-action-icons', 100, 'groups', {}, 'Manage File Conflicts',
     instanceIds => {
       const { store } = context.api;
@@ -446,63 +591,11 @@ function main(context: types.IExtensionContext) {
     });
 
   (context as any).registerStartHook(50, 'check-unsolved-conflicts',
-    input => unsolvedConflictsCheck(context.api, dependencyState.modRules, input));
+    (input: types.IRunParameters) => (input.options.suggestDeploy !== false)
+      ? unsolvedConflictsCheck(context.api, dependencyState.modRules, input)
+      : input);
 
-  context.once(() => {
-    const store = context.api.store;
-
-    context.api.setStylesheet('dependency-manager',
-                              path.join(__dirname, 'dependency-manager.scss'));
-
-    context.api.events.on('profile-did-change', () => {
-      const gameMode = selectors.activeGameId(store.getState());
-      updateMetaRules(context.api, gameMode, store.getState().persistent.mods[gameMode])
-      .then(rules => {
-        dependencyState.modRules = rules;
-        dependenciesChanged();
-        updateConflictTimer.schedule(undefined);
-      });
-    });
-
-    context.api.events.on('gamemode-activated', (gameMode: string) => {
-      const state: types.IState = store.getState();
-      generateLoadOrder(context.api)
-        .then(() => updateMetaRules(context.api, gameMode, state.persistent.mods[gameMode]))
-        .then(rules => {
-          dependencyState.modRules = rules;
-          dependenciesChanged();
-          return null;
-        })
-        .catch(err => {
-          context.api.showErrorNotification('Sorting mods failed', err);
-        });
-    });
-
-    context.api.events.on('edit-mod-cycle', (gameId: string, cycle: string[]) => {
-      store.dispatch(setEditCycle(gameId, cycle));
-    });
-
-    context.api.onStateChange(['persistent', 'mods'], (oldState, newState) => {
-      const gameMode = selectors.activeGameId(store.getState());
-      if (oldState[gameMode] !== newState[gameMode]) {
-        generateLoadOrder(context.api)
-          .then(() => updateMetaRules(context.api, gameMode, newState[gameMode]))
-          .then(rules => {
-            dependencyState.modRules = rules;
-            dependenciesChanged();
-            updateConflictTimer.schedule(undefined);
-            return null;
-          });
-      }
-    });
-
-    const updateConflictTimer = new util.Debouncer(() =>
-      checkConflictsAndRules(context.api), 2000);
-
-    context.api.events.on('mods-enabled', () => {
-      updateConflictTimer.schedule(undefined);
-    });
-  });
+  context.once(() => once(context.api));
 
   return true;
 }

@@ -108,13 +108,12 @@
 
 .conflict-rule-select {
   display: inline;
-  max-width: 150px;
+  // max-width: 150px;
   vertical-align: top;
 }
 
 .conflict-rule-description {
   display: inline-block;
-  width: 100%;
 }
 
 .conflict-rule-reference {
@@ -128,6 +127,10 @@
   .conflict-rule-version {
     flex: 1 1 0;
   }
+}
+
+.conflict-rule-owner {
+  white-space: nowrap;
 }
 
 .rule-fulfilled {
@@ -166,12 +169,13 @@
 }
 
 .mod-conflict-list {
-  overflow-y: auto;
-  max-height: 80vh;
-
  .list-group-item {
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    select {
+      width: initial;
+    }
   }
 }
 
@@ -194,6 +198,17 @@
 #file-override-dialog {
   .modal-dialog {
     width: 75vw;
+
+    .modal-body {
+      .file-override-unsolved,
+      .file-override-sorting {
+        font-size: medium;
+        height: 60vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+    }
   }
 
   .ReactVirtualized__Grid__innerScrollContainer {
@@ -242,4 +257,18 @@
 
 #table-mods .header-dependencies {
   min-width: 10em;
+}
+
+#conflict-editor-dialog {
+  .modal-dialog {
+    width: 60vw;
+  }
+  .modal-body {
+    padding: $gutter-width;
+    max-height: 80vh;
+    overflow-y: auto;
+    td {
+      border-top: 0;
+    }
+  }
 }

@@ -28,7 +28,7 @@
     "@types/react-bootstrap": "^0.0.37",
     "@types/react-dom": "16.0.3",
     "@types/react-faux-dom": "^4.1.0",
-    "@types/react-i18next": "^1.7.5",
+    "@types/react-i18next": "^8.1.0",
     "@types/react-redux": "4.4.35",
     "@types/react-router": "^2.0.41",
     "@types/react-sortable-tree": "^0.2.1",
@@ -60,6 +60,7 @@
     "semvish": "^1.1.0",
     "ts-loader": "^5.1.1",
     "vortex-api": "Nexus-Mods/vortex-api",
+    "turbowalk": "Nexus-Mods/node-turbowalk",
     "webpack": "^4.19.1"
   }
 }
