@@ -6,6 +6,7 @@ import { setEditCycle } from '../actions';
 
 import GraphView, { IGraphElement, IGraphSelection } from './GraphView';
 
+import * as _ from 'lodash';
 import { IRule } from 'modmeta-db';
 import * as React from 'react';
 import { Button } from 'react-bootstrap';
@@ -13,7 +14,7 @@ import { translate } from 'react-i18next';
 import { connect } from 'react-redux';
 import * as Redux from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
-import { actions, ComponentEx, Modal, selectors, types, util, ContextMenu } from 'vortex-api';
+import { actions, ComponentEx, Modal, selectors, Spinner, types, util, ContextMenu } from 'vortex-api';
 const { Usage } = require('vortex-api');
 
 interface ILocalState {
@@ -61,6 +62,8 @@ interface IComponentState {
   };
 
   elements: { [id: string]: IGraphElement };
+  // working indicates that we changed a rule and haven't received updated rules through props yet
+  working: boolean;
 }
 
 class ConflictGraph extends ComponentEx<IProps, IComponentState> {
@@ -74,6 +77,11 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
       show: true,
       action: () => this.highlightCycle(),
     },
+    {
+      title: 'Load Last (among connected)',
+      show: true,
+      action: () => this.loadLast(),
+    }
    ];
 
    private contextEdgeActions = [
@@ -99,11 +107,13 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
 
   constructor(props: IProps) {
     super(props);
-    this.initState({ highlighted: undefined, counter: 0, context: undefined, elements: undefined });
+    this.initState({ highlighted: undefined, counter: 0, context: undefined, elements: undefined, working: false });
     // TODO: horrible hack, just to get this to update when mod rules change
     this.mProxy = {
       setState: () => {
         this.nextState.counter++;
+        this.nextState.working = false;
+        this.updateGraph(this.props);
       },
     };
   }
@@ -122,16 +132,17 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
       return;
     }
 
-    if ((this.props.conflicts !== newProps.conflicts)
-        || (this.props.mods !== newProps.mods)
-        || (this.props.localState.modRules !== newProps.localState.modRules)
-        || (this.props.editCycle !== newProps.editCycle)) {
+    if (!this.state.working
+        && ((this.props.conflicts !== newProps.conflicts)
+          || (this.props.mods !== newProps.mods)
+          || (this.props.editCycle !== newProps.editCycle))) {
       this.updateGraph(newProps);
     }
   }
 
   public render(): JSX.Element {
-    const { t, editCycle, mods } = this.props;
+    const { t, editCycle } = this.props;
+    const { working } = this.state;
     if (editCycle === undefined) {
       return null;
     }
@@ -149,7 +160,7 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
       <Modal id='conflict-graph-dialog' show={editCycle !== undefined} onHide={this.close}>
         <Modal.Header><Modal.Title>{t('Cycle')}</Modal.Title></Modal.Header>
         <Modal.Body>
-          {this.renderGraph()}
+          {working ? <div className='conflict-graph-working'><Spinner /></div> : this.renderGraph()}
           <ContextMenu
             position={this.state.context}
             visible={this.state.context !== undefined}
@@ -181,7 +192,7 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
   }
 
   private hideContext = () => {
-    if (Date.now() - this.mContextTime < 20) {
+    if (Date.now() - this.mContextTime < 100) {
       // workaround: somehow I can't prevent the event that opens the context menu from being
       // propagated up, which will be picked up as close event
       return;
@@ -199,25 +210,26 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
     return [];
   }
 
+  private getAllLinks(props: IProps, modId: string): string[] {
+    const { editCycle, localState, mods } = props;
+    return localState.modRules
+      .filter(rule => (rule.type === 'after') && util.testModReference(mods[modId], rule.source))
+      .map(rule => editCycle.modIds.filter(refId =>
+        util.testModReference(mods[refId], rule.reference)))
+      .reduce((prev, refs) => [...prev, ...refs], []);
+  }
+
   private updateGraph(props: IProps) {
-    const { editCycle, mods, localState } = props;
+    const { editCycle, mods } = props;
 
     if (editCycle === undefined) {
       this.nextState.elements = {};
       return;
     }
 
-    const links = (modId: string): string[] => {
-      return localState.modRules
-        .filter(rule => (rule.type === 'after') && util.testModReference(mods[modId], rule.source))
-        .map(rule => editCycle.modIds.filter(refId =>
-            util.testModReference(mods[refId], rule.reference)))
-        .reduce((prev, refs) => [...prev, ...refs], []);
-    }
-
     const elements: { [id: string]: IGraphElement } = editCycle.modIds.reduce((prev, modId) => {
       prev[modId] = {
-        title: util.renderModName(mods[modId]), connections: links(modId),
+        title: util.renderModName(mods[modId]), connections: this.getAllLinks(props, modId),
         class: `conflictnode`, readonly: false
       };
       return prev;
@@ -256,8 +268,36 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
     this.mGraphRef.highlightCycle(id);
   }
 
+  private loadLast = () => {
+    const { id } = this.state.context.selection;
+
+    const { editCycle, localState, mods, onAddRule } = this.props;
+
+    // all rules where the selected node is loaded before something else
+    const beforeRules = localState.modRules.filter(rule =>
+        rule.original
+        && (((rule.type === 'before') && util.testModReference(mods[id], rule.source))
+            || (rule.type === 'after') && util.testModReference(mods[id], rule.reference)));
+
+    beforeRules.forEach(rule => {
+      if (rule.type === 'before') {
+        // selected mod is the original
+        onAddRule(editCycle.gameId, id, {
+          type: 'after',
+          reference: rule.reference,
+        });
+      } else {
+        const sourceId = editCycle.modIds.find(modId => util.testModReference(mods[modId], rule.source));
+        onAddRule(editCycle.gameId, sourceId, {
+          type: 'before',
+          reference: rule.reference,
+        });
+      }
+    });
+  }
+
   private flipRule = () => {
-    const { editCycle, localState, mods, onAddRule, onRemoveRule } = this.props;
+    const { editCycle, localState, mods, onAddRule } = this.props;
     const { selection } = this.state.context;
 
     const bidirRule = localState.modRules.find(rule =>
@@ -269,15 +309,17 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
     }
 
     const sourceId = bidirRule.original ? selection.source : selection.target;
+    // this rule is the inverse (type swapped after <-> before) to the one that
+    // exists
     const rule: IRule = {
-      type: bidirRule.original ? 'before' : 'after',
+      type: bidirRule.original ? 'after' : 'before',
       reference: bidirRule.original ? bidirRule.reference : bidirRule.source,
     };
 
-    onRemoveRule(editCycle.gameId, sourceId, rule);
+    this.nextState.working = true;
 
-    // swap before <-> after, then add that exact same rule again
-    rule.type = bidirRule.original ? 'after' : 'before';
+    // addModRule takes care of replacing the existing rule. We could remove the old rule first
+    // but that would trigger two updates
     onAddRule(editCycle.gameId, sourceId, rule);
   }
 
@@ -298,6 +340,7 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
           reference: bidirRule.original ? bidirRule.reference : bidirRule.source,
         };
 
+    this.nextState.working = true;
     onRemoveRule(editCycle.gameId, sourceId, remRule)
   }
 }

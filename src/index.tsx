@@ -271,18 +271,20 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
       } else {
         const message: string[] = [
           t('There are mod dependency rules that aren\'t fulfilled.'),
+          '[list]'
         ].concat(modsUnfulfilled.map(iter =>
           iter.rules.map(rule => {
             const modName = renderModName(mods[iter.modId]);
             const type = renderRuleType(t, rule.type);
             const other = renderReference(rule.reference, mods[rule.reference.id]);
-            return `${modName} ${type} ${other}`;
-          }).join('\n')));
+            return `[*] ${modName} ${type} ${other}`;
+          }).join('<br/>')))
+          .concat(['[/list]']);
         const showDetails = () => {
           store.dispatch(actions.showDialog(
             'info',
             t('Unsolved file conflicts'), {
-              message: message.join('\n'),
+              bbcode: message.join('<br/>'),
               options: { translated: true, wrap: true },
             }, [ { label: 'Close' } ]));
         };
@@ -367,6 +369,20 @@ function showCycles(api: types.IExtensionApi, cycles: string[][]) {
   ]);
 }
 
+function updateCycles(api: types.IExtensionApi, cycles: string[][]) {
+  const state = api.store.getState();
+  if (state.session.dependencies.editCycle !== undefined) {
+    // if we're already showing a cycle, update it if necessary
+    const displayed = new Set<string>(state.session.dependencies.editCycle.modIds);
+    // there could be multiple clusters so we have to find the one that corresponds
+    // to the one being shown currently, it should be sufficient to find the cycle that
+    // has one mod in common with the one being displayed.
+    const update = cycles.find(cycle => cycle.find(modId => displayed.has(modId)) !== undefined);
+    const gameId = selectors.activeGameId(state);
+    api.store.dispatch(setEditCycle(update !== undefined ? gameId : undefined, update));
+  }
+}
+
 function generateLoadOrder(api: types.IExtensionApi): Promise<void> {
   const store = api.store;
   const gameMode = selectors.activeGameId(store.getState());
@@ -377,7 +393,15 @@ function generateLoadOrder(api: types.IExtensionApi): Promise<void> {
     .filter(key => util.getSafe(profile, ['modState', key, 'enabled'], false))
     .map(key => gameMods[key]);
   return util.sortMods(gameMode, mods, api)
+    .then(() => {
+      // no error in sorting? Close cycle editor if it's open
+      const state = api.store.getState();
+      if (state.session.dependencies.editCycle !== undefined) {
+        api.store.dispatch(setEditCycle(undefined, undefined));
+      }
+    })
     .catch((util as any).CycleError, err => {
+      updateCycles(api, err.cycles);
       api.sendNotification({
         id: 'mod-cycle-warning',
         type: 'warning',
@@ -573,7 +597,8 @@ function main(context: types.IExtensionContext) {
       nodeDistance={80}
       nodeRadius={10}
       localState={dependencyState}
-    />));
+    />
+  ));
   context.registerDialog('mod-fileoverride-editor', OverrideEditor, () => ({
     localState: dependencyState,
   }));

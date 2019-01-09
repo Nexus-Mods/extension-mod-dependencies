@@ -539,11 +539,12 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
     onOverrideDialog(gameId, mod.id);
   }
 
-  private key = (rule: IRule) => {
+  private key = (rule: types.IModRule) => {
     return rule.type + '_' +
       (rule.reference.logicalFileName
       || rule.reference.fileExpression
-      || rule.reference.fileMD5);
+      || rule.reference.fileMD5
+      || rule.reference.id);
   }
 
   private removeRule = (rule: IRule) => {

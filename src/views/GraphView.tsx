@@ -5,7 +5,7 @@ import { util } from 'vortex-api';
 
 (cytoscape as any).use(coseBilkent);
 
-const MAX_COLUMNS = 10;
+const MAX_COLUMNS = 3;
 
 export interface IGraphElement {
   title: string;
@@ -73,7 +73,7 @@ class GraphView extends React.Component<IGraphViewProps, {}> {
                 target: from,
                 targetOrig: id.slice(1),
               },
-              classes: newProps.elements[id].class,
+              classes: newProps.elements[id] !== undefined ? newProps.elements[id].class : undefined,
             });
           });
         } else if (id[0] === '-') {
@@ -97,26 +97,31 @@ class GraphView extends React.Component<IGraphViewProps, {}> {
               }
             })
             .forEach(refId => {
-            const from = san(id);
-            const to = san(changed[id].connections[refId]);
-            const connId = `${to}-to-${from}`;
-            if (refId[0] === '-') {
-              this.mGraph.remove('#' + connId);
-            } else if (refId[0] === '+') {
-              this.mGraph.add({
-                data: {
-                  id: connId,
-                  source: to,
-                  sourceOrig: changed[id].connections[refId],
-                  target: from,
-                  targetOrig: id,
-                },
-                classes: newProps.elements[id].class,
-              });
-            }
-          });
+              const from = san(id);
+              const to = san(changed[id].connections[refId]);
+              const connId = `${to}-to-${from}`;
+              if (refId[0] === '-') {
+                this.mGraph.remove('#' + connId);
+              } else if (refId[0] === '+') {
+                this.mGraph.add({
+                  data: {
+                    id: connId,
+                    source: to,
+                    sourceOrig: changed[id].connections[refId],
+                    target: from,
+                    targetOrig: id,
+                  },
+                  classes: newProps.elements[id] !== undefined ? newProps.elements[id].class : undefined,
+                });
+              }
+            });
         }
       });
+
+      this.mGraph.elements()
+        .removeClass('cycle-hidden')
+        .removeClass('cycle-highlight');
+
       this.mLayout.run();
     }
   }
@@ -184,16 +189,18 @@ class GraphView extends React.Component<IGraphViewProps, {}> {
       container: ref,
       style: visualStyle,
       minZoom: 0.33,
-      maxZoom: 3,
+      maxZoom: 2,
       boxSelectionEnabled: false,
     });
-    this.addElements(elements);
+    this.addElements(elements || {});
     this.mGraph.resize();
     this.mGraph.center();
     this.mLayout = this.mGraph.layout({
       name: 'cose-bilkent',
       nodeDimensionsIncludeLabels: true,
       randomize: false,
+      nodeRepulsion: 9000,
+      idealEdgeLength: 500,
     } as any);
     this.mLayout.run();
     (this.mGraph as any).on('cxttap', this.handleContext);

@@ -280,7 +280,7 @@
 
 #conflict-graph-dialog {
   .modal-dialog {
-    width: 60vw;
+    width: 80vw;
   }
   .modal-body {
     max-height: 80vh;
@@ -289,5 +289,17 @@
 
 .conflict-graph {
   width: 100%;
-  height: 500px;
+  height: 70vh;
+}
+
+.conflict-graph-working {
+  width: 100%;
+  height: 70vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  > svg {
+    width: 4em;
+    height: 4em;
+  }
 }
