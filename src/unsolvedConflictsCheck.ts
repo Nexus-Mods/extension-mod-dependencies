@@ -1,9 +1,9 @@
 import * as Promise from 'bluebird';
 import { selectors, types, util } from 'vortex-api';
 import { IConflict } from './types/IConflict';
-import showConflicts from './util/showConflicts';
 import { IModLookupInfo } from './types/IModLookupInfo';
 import { IBiDirRule } from './types/IBiDirRule';
+import showUnsolvedConflictsDialog from './util/showUnsolvedConflicts';
 
 function unsolvedConflictsCheck(api: types.IExtensionApi, modRules: IBiDirRule[], input: types.IRunParameters): Promise<types.IRunParameters> {
   const state = api.store.getState();
@@ -36,7 +36,7 @@ function unsolvedConflictsCheck(api: types.IExtensionApi, modRules: IBiDirRule[]
     )
     .then((result: types.IDialogResult) => {
       if (result.action === 'Show') {
-        showConflicts(api);
+        showUnsolvedConflictsDialog(api, modRules);
       }
       return Promise.reject(new util.ProcessCanceled('Unsolved File conflicts'));
     });

@@ -7,10 +7,12 @@ import { IConflict } from './types/IConflict';
 import { IModLookupInfo } from './types/IModLookupInfo';
 import determineConflicts from './util/conflicts';
 import DependenciesFilter from './util/DependenciesFilter';
+import findRule from './util/findRule';
 import renderModLookup from './util/renderModLookup';
 import renderModName from './util/renderModName';
 import renderReference from './util/renderReference';
 import ruleFulfilled from './util/ruleFulfilled';
+import showUnsolvedConflictsDialog from './util/showUnsolvedConflicts';
 import ConflictEditor from './views/ConflictEditor';
 import ConflictGraph from './views/ConflictGraph';
 import Connector from './views/Connector';
@@ -145,12 +147,6 @@ let loadOrder: ILoadOrderState = {};
 let loadOrderChanged: () => void = () => undefined;
 let dependenciesChanged :() => void = () => undefined;
 
-function findRule(source: types.IMod, ref: IModLookupInfo): IBiDirRule {
-  return dependencyState.modRules.find(rule =>
-    ((source === undefined) || util.testModReference(source, rule.source))
-    && util.testModReference(ref, rule.reference));
-}
-
 function updateConflictInfo(api: types.IExtensionApi, gameId: string,
                             conflicts: { [modId: string]: IConflict[] }) {
   const t: I18next.TranslationFunction = api.translate;
@@ -171,7 +167,7 @@ function updateConflictInfo(api: types.IExtensionApi, gameId: string,
   // see if there is a mod that has conflicts for which there are no rules
   Object.keys(conflicts).forEach(modId => {
     const filtered = conflicts[modId].filter(conflict =>
-      (findRule(undefined, conflict.otherMod) === undefined)
+      (findRule(dependencyState.modRules, undefined, conflict.otherMod) === undefined)
       && !encountered.has(mapEnc(modId, conflict.otherMod.id)));
 
     if (filtered.length !== 0) {
@@ -207,7 +203,7 @@ function updateConflictInfo(api: types.IExtensionApi, gameId: string,
         }, [
           { label: 'Close' },
           { label: 'Show', action: () => {
-            showUnsolvedConflictsDialog(api);
+            showUnsolvedConflictsDialog(api, dependencyState.modRules);
            } },
       ]));
     };
@@ -301,25 +297,6 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
         }));
       }
     });
-}
-
-function showUnsolvedConflictsDialog(api: types.IExtensionApi) {
-  const state: types.IState = api.store.getState();
-  const gameMode = selectors.activeGameId(state);
-  const mods = state.persistent.mods[gameMode]
-
-  const conflicts = (state.session as any).dependencies.conflicts;
-
-  const unsolvedMods = Object.keys(conflicts).filter(modId => conflicts[modId].find(conflict => {
-    if (conflict.otherMod === undefined) {
-      return false;
-    }
-    const rule = findRule(mods[modId], conflict.otherMod);
-    return rule === undefined;
-  }) !== undefined);
-  if (unsolvedMods.length > 0) {
-    api.store.dispatch(setConflictDialog(gameMode, unsolvedMods, dependencyState.modRules));
-  }
 }
 
 // determine all conflicts and check if they are fulfilled or not
@@ -617,8 +594,8 @@ function main(context: types.IExtensionContext) {
 
   (context as any).registerStartHook(50, 'check-unsolved-conflicts',
     (input: types.IRunParameters) => (input.options.suggestDeploy !== false)
-      ? unsolvedConflictsCheck(context.api, dependencyState.modRules, input)
-      : input);
+        ? unsolvedConflictsCheck(context.api, dependencyState.modRules, input)
+        : Promise.resolve(input));
 
   context.once(() => once(context.api));
 
