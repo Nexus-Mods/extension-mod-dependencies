@@ -6,7 +6,7 @@ import isBlacklisted from './blacklist';
 import * as Promise from 'bluebird';
 import * as path from 'path';
 import turbowalk from 'turbowalk';
-import { fs, types, util } from 'vortex-api';
+import { types, util, log } from 'vortex-api';
 
 interface IFileMap {
   [filePath: string]: Array<{ mod: types.IMod, time: number }>;
@@ -38,7 +38,11 @@ function getAllFiles(basePath: string, mods: types.IMod[]): Promise<IFileMap> {
           util.setdefault(files, relPath.toLowerCase(), []).push({ mod, time: entry.mtime });
         }
       });
-    }, { });
+    }, { })
+    .catch({ code: 'ENOTFOUND' }, err => {
+      log('error', 'Mod directory not found', { modDirectory: mod.installationPath });
+      return {};
+    });
   })
     .then(() => files);
 }
