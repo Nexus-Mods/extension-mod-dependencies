@@ -15,7 +15,7 @@ import * as Redux from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
 import * as semver from 'semver';
 import { actions as vortexActions, ComponentEx,
-         tooltip, types, util } from 'vortex-api';
+         tooltip, types, util, EmptyPlaceholder } from 'vortex-api';
 
 interface IConnectedProps {
   gameId: string;
@@ -118,15 +118,21 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       }
     }
 
+    const content = (modIds !== undefined) && (modIds.length > 0) ? (
+      <Table className='mod-conflict-list'>
+        <tbody>
+          {(modIds || []).map(modId => (conflicts[modId] || []).map(conflict => this.renderConflict(modId, conflict)))}
+        </tbody>
+      </Table>
+    ) : (
+      <EmptyPlaceholder icon='conflict' text={t('You have no file conflicts. Wow!')} />
+    );
+
     return (
       <Modal id='conflict-editor-dialog' show={modIds !== undefined} onHide={this.close}>
         <Modal.Header><Modal.Title>{modName}</Modal.Title></Modal.Header>
         <Modal.Body>
-          <Table className='mod-conflict-list'>
-            <tbody>
-              {(modIds || []).map(modId => (conflicts[modId] || []).map(conflict => this.renderConflict(modId, conflict)))}
-            </tbody>
-          </Table>
+          {content}
         </Modal.Body>
         <Modal.Footer>
           <Button onClick={this.close}>{t('Cancel')}</Button>

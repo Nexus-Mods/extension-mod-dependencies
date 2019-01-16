@@ -563,6 +563,10 @@ function once(api: types.IExtensionApi) {
 function main(context: types.IExtensionContext) {
   context.registerTableAttribute('mods', makeLoadOrderAttribute(context.api));
   context.registerTableAttribute('mods', makeDependenciesAttribute(context.api));
+  context.registerAction('mod-icons', 100, 'connection', {}, 'Manage Rules',
+    () => {
+      showUnsolvedConflictsDialog(context.api, dependencyState.modRules, true);
+    });
   context.registerReducer(['session', 'dependencies'], connectionReducer);
   context.registerDialog('mod-dependencies-connector', Connector);
   context.registerDialog('mod-dependencies-editor', Editor);
