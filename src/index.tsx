@@ -376,6 +376,7 @@ function generateLoadOrder(api: types.IExtensionApi): Promise<void> {
       if (state.session.dependencies.editCycle !== undefined) {
         api.store.dispatch(setEditCycle(undefined, undefined));
       }
+      return Promise.resolve(mods);
     })
     .catch((util as any).CycleError, err => {
       updateCycles(api, err.cycles);
@@ -509,6 +510,9 @@ function once(api: types.IExtensionApi) {
         }
         dependenciesChanged();
         return null;
+      })
+      .catch(err => {
+        api.showErrorNotification('Failed to refresh mod rules', err);
       });
   }, 200);
 

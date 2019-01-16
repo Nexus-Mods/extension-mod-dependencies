@@ -289,6 +289,12 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
                  && iter.rules !== undefined
                  && (iter.rules.find(findRule) !== undefined));
 
+    if (refMod === undefined) {
+      // paranoia check, this should not be possible. The only way it could happen if, due to a
+      // failed update we have the "reverse" rule but the original is gone.
+      return;
+    }
+
     const originalRule = refMod.rules.find(findRule);
 
     this.context.api.showDialog('question', t('Confirm'), {
