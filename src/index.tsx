@@ -34,6 +34,7 @@ import * as path from 'path';
 import * as React from 'react';
 import {} from 'redux-thunk';
 import { actions, log, selectors, types, util } from 'vortex-api';
+import shortid = require('shortid');
 
 function makeReference(mod: IModInfo): IReference {
   return {
@@ -331,19 +332,21 @@ function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
 
 function showCycles(api: types.IExtensionApi, cycles: string[][]) {
   const gameId = selectors.activeGameId(api.store.getState());
-  api.showDialog('error', 'Cycles', {
+  const id = shortid();
+  (api.showDialog as any)('error', 'Cycles', {
     text: 'Dependency rules between your mods contain cycles, '
       + 'like "A after B" and "B after A". You need to remove one of the '
       + 'rules causing the cycle, otherwise your mods can\'t be '
       + 'applied in the right order.',
     links: cycles.map((cycle, idx) => (
       { label: cycle.join(', '), action: () => {
+        (api as any).closeDialog(id);
         api.store.dispatch(setEditCycle(gameId, cycle));
       } }
     )),
   }, [
     { label: 'Close' },
-  ]);
+  ], id);
 }
 
 function updateCycles(api: types.IExtensionApi, cycles: string[][]) {
