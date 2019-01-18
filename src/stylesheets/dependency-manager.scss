@@ -138,6 +138,12 @@
   }
 }
 
+.rule-description {
+  .btn-embed {
+    margin-left: $half-gutter;
+  }
+}
+
 .rule-fulfilled {
   color: $brand-success;
 }

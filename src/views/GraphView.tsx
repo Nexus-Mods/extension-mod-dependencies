@@ -30,7 +30,7 @@ export interface IGraphViewProps {
 }
 
 function san(input: string): string {
-  return input.replace(/[ &()]/g, '_');
+  return input.replace(/[ &()'.;:]/g, '_');
 }
 
 class GraphView extends React.Component<IGraphViewProps, {}> {
