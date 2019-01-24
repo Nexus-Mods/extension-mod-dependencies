@@ -5,7 +5,7 @@ import { util } from 'vortex-api';
 
 (cytoscape as any).use(coseBilkent);
 
-const MAX_COLUMNS = 3;
+const MAX_COLUMNS = 5;
 
 export interface IGraphElement {
   title: string;
@@ -232,7 +232,7 @@ class GraphView extends React.Component<IGraphViewProps, {}> {
         prev.push({
           data: { id: san(id), title: ele.title, readonly: ele.readonly },
           classes: ele.class,
-          position: { x: pos * distance, y: row * distance },
+          position: { x: pos * distance, y: row * distance + (pos % 2) * (distance / 2) },
         });
         (ele.connections || []).forEach(conn => {
           prev.push({
