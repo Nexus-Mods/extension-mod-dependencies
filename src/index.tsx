@@ -20,8 +20,8 @@ import DependencyIcon, { ILocalState } from './views/DependencyIcon';
 import Editor from './views/Editor';
 import OverrideEditor from './views/OverrideEditor';
 
-import { setConflictInfo, setEditCycle,
-         setFileOverrideDialog, setConflictDialog} from './actions';
+import { setConflictDialog, setConflictInfo, setEditCycle,
+         setFileOverrideDialog } from './actions';
 import connectionReducer from './reducers';
 import { enabledModKeys } from './selectors';
 import unsolvedConflictsCheck from './unsolvedConflictsCheck';
@@ -33,8 +33,8 @@ import { ILookupResult, IModInfo, IReference, IRule, RuleType } from 'modmeta-db
 import * as path from 'path';
 import * as React from 'react';
 import {} from 'redux-thunk';
-import { actions, log, selectors, types, util } from 'vortex-api';
 import shortid = require('shortid');
+import { actions, log, selectors, types, util } from 'vortex-api';
 
 function makeReference(mod: IModInfo): IReference {
   return {
@@ -146,7 +146,7 @@ interface ILoadOrderState {
 
 let loadOrder: ILoadOrderState = {};
 let loadOrderChanged: () => void = () => undefined;
-let dependenciesChanged :() => void = () => undefined;
+let dependenciesChanged: () => void = () => undefined;
 
 function updateConflictInfo(api: types.IExtensionApi, gameId: string,
                             conflicts: { [modId: string]: IConflict[] }) {
@@ -183,8 +183,8 @@ function updateConflictInfo(api: types.IExtensionApi, gameId: string,
     store.dispatch(actions.dismissNotification('mod-file-conflict'));
   } else {
     const message: string[] = [
-      t('There are unsolved file conflicts. This just means that two or more mods contain the same files '
-        + 'and you need to decide which of them loads last and thus provides the files.\n'),
+      t('There are unsolved file conflicts. This just means that two or more mods contain the same '
+        + 'files and you need to decide which of them loads last and thus provides the files.\n'),
       '[table][tbody]',
     ].concat(Object.keys(unsolved).map(modId =>
       '[tr]' + t('[td]{{modName}}[/td]'
@@ -268,7 +268,7 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
       } else {
         const message: string[] = [
           t('There are mod dependency rules that aren\'t fulfilled.'),
-          '[list]'
+          '[list]',
         ].concat(modsUnfulfilled.map(iter =>
           iter.rules.map(rule => {
             const modName = renderModName(mods[iter.modId]);
@@ -375,8 +375,8 @@ function generateLoadOrder(api: types.IExtensionApi): Promise<void> {
   return util.sortMods(gameMode, mods, api)
     .then(() => {
       // no error in sorting? Close cycle editor if it's open
-      const state = api.store.getState();
-      if (state.session.dependencies.editCycle !== undefined) {
+      const newState = api.store.getState();
+      if (newState.session.dependencies.editCycle !== undefined) {
         api.store.dispatch(setEditCycle(undefined, undefined));
       }
       return Promise.resolve(mods);
@@ -457,7 +457,7 @@ function makeLoadOrderAttribute(api: types.IExtensionApi): types.ITableAttribute
     externalData: (onChange: () => void) => {
       loadOrderChanged = onChange;
     },
-  }
+  };
 }
 
 function makeDependenciesAttribute(api: types.IExtensionApi): types.ITableAttribute<types.IMod> {
