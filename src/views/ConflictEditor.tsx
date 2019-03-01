@@ -145,6 +145,12 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
   private renderConflict = (modId: string, conflict: IConflict) => {
     const {t, modRules, mods} = this.props;
     const {rules} = this.state;
+
+    if ((mods[modId] === undefined)
+        || (mods[conflict.otherMod.id] === undefined)) {
+      return null;
+    }
+
     const popover = (
       <Popover
         className='conflict-popover'
