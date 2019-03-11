@@ -357,6 +357,9 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     const { rules } = this.state;
 
     Object.keys(rules).forEach(modId => {
+      if (mods[modId] === undefined) {
+        return;
+      }
       Object.keys(rules[modId]).forEach(otherId => {
         if (mods[otherId] === undefined) {
           return;
