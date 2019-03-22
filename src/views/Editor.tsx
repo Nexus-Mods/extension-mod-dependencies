@@ -85,7 +85,7 @@ class Editor extends ComponentEx<IProps, IComponentState> {
                 <option value='before'>{t('Must load before')}</option>
                 <option value='after'>{t('Must load after')}</option>
                 <option value='requires'>{t('Requires')}</option>
-                <option value='conflicts'>{t('Can\'t be loaded together with')}</option>
+                <option value='conflicts'>{t('Conflicts with / Can\'t be loaded together with')}</option>
               </FormControl>
               {this.renderReference(reference)}
             </Modal.Body>
