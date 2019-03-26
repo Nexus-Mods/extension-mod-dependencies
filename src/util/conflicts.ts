@@ -26,7 +26,7 @@ function toLookupInfo(mod: types.IMod): IModLookupInfo {
   };
 }
 
-function getAllFiles(basePath: string, mods: types.IMod[]): Promise<IFileMap> {
+function getAllFiles(game: types.IGame, basePath: string, mods: types.IMod[]): Promise<IFileMap> {
   const files: IFileMap = {};
 
   return Promise.map(mods.filter(mod => mod.installationPath !== undefined), (mod: types.IMod) => {
@@ -34,7 +34,13 @@ function getAllFiles(basePath: string, mods: types.IMod[]): Promise<IFileMap> {
     return turbowalk(modPath, entries => {
       entries.forEach(entry => {
         if (!entry.isDirectory) {
-          const relPath = path.relative(modPath, entry.filePath);
+          let relPath = path.relative(modPath, entry.filePath);
+          if (game.mergeMods !== true) {
+            let modSubDir = game.mergeMods === false
+              ? mod.installationPath
+              : game.mergeMods(mod);
+            relPath = path.join(modSubDir, relPath);
+          }
           util.setdefault(files, relPath.toLowerCase(), []).push({ mod, time: entry.mtime });
         }
       });
@@ -83,9 +89,10 @@ function getConflictMap(files: IFileMap): IConflictMap {
   return conflicts;
 }
 
-function findConflicts(basePath: string,
+function findConflicts(game: types.IGame,
+                       basePath: string,
                        mods: types.IMod[]): Promise<{ [modId: string]: IConflict[] }> {
-  return getAllFiles(basePath, mods)
+  return getAllFiles(game, basePath, mods)
     .then((files: IFileMap) => {
       const conflictMap = getConflictMap(files);
       const conflictsByMod: { [modId: string]: IConflict[] } = {};
