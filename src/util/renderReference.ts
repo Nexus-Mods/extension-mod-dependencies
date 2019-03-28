@@ -2,6 +2,10 @@ import { IReference } from 'modmeta-db';
 import { types, util } from 'vortex-api';
 
 function renderReference(ref: any, mod: types.IMod) {
+  if (mod === undefined) {
+    return '';
+  }
+
   if (ref.id !== undefined) {
     return util.renderModName(mod, { version: true });
   }
