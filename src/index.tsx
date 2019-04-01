@@ -558,8 +558,10 @@ function once(api: types.IExtensionApi) {
     const gameMode = selectors.activeGameId(store.getState());
     if (oldState[gameMode] !== newState[gameMode]) {
       const relevantChange = Object.keys(newState[gameMode])
-        .find(modId => (oldState[gameMode][modId] !== newState[gameMode][modId])
-          && (changeMayAffectRules(oldState[gameMode][modId], newState[gameMode][modId])));
+        .find(modId =>
+          (util.getSafe(oldState, [gameMode, modId], undefined) !== newState[gameMode][modId])
+          && (changeMayAffectRules(util.getSafe(oldState, [gameMode, modId], undefined),
+                                   newState[gameMode][modId])));
 
       if (relevantChange !== undefined) {
         updateRulesDebouncer.schedule(() => {
