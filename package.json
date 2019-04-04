@@ -53,9 +53,9 @@
     "redux-act": "^1.7.3",
     "redux-thunk": "^2.3.0",
     "semvish": "^1.1.0",
-    "ts-loader": "^5.1.1",
+    "ts-loader": "^5.3.3",
     "vortex-api": "Nexus-Mods/vortex-api",
     "turbowalk": "Nexus-Mods/node-turbowalk",
-    "webpack": "^4.19.1"
+    "webpack": "^4.29.6"
   }
 }
