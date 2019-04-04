@@ -9,7 +9,7 @@ import { RuleChoice } from '../util/getRuleTypes';
 import * as React from 'react';
 import { Button, FormControl,
          Modal, OverlayTrigger, Popover, Table } from 'react-bootstrap';
-import { translate } from 'react-i18next';
+import { withTranslation, WithTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
 import * as Redux from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
@@ -32,7 +32,7 @@ interface IActionProps {
   onOverrideDialog: (gameId: string, modId: string) => void;
 }
 
-type IProps = IConnectedProps & IActionProps;
+type IProps = IConnectedProps & IActionProps & WithTranslation;
 
 type RuleVersion = 'any' | 'compatible' | 'exact';
 
@@ -414,6 +414,6 @@ function mapDispatchToProps(dispatch: ThunkDispatch<any, null, Redux.Action>): I
   };
 }
 
-export default translate(['common', 'dependency-manager'], {wait: false})(
+export default withTranslation(['common', 'dependency-manager'])(
   connect(mapStateToProps, mapDispatchToProps)(
-  ConflictEditor)) as React.ComponentClass<{}>;
+  ConflictEditor) as any) as React.ComponentClass<{}>;

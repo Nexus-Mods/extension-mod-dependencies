@@ -7,7 +7,7 @@ import SearchBox, { ISearchMatch } from './SearchBox';
 import * as nodePath from 'path';
 import * as React from 'react';
 import { Button, Dropdown, MenuItem, Modal } from 'react-bootstrap';
-import { Trans, translate } from 'react-i18next';
+import { Trans, withTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
 import * as TreeT from 'react-sortable-tree';
 import { } from 'react-sortable-tree-theme-file-explorer';
@@ -472,6 +472,6 @@ function mapDispatchToProps(dispatch: Redux.Dispatch<any>): IActionProps {
   };
 }
 
-export default translate(['common', 'dependency-manager'], {wait: false})(
+export default withTranslation(['common', 'dependency-manager'])(
   connect(mapStateToProps, mapDispatchToProps)(
-  OverrideEditor)) as React.ComponentClass<{}>;
+  OverrideEditor) as any) as React.ComponentClass<{}>;

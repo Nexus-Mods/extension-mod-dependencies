@@ -2,14 +2,16 @@
 # yarn lockfile v1
 
 
+"@babel/runtime@^7.3.1":
+  version "7.4.3"
+  resolved "https://registry.yarnpkg.com/@babel/runtime/-/runtime-7.4.3.tgz#79888e452034223ad9609187a0ad1fe0d2ad4bdc"
+  integrity sha512-9lsJwJLxDh/T3Q3SZszfWOTkk3pHbkmH+3KY+zwIDmsNlxsumuhS2TH3NIpktU4kNvfzy+k3eLT7aTJSPTo0OA==
+  dependencies:
+    regenerator-runtime "^0.13.2"
+
 "@types/history@^2":
   version "2.0.49"
   resolved "https://registry.yarnpkg.com/@types/history/-/history-2.0.49.tgz#5f626148a0de1e4eb334e66076d15c1a53aa45e2"
-
-"@types/i18next@*":
-  version "12.1.0"
-  resolved "https://registry.yarnpkg.com/@types/i18next/-/i18next-12.1.0.tgz#7c3fd3dbe03f9531147033773bbd0ca4f474a180"
-  integrity sha512-qLyqTkp3ZKHsSoX8CNVYcTyTkxlm0aRCUpaUVetgkSlSpiNCdWryOgaYwgbO04tJIfLgBXPcy0tJ3Nl/RagllA==
 
 "@types/i18next@^8.4.0":
   version "8.4.2"
@@ -50,13 +52,12 @@
     "@types/node" "*"
     "@types/react" "*"
 
-"@types/react-i18next@^4.6.5":
-  version "4.6.5"
-  resolved "https://registry.yarnpkg.com/@types/react-i18next/-/react-i18next-4.6.5.tgz#c74af75dfcb9c193fe1cfba75845120019e0c858"
-  integrity sha512-A51LH8TDxjwRwewI2PBOrS82Jf4rK25W/FunVwQAHZJAhvnffD92DVovnsd3siDCnze1d89gX1RcNDeRgjxOEw==
+"@types/react-i18next@^8.1.0":
+  version "8.1.0"
+  resolved "https://registry.yarnpkg.com/@types/react-i18next/-/react-i18next-8.1.0.tgz#5faacbfe7dc0f24729c1df6914610bfe861a50de"
+  integrity sha512-d4xhcjX5b3roNMObRNMfb1HinHQlQLPo8xlDj60dnHeeAw2bBymR2cy/l1giJpHzo/ZFgSvgVUvIWr4kCrenCg==
   dependencies:
-    "@types/i18next" "*"
-    "@types/react" "*"
+    react-i18next "*"
 
 "@types/react-redux@4.4.35":
   version "4.4.35"
@@ -3043,6 +3044,14 @@ react-dom@^16.2.0:
     object-assign "^4.1.1"
     prop-types "^15.6.0"
 
+react-i18next@*:
+  version "10.6.1"
+  resolved "https://registry.yarnpkg.com/react-i18next/-/react-i18next-10.6.1.tgz#044c39fb463a8d96cc548509187a1bb316e660fa"
+  integrity sha512-uuLksWCYR0i9tRZyKsQpcbJ0kiXYVDcaFXPVapZe8mYXReXvKsBgaOb6EwtqdXqiidO+HJAbyLOq9g3yzuZDEQ==
+  dependencies:
+    "@babel/runtime" "^7.3.1"
+    html-parse-stringify2 "2.0.1"
+
 react-i18next@^7.4.0:
   version "7.4.0"
   resolved "https://registry.yarnpkg.com/react-i18next/-/react-i18next-7.4.0.tgz#07a336e49fc8f2599d08136d73134e3dc4830b49"
@@ -3226,6 +3235,11 @@ regenerator-runtime@^0.10.5:
 regenerator-runtime@^0.11.0:
   version "0.11.1"
   resolved "https://registry.yarnpkg.com/regenerator-runtime/-/regenerator-runtime-0.11.1.tgz#be05ad7f9bf7d22e056f9726cee5017fbf19e2e9"
+
+regenerator-runtime@^0.13.2:
+  version "0.13.2"
+  resolved "https://registry.yarnpkg.com/regenerator-runtime/-/regenerator-runtime-0.13.2.tgz#32e59c9a6fb9b1a4aff09b4930ca2d4477343447"
+  integrity sha512-S/TQAZJO+D3m9xeN1WTI8dLKBBiRgXBlTJvbWjCThHWZj9EvHK70Ff50/tYj2J/fvBY6JtFVwRuazHN2E7M9BA==
 
 regex-not@^1.0.0, regex-not@^1.0.2:
   version "1.0.2"

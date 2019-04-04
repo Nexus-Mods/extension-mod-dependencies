@@ -6,7 +6,7 @@ import * as minimatch from 'minimatch';
 import { IReference, IRule, RuleType } from 'modmeta-db';
 import * as React from 'react';
 import { Button, Col, ControlLabel, Form, FormControl, FormGroup, Modal } from 'react-bootstrap';
-import { translate } from 'react-i18next';
+import { withTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
 import * as Redux from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
@@ -279,5 +279,5 @@ function mapDispatchToProps(dispatch: ThunkDispatch<any, null, Redux.Action>): I
   };
 }
 
-export default translate([ 'common' ], { wait: false })(
-  connect(mapStateToProps, mapDispatchToProps)(Editor)) as React.ComponentClass<{}>;
+export default withTranslation([ 'common' ])(
+  connect(mapStateToProps, mapDispatchToProps)(Editor) as any) as React.ComponentClass<{}>;

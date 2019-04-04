@@ -10,7 +10,7 @@ import * as _ from 'lodash';
 import { IRule } from 'modmeta-db';
 import * as React from 'react';
 import { Button } from 'react-bootstrap';
-import { translate } from 'react-i18next';
+import { withTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
 import * as Redux from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
@@ -373,6 +373,6 @@ function mapDispatchToProps(dispatch: ThunkDispatch<any, null, Redux.Action>): I
   };
 }
 
-export default translate(['common', 'dependency-manager'], {wait: false})(
+export default withTranslation(['common', 'dependency-manager'])(
   connect(mapStateToProps, mapDispatchToProps)(
-    ConflictGraph)) as React.ComponentClass<IConflictGraphProps>;
+    ConflictGraph) as any) as React.ComponentClass<IConflictGraphProps>;
