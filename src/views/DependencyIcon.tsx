@@ -199,7 +199,7 @@ function updateCursorPos(monitor: __ReactDnd.DragSourceMonitor,
   if (monitor.getClientOffset() !== null) {
     const curPos = monitor.getClientOffset();
     const dist = Math.abs(curPos.x - lastUpdatePos.x) + Math.abs(curPos.y - lastUpdatePos.y);
-    if (dist > 2) {
+    if ((dist > 2) && (monitor.getItem() !== null)) {
       const sourceId = (monitor.getItem() as any).id;
       lastUpdatePos = curPos;
       onSetTarget(null, curPos);
