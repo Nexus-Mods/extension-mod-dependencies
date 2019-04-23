@@ -246,10 +246,14 @@ const dependencySource: __ReactDnd.DragSourceSpec<IProps> = {
 };
 
 const dependencyTarget: __ReactDnd.DropTargetSpec<IProps> = {
-  drop(props: IProps, monitor: __ReactDnd.DropTargetMonitor, component) {
+  drop(props: IProps, monitor: __ReactDnd.DropTargetMonitor, component: any) {
+    const inst: DependencyIcon = component.decoratedRef.current;
+    if (inst === undefined) {
+      return undefined;
+    }
     return {
       id: props.mod.id,
-      reference: (component as any).decoratedComponentInstance.state.reference,
+      reference: inst.state.reference,
     };
   },
 };
