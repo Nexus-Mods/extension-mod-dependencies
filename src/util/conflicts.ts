@@ -34,14 +34,18 @@ function getAllFiles(game: types.IGame, basePath: string, mods: types.IMod[]): P
     return turbowalk(modPath, entries => {
       entries.forEach(entry => {
         if (!entry.isDirectory) {
-          let relPath = path.relative(modPath, entry.filePath);
-          if (game.mergeMods !== true) {
-            let modSubDir = game.mergeMods === false
-              ? mod.installationPath
-              : game.mergeMods(mod);
-            relPath = path.join(modSubDir, relPath);
+          try {
+            let relPath = path.relative(modPath, entry.filePath);
+            if (game.mergeMods !== true) {
+              let modSubDir = game.mergeMods === false
+                ? mod.installationPath
+                : game.mergeMods(mod);
+              relPath = path.join(modSubDir, relPath);
+            }
+            util.setdefault(files, relPath.toLowerCase(), []).push({ mod, time: entry.mtime });
+          } catch (err) {
+            log('error', 'invalid file entry - what is this?', entry);
           }
-          util.setdefault(files, relPath.toLowerCase(), []).push({ mod, time: entry.mtime });
         }
       });
     }, { })
