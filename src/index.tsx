@@ -310,7 +310,7 @@ function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
     return Promise.resolve();
   }
   const game = util.getGame(gameId);
-  if (game.mergeMods === false) {
+  if ((game === undefined) || (game.mergeMods === false)) {
     // in the case mergeMods === false, conflicts aren't possible because
     // each mod is deployed into a unique subdirectory.
     // we did *not* forget the case where mergeMods is a function!
