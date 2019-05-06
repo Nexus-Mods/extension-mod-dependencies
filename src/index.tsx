@@ -341,6 +341,8 @@ function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
 
 function showCycles(api: types.IExtensionApi, cycles: string[][]) {
   const gameId = selectors.activeGameId(api.store.getState());
+  const state: types.IState = api.store.getState();
+  const mods = state.persistent.mods[gameId];
   const id = shortid();
   (api.showDialog as any)('error', 'Cycles', {
     text: 'Dependency rules between your mods contain cycles, '
@@ -348,10 +350,16 @@ function showCycles(api: types.IExtensionApi, cycles: string[][]) {
       + 'rules causing the cycle, otherwise your mods can\'t be '
       + 'applied in the right order.',
     links: cycles.map((cycle, idx) => (
-      { label: cycle.join(', '), action: () => {
-        (api as any).closeDialog(id);
-        api.store.dispatch(setEditCycle(gameId, cycle));
-      } }
+      {
+        label: cycle
+          .map(id => mods[id] !== undefined ? util.renderModName(mods[id]) : id)
+          .map(name => `[${name}]`)
+          .join(' --> '),
+        action: () => {
+          (api as any).closeDialog(id);
+          api.store.dispatch(setEditCycle(gameId, cycle));
+        },
+      }
     )),
   }, [
     { label: 'Close' },
