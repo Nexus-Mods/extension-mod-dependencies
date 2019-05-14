@@ -27,7 +27,7 @@ import { enabledModKeys } from './selectors';
 import unsolvedConflictsCheck from './unsolvedConflictsCheck';
 
 import * as Promise from 'bluebird';
-import * as I18next from 'i18next';
+import I18next from 'i18next';
 import * as _ from 'lodash';
 import { ILookupResult, IModInfo, IReference, IRule, RuleType } from 'modmeta-db';
 import * as path from 'path';
@@ -150,7 +150,7 @@ let dependenciesChanged: () => void = () => undefined;
 
 function updateConflictInfo(api: types.IExtensionApi, gameId: string,
                             conflicts: { [modId: string]: IConflict[] }) {
-  const t: I18next.TranslationFunction = api.translate;
+  const t: typeof I18next.t = api.translate;
   const store: any = api.store;
 
   const mods = store.getState().persistent.mods[gameId];
@@ -222,7 +222,7 @@ function updateConflictInfo(api: types.IExtensionApi, gameId: string,
   }
 }
 
-function renderRuleType(t: I18next.TranslationFunction, type: RuleType): string {
+function renderRuleType(t: typeof I18next.t, type: RuleType): string {
   switch (type) {
     case 'conflicts': return t('conflicts with');
     case 'requires': return t('requires');
@@ -322,8 +322,10 @@ function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
   const mods = Object.keys(state.persistent.mods[gameId] || {})
     .filter(modId => util.getSafe(modState, [modId, 'enabled'], false))
     .map(modId => state.persistent.mods[gameId][modId]);
+  const activator = util.getCurrentActivator(state, gameId, true);
+
   store.dispatch(actions.startActivity('mods', 'conflicts'));
-  return determineConflicts(game, modPath, mods)
+  return determineConflicts(game, modPath, mods, activator)
     .then(conflictMap => {
       if (!_.isEqual(conflictMap, state.session.dependencies.conflicts)) {
         store.dispatch(setConflictInfo(conflictMap));
@@ -621,7 +623,7 @@ function main(context: types.IExtensionContext) {
       return (util.getSafe(store.getState(),
                            ['session', 'dependencies', 'conflicts', instanceIds[0]],
                            [])
-        .length > 0) ? true : translate('No file conflicts');
+        .length > 0) ? true : translate('No file conflicts') as string;
     });
 
   (context as any).registerStartHook(50, 'check-unsolved-conflicts',

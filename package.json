@@ -18,7 +18,7 @@
     ]
   },
   "devDependencies": {
-    "@types/i18next": "^8.4.0",
+    "@types/i18next": "^12.1.0",
     "@types/immutability-helper": "^2.0.15",
     "@types/minimatch": "^2.0.29",
     "@types/react": "16.0.34",
@@ -37,7 +37,7 @@
     "cytoscape": "^3.6.0",
     "cytoscape-cose-bilkent": "^4.0.0",
     "cytoscape-edgehandles": "^3.5.1",
-    "i18next": "^10.5.0",
+    "i18next": "^15.1.1",
     "immutability-helper": "^2.6.6",
     "json-loader": "^0.5.4",
     "minimatch": "^3.0.4",
@@ -46,7 +46,7 @@
     "react-bootstrap": "^0.32.1",
     "react-dnd": "^7.4.5",
     "react-dom": "^16.2.0",
-    "react-i18next": "^7.4.0",
+    "react-i18next": "^10.9.0",
     "react-select": "^1.2.1",
     "react-sortable-tree": "^2.6.2",
     "react-sortable-tree-theme-file-explorer": "^2.0.0",
@@ -54,8 +54,8 @@
     "redux-thunk": "^2.3.0",
     "semvish": "^1.1.0",
     "ts-loader": "^5.3.3",
-    "vortex-api": "Nexus-Mods/vortex-api",
     "turbowalk": "Nexus-Mods/node-turbowalk",
+    "vortex-api": "Nexus-Mods/vortex-api",
     "webpack": "^4.29.6"
   }
 }

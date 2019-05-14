@@ -1,4 +1,4 @@
-import * as I18next from 'i18next';
+import I18next from 'i18next';
 import * as React from 'react';
 import { FormControl } from 'react-bootstrap';
 import { ComponentEx, Icon, tooltip } from 'vortex-api';
@@ -10,7 +10,7 @@ export interface ISearchMatch {
 }
 
 export interface ISearchBoxProps {
-  t: I18next.TranslationFunction;
+  t: typeof I18next.t;
   searchString: string;
   searchFocusIndex: number;
   matches: ISearchMatch[];

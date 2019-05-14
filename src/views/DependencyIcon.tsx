@@ -9,7 +9,7 @@ import { setConflictDialog, setCreateRule, setFileOverrideDialog,
 
 import { enabledModKeys } from '../selectors';
 
-import * as I18next from 'i18next';
+import I18next from 'i18next';
 import * as _ from 'lodash';
 import { ILookupResult, IModInfo, IReference, IRule, RuleType } from 'modmeta-db';
 import * as React from 'react';
@@ -21,7 +21,7 @@ import { connect } from 'react-redux';
 import { actions, ComponentEx, log, selectors, tooltip, types, util } from 'vortex-api';
 
 interface IDescriptionProps {
-  t: I18next.TranslationFunction;
+  t: typeof I18next.t;
   rule: IRule;
   key: string;
   onRemoveRule?: (rule: IRule) => void;
@@ -133,7 +133,7 @@ export interface ILocalState {
 }
 
 export interface IBaseProps {
-  t: I18next.TranslationFunction;
+  t: typeof I18next.t;
   mod: types.IMod;
   localState: ILocalState;
   onHighlight: (highlight: boolean) => void;

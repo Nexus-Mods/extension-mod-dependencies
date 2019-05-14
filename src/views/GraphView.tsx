@@ -56,7 +56,7 @@ class GraphView extends React.Component<IGraphViewProps, {}> {
         if (id[0] === '+') {
           // node added
           this.mGraph.add({
-            data: { id: san(id.slice(1)), title: changed[id].title },
+            data: { id: san(id.slice(1)), title: changed[id].title, originalId: id.slice(1) },
             classes: changed[id].class,
             position: this.mMousePos,
           });
@@ -215,7 +215,7 @@ class GraphView extends React.Component<IGraphViewProps, {}> {
       }
       selection = (data.source !== undefined)
         ? { source: data.sourceOrig, target: data.targetOrig, readonly: data.readonly }
-        : { id: data.title, readonly: data.readonly };
+        : { id: data.originalId, readonly: data.readonly };
     }
     this.mMousePos = evt.position;
     this.props.onContext(evt.renderedPosition.x, evt.renderedPosition.y, selection);
@@ -230,7 +230,7 @@ class GraphView extends React.Component<IGraphViewProps, {}> {
         const row = Math.floor(idx / width);
         const pos = (row % 2 === 0) ? (idx % width) : width - (idx % width);
         prev.push({
-          data: { id: san(id), title: ele.title, readonly: ele.readonly },
+          data: { id: san(id), title: ele.title, originalId: id, readonly: ele.readonly },
           classes: ele.class,
           position: { x: pos * distance, y: row * distance + (pos % 2) * (distance / 2) },
         });
