@@ -39,10 +39,7 @@ function getAllFiles(game: types.IGame,
         if (!entry.isDirectory) {
           try {
 
-            let relPath = path.relative(modPath, entry.filePath);
-            if ((activator as any).getDeployedPath !== undefined) {
-              relPath = (activator as any).getDeployedPath(relPath);
-            }
+            let relPath = (activator as any).getDeployedPath(path.relative(modPath, entry.filePath));
             if (game.mergeMods !== true) {
               let modSubDir = game.mergeMods === false
                 ? mod.installationPath
