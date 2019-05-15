@@ -38,15 +38,26 @@ function getAllFiles(game: types.IGame,
       entries.forEach(entry => {
         if (!entry.isDirectory) {
           try {
-
-            let relPath = (activator as any).getDeployedPath(path.relative(modPath, entry.filePath));
+            let relPath = path.relative(modPath, entry.filePath);
+            if (activator !== undefined) {
+              relPath = (activator as any).getDeployedPath(relPath);
+            }
             if (game.mergeMods !== true) {
               let modSubDir = game.mergeMods === false
                 ? mod.installationPath
                 : game.mergeMods(mod);
               relPath = path.join(modSubDir, relPath);
             }
-            util.setdefault(files, relPath.toLowerCase(), []).push({ mod, time: entry.mtime });
+
+            const relPathL = relPath.toLowerCase();
+            // when getDeployedPath actually renames the file it's possible to get multiple
+            // entries with the same path from the same mod. We don't want those to be listed
+            // as two entries, otherwise we might report a mod as conflicting with itself
+            if ((files[relPathL] !== undefined)
+                && (files[relPathL].find(entry => entry.mod === mod) !== undefined)) {
+              return;
+            }
+            util.setdefault(files, relPathL, []).push({ mod, time: entry.mtime });
           } catch (err) {
             log('error', 'invalid file entry - what is this?', entry);
           }
