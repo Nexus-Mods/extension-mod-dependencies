@@ -180,6 +180,9 @@ function updateConflictInfo(api: types.IExtensionApi, gameId: string,
   });
 
   if (Object.keys(unsolved).length === 0) {
+    // We dismiss the conflict notification and also
+    //  clear up any stored conflict map.
+    store.dispatch(setConflictInfo({}));
     store.dispatch(actions.dismissNotification('mod-file-conflict'));
   } else {
     const message: string[] = [
@@ -563,6 +566,9 @@ function once(api: types.IExtensionApi) {
   });
 
   api.events.on('gamemode-activated', (gameMode: string) => {
+    // We just changed gamemodes - we should clear up any
+    //  existing conflict information.
+    updateConflictInfo(api, gameMode, {});
     updateRulesDebouncer.schedule(undefined, gameMode);
   });
 
