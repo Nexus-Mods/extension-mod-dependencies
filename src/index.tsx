@@ -350,8 +350,7 @@ function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
     });
 }
 
-function showCycles(api: types.IExtensionApi, cycles: string[][]) {
-  const gameId = selectors.activeGameId(api.store.getState());
+function showCycles(api: types.IExtensionApi, cycles: string[][], gameId: string) {
   const state: types.IState = api.store.getState();
   const mods = state.persistent.mods[gameId];
   const id = shortid();
@@ -419,7 +418,7 @@ function generateLoadOrder(api: types.IExtensionApi): Promise<void> {
         actions: [
           {
             title: 'Show', action: () => {
-              showCycles(api, err.cycles);
+              showCycles(api, err.cycles, gameMode);
             },
           },
         ],
