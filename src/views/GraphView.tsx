@@ -138,9 +138,12 @@ class GraphView extends React.Component<IGraphViewProps, {}> {
     const followers = this.mGraph
       .$(`#${san(nodeId)}`)
       .outgoers()
-      .filter(ele => ele.group() === 'nodes');
+      .filter(ele => (ele !== undefined) && (ele.group() === 'nodes'));
 
     const firstCycle = followers.reduce((prev, node) => {
+      if (node === undefined) {
+        return;
+      }
       if (prev === undefined) {
         const path = this.mGraph.elements().aStar({
           root: `#${san(node.id())}`,
