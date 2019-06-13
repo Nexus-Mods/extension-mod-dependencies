@@ -180,9 +180,6 @@ function updateConflictInfo(api: types.IExtensionApi, gameId: string,
   });
 
   if (Object.keys(unsolved).length === 0) {
-    // We dismiss the conflict notification and also
-    //  clear up any stored conflict map.
-    store.dispatch(setConflictInfo({}));
     store.dispatch(actions.dismissNotification('mod-file-conflict'));
   } else {
     const message: string[] = [
