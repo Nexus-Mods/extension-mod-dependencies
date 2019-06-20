@@ -564,6 +564,7 @@ function once(api: types.IExtensionApi) {
   api.events.on('gamemode-activated', (gameMode: string) => {
     // We just changed gamemodes - we should clear up any
     //  existing conflict information.
+    store.dispatch(setConflictInfo({}));
     updateConflictInfo(api, gameMode, {});
     updateRulesDebouncer.schedule(undefined, gameMode);
   });
