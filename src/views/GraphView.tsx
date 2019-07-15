@@ -72,7 +72,9 @@ class GraphView extends React.Component<IGraphViewProps, {}> {
                 target: from,
                 targetOrig: id.slice(1),
               },
-              classes: newProps.elements[id] !== undefined ? newProps.elements[id].class : undefined,
+              classes: (newProps.elements[id] !== undefined)
+                ? newProps.elements[id].class
+                : undefined,
             });
           });
         } else if (id[0] === '-') {
@@ -110,7 +112,9 @@ class GraphView extends React.Component<IGraphViewProps, {}> {
                     target: from,
                     targetOrig: id,
                   },
-                  classes: newProps.elements[id] !== undefined ? newProps.elements[id].class : undefined,
+                  classes: (newProps.elements[id] !== undefined)
+                    ? newProps.elements[id].class
+                    : undefined,
                 });
               }
             });
@@ -148,7 +152,7 @@ class GraphView extends React.Component<IGraphViewProps, {}> {
         const path = this.mGraph.elements().aStar({
           root: `#${san(node.id())}`,
           goal: `#${san(nodeId)}`,
-          directed: true
+          directed: true,
         });
         if (path.found) {
           prev = path.path;
@@ -156,7 +160,7 @@ class GraphView extends React.Component<IGraphViewProps, {}> {
       }
       return prev;
     }, undefined);
-    
+
     if (firstCycle !== undefined) {
       // unhighlight previous cycle if necessary
       this.mGraph.elements()

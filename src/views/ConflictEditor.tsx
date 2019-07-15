@@ -14,8 +14,8 @@ import { connect } from 'react-redux';
 import * as Redux from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
 import * as semver from 'semver';
-import { actions as vortexActions, ComponentEx,
-         tooltip, types, util, EmptyPlaceholder } from 'vortex-api';
+import { actions as vortexActions, ComponentEx, EmptyPlaceholder,
+         log, tooltip, types, util } from 'vortex-api';
 
 interface IConnectedProps {
   gameId: string;
@@ -90,7 +90,8 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
   constructor(props: IProps) {
     super(props);
     this.initState({
-      rules: (props.modIds || []).reduce((prev: { [modId: string]: { [refId: string]: IRuleSpec } }, modId: string) => {
+      rules: (props.modIds || []).reduce(
+          (prev: { [modId: string]: { [refId: string]: IRuleSpec } }, modId: string) => {
         prev[modId] = getRuleSpec(modId, props.mods, props.conflicts[modId]);
         return prev;
       }, {}),
@@ -99,7 +100,8 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
 
   public componentWillReceiveProps(nextProps: IProps) {
     // find existing rules for these conflicts
-    this.nextState.rules = (nextProps.modIds || []).reduce((prev: { [modId: string]: { [refId: string]: IRuleSpec } }, modId: string) => {
+    this.nextState.rules = (nextProps.modIds || []).reduce(
+        (prev: { [modId: string]: { [refId: string]: IRuleSpec } }, modId: string) => {
       prev[modId] = getRuleSpec(modId, nextProps.mods, nextProps.conflicts[modId]);
       return prev;
     }, {});
@@ -109,7 +111,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     const {t, modIds, mods, conflicts} = this.props;
 
     let modName = '';
-    
+
     if (modIds !== undefined) {
       if (modIds.length === 1) {
         modName = util.renderModName(mods[modIds[0]]);
@@ -121,7 +123,9 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     const content = (modIds !== undefined) && (modIds.length > 0) ? (
       <Table className='mod-conflict-list'>
         <tbody>
-          {(modIds || []).map(modId => (conflicts[modId] || []).map(conflict => this.renderConflict(modId, conflict)))}
+          {(modIds || [])
+              .map(modId => (conflicts[modId] || [])
+                .map(conflict => this.renderConflict(modId, conflict)))}
         </tbody>
       </Table>
     ) : (
@@ -178,8 +182,8 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
         reverseType = reverseRule.type;
       } else {
         reverseMod = Object.keys(rules).find(refId =>
-          (rules[refId][modId] !== undefined) && (['before', 'after'].indexOf(rules[refId][modId].type) !== -1)
-        );
+          (rules[refId][modId] !== undefined)
+          && (['before', 'after'].indexOf(rules[refId][modId].type) !== -1));
         if (reverseMod !== undefined) {
           reverseType = rules[reverseMod][modId].type === 'before' ? 'after' : 'before';
         }
@@ -205,8 +209,12 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
             disabled={(reverseRule !== undefined) || (reverseMod !== undefined)}
           >
             <option value='norule'>???</option>
-            <option value='before'>{conflict.suggestion === 'before' ? t('before (suggested)') : t('before')}</option>
-            <option value='after'>{conflict.suggestion === 'after' ? t('after (suggested)') : t('after')}</option>
+            <option value='before'>
+              {conflict.suggestion === 'before' ? t('before (suggested)') : t('before')}
+            </option>
+            <option value='after'>
+              {conflict.suggestion === 'after' ? t('after (suggested)') : t('after')}
+            </option>
             <option value='conflicts'>{t('never together with')}</option>
           </FormControl>
         </td>
@@ -288,9 +296,9 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
 
     const findRule = iter =>
       (iter.type === reverseType)
-      && util.testModReference(mods[modId], iter.reference)
+      && util.testModReference(mods[modId], iter.reference);
 
-    const refMod: types.IMod = Object.keys(mods).map(modId => mods[modId])
+    const refMod: types.IMod = Object.keys(mods).map(iter => mods[iter])
       .find(iter => util.testModReference(iter, rule.reference)
                  && iter.rules !== undefined
                  && (iter.rules.find(findRule) !== undefined));

@@ -1,4 +1,4 @@
-import { IConflict, ConflictSuggestion } from '../types/IConflict';
+import { ConflictSuggestion, IConflict } from '../types/IConflict';
 import { IModLookupInfo } from '../types/IModLookupInfo';
 
 import isBlacklisted from './blacklist';
@@ -6,7 +6,7 @@ import isBlacklisted from './blacklist';
 import * as Promise from 'bluebird';
 import * as path from 'path';
 import turbowalk from 'turbowalk';
-import { types, util, log } from 'vortex-api';
+import { log, types, util } from 'vortex-api';
 
 interface IFileMap {
   [filePath: string]: Array<{ mod: types.IMod, time: number }>;
@@ -43,7 +43,7 @@ function getAllFiles(game: types.IGame,
               relPath = (activator as any).getDeployedPath(relPath);
             }
             if (game.mergeMods !== true) {
-              let modSubDir = game.mergeMods === false
+              const modSubDir = game.mergeMods === false
                 ? mod.installationPath
                 : game.mergeMods(mod);
               relPath = path.join(modSubDir, relPath);
@@ -54,7 +54,7 @@ function getAllFiles(game: types.IGame,
             // entries with the same path from the same mod. We don't want those to be listed
             // as two entries, otherwise we might report a mod as conflicting with itself
             if ((files[relPathL] !== undefined)
-                && (files[relPathL].find(entry => entry.mod === mod) !== undefined)) {
+                && (files[relPathL].find(iter => iter.mod === mod) !== undefined)) {
               return;
             }
             util.setdefault(files, relPathL, []).push({ mod, time: entry.mtime });
@@ -86,7 +86,7 @@ function getConflictMap(files: IFileMap): IConflictMap {
     for (let i = 0; i < file.length; ++i) {
       for (let j = 0; j < file.length; ++j) {
         if (i !== j) {
-          let suggestion = file[i].time < file[j].time
+          const suggestion = file[i].time < file[j].time
             ? 'before'
             : file[i].time > file[j].time
             ? 'after'
@@ -111,7 +111,8 @@ function getConflictMap(files: IFileMap): IConflictMap {
 function findConflicts(game: types.IGame,
                        basePath: string,
                        mods: types.IMod[],
-                       activator: types.IDeploymentMethod): Promise<{ [modId: string]: IConflict[] }> {
+                       activator: types.IDeploymentMethod)
+                       : Promise<{ [modId: string]: IConflict[] }> {
   return getAllFiles(game, basePath, mods, activator)
     .then((files: IFileMap) => {
       const conflictMap = getConflictMap(files);
@@ -121,7 +122,7 @@ function findConflicts(game: types.IGame,
           if (conflictsByMod[lhsId] === undefined) {
             conflictsByMod[lhsId] = [];
           }
-          const mod = mods.find(mod => mod.id === rhsId);
+          const mod = mods.find(iter => iter.id === rhsId);
           if (mod !== undefined) {
             const entry = conflictMap[lhsId][rhsId];
             conflictsByMod[lhsId].push({
