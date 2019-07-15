@@ -265,7 +265,11 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
   private highlightCycle = () => {
     const { id } = this.state.context.selection;
 
-    this.mGraphRef.highlightCycle(id);
+    try {
+      this.mGraphRef.highlightCycle(id);
+    } catch (err) {
+      this.context.api.showErrorNotification('Failed to highlight cycle', err);
+    }
   }
 
   private loadLast = () => {

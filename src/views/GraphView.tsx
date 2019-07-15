@@ -149,9 +149,17 @@ class GraphView extends React.Component<IGraphViewProps, {}> {
         return;
       }
       if (prev === undefined) {
+        const root = san(node.id()) + 'x';
+        const goal = san(nodeId);
+
+        if ((this.mGraph.getElementById(root).length === 0)
+            || (this.mGraph.getElementById(goal).length === 0)) {
+          throw new Error(`invalid route "${node.id()}" to "${nodeId}"`);
+        }
+
         const path = this.mGraph.elements().aStar({
-          root: `#${san(node.id())}`,
-          goal: `#${san(nodeId)}`,
+          root: `#${root}`,
+          goal: `#${goal}`,
           directed: true,
         });
         if (path.found) {
