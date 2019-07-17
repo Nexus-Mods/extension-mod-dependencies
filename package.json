@@ -33,7 +33,7 @@
     "babel-loader": "^6.2.5",
     "babel-polyfill": "^6.13.0",
     "bluebird": "^3.5.1",
-    "copyfiles": "^1.0.0",
+    "copyfiles": "^2.1.1",
     "cytoscape": "^3.6.0",
     "cytoscape-cose-bilkent": "^4.0.0",
     "cytoscape-edgehandles": "^3.5.1",
