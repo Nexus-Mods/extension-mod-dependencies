@@ -149,7 +149,7 @@ class GraphView extends React.Component<IGraphViewProps, {}> {
         return;
       }
       if (prev === undefined) {
-        const root = san(node.id()) + 'x';
+        const root = san(node.id());
         const goal = san(nodeId);
 
         if ((this.mGraph.getElementById(root).length === 0)
