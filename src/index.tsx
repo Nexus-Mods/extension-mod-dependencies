@@ -9,8 +9,6 @@ import determineConflicts from './util/conflicts';
 import DependenciesFilter from './util/DependenciesFilter';
 import findRule from './util/findRule';
 import renderModLookup from './util/renderModLookup';
-import renderModName from './util/renderModName';
-import renderReference from './util/renderReference';
 import ruleFulfilled from './util/ruleFulfilled';
 import showUnsolvedConflictsDialog from './util/showUnsolvedConflicts';
 import ConflictEditor from './views/ConflictEditor';
@@ -191,7 +189,7 @@ function updateConflictInfo(api: types.IExtensionApi, gameId: string,
                 + '[td][color="red"][svg]conflict[/svg][/color][/td]'
                 + '[td][list]{{conflicts}}[/list][/td][/tr]', {
           replace: {
-            modName: renderModName(mods[modId]),
+            modName: util.renderModName(mods[modId]),
             conflicts: unsolved[modId].map(
               conflict => '[*] ' + renderModLookup(conflict.otherMod)),
       }})), '[/tbody][/table]');
@@ -235,7 +233,8 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
   const store: any = api.store;
   const state = store.getState();
   const enabledMods: IModLookupInfo[] = enabledModKeys(state);
-  const gameMode = selectors.activeGameId(state);
+  const activeProfile = selectors.activeProfile(state);
+  const gameMode = activeProfile.gameId;
   const mods = state.persistent.mods[gameMode];
 
   return Promise.map(enabledMods, modLookup => {
@@ -266,24 +265,41 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
       if (modsUnfulfilled.length === 0) {
         store.dispatch(actions.dismissNotification('mod-rule-unfulfilled'));
       } else {
+        const hasRequired: Set<string> = new Set([]);
+
         const message: string[] = [
           t('There are mod dependency rules that aren\'t fulfilled.'),
           '[list]',
         ].concat(modsUnfulfilled.map(iter =>
-          iter.rules.map(rule => {
-            const modName = renderModName(mods[iter.modId]);
+          iter.rules.map((rule: types.IModRule) => {
+            const modName = util.renderModName(mods[iter.modId]);
+            if (rule.type === 'requires') {
+              hasRequired.add(iter.modId);
+            }
             const type = renderRuleType(t, rule.type);
-            const other = renderReference(rule.reference, mods[rule.reference.id]);
-            return `[*] ${modName} ${type} ${other}`;
+            const other = (util as any).renderModReference(rule.reference, mods[rule.reference.id]);
+            return `[*] "${modName}" ${type} "${other}"`;
           }).join('<br/>')))
           .concat(['[/list]']);
+
         const showDetails = () => {
+          const dialogActions: types.IDialogAction[] = [ { label: 'Close' } ];
+
+          if (hasRequired.size > 0) {
+            dialogActions.push({
+              label: 'Install Required',
+              action: () => {
+                api.events.emit('install-dependencies', activeProfile.id, Array.from(hasRequired));
+              },
+            });
+          }
+
           store.dispatch(actions.showDialog(
             'info',
             t('Unsolved file conflicts'), {
               bbcode: message.join('<br/>'),
               options: { translated: true, wrap: true },
-            }, [ { label: 'Close' } ]));
+            }, dialogActions));
         };
 
         store.dispatch(actions.addNotification({
@@ -351,7 +367,7 @@ function showCycles(api: types.IExtensionApi, cycles: string[][], gameId: string
   const state: types.IState = api.store.getState();
   const mods = state.persistent.mods[gameId];
   const id = shortid();
-  (api.showDialog as any)('error', 'Cycles', {
+  api.showDialog('error', 'Cycles', {
     text: 'Dependency rules between your mods contain cycles, '
       + 'like "A after B" and "B after A". You need to remove one of the '
       + 'rules causing the cycle, otherwise your mods can\'t be '
@@ -359,7 +375,7 @@ function showCycles(api: types.IExtensionApi, cycles: string[][], gameId: string
     links: cycles.map((cycle, idx) => (
       {
         label: cycle
-          .map(id => mods[id] !== undefined ? util.renderModName(mods[id]) : id)
+          .map(iter => mods[iter] !== undefined ? util.renderModName(mods[iter]) : iter)
           .map(name => `[${name}]`)
           .join(' --> '),
         action: () => {

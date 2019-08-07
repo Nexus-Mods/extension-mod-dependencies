@@ -1,6 +1,5 @@
 import { IBiDirRule } from '../types/IBiDirRule';
 import { IConflict } from '../types/IConflict';
-import renderReference from '../util/renderReference';
 
 import { setConflictDialog, setFileOverrideDialog } from '../actions';
 
@@ -268,8 +267,8 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       <div>
         {t('{{ otherMod }} has a rule referencing {{ thisMod }}',
           { replace: {
-              otherMod: renderReference(rule.reference, mods[rule.reference.id]),
-              thisMod: renderReference(rule.source, mods[rule.source.id]) } })}
+              otherMod: (util as any).renderModReference(rule.reference, mods[rule.reference.id]),
+              thisMod: (util as any).renderModReference(rule.source, mods[rule.source.id]) } })}
       </div>);
 
     return (
