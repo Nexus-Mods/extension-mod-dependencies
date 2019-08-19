@@ -2,8 +2,8 @@ import { RuleType } from 'modmeta-db';
 import { types } from 'vortex-api';
 
 export interface IBiDirRule {
-  source: any;
+  source: types.IModReference;
   type: RuleType;
-  reference: any;
+  reference: types.IModReference;
   original: boolean;
 }

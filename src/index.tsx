@@ -45,27 +45,6 @@ function makeReference(mod: IModInfo): IReference {
   };
 }
 
-function makeModReference(mod: types.IMod): IReference {
-  if ((mod.attributes['fileMD5'] === undefined)
-      && (mod.attributes['logicalFileName'] === undefined)
-      && (mod.attributes['fileName'] === undefined)) {
-    // if none of the usual markers are available, use just the mod name
-    return {
-      fileExpression: mod.attributes['name'],
-    };
-  }
-
-  const fileName = mod.attributes['fileName'];
-
-  return {
-    fileExpression: fileName !== undefined
-      ? path.basename(fileName, path.extname(fileName))
-      : undefined,
-    fileMD5: mod.attributes['fileMD5'],
-    versionMatch: mod.attributes['version'],
-    logicalFileName: mod.attributes['logicalFileName'],
-  };
-}
 
 function inverseRule(ruleType: RuleType): RuleType {
   switch (ruleType) {
@@ -110,7 +89,7 @@ function updateMetaRules(api: types.IExtensionApi,
     if (mod.attributes === undefined) {
       return;
     }
-    const ref = makeModReference(mod);
+    const ref = (util as any).makeModReference(mod);
     if ((ref.fileExpression === undefined)
        && (ref.fileMD5 === undefined)
        && (ref.logicalFileName === undefined)) {
