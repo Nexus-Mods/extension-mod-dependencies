@@ -307,3 +307,10 @@
     height: 4em;
   }
 }
+
+.popover-mod-rules {
+  max-width: 500px;
+  max-height: 40vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}

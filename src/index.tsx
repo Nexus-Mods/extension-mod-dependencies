@@ -45,7 +45,6 @@ function makeReference(mod: IModInfo): IReference {
   };
 }
 
-
 function inverseRule(ruleType: RuleType): RuleType {
   switch (ruleType) {
     case 'before': return 'after';
@@ -266,7 +265,7 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
 
           if (hasRequired.size > 0) {
             dialogActions.push({
-              label: 'Install Required',
+              label: 'Install Dependencies',
               action: () => {
                 api.events.emit('install-dependencies', activeProfile.id, Array.from(hasRequired));
               },

@@ -35,7 +35,7 @@ class RuleDescription extends React.Component<IDescriptionProps, {}> {
 
     const classes = [
       'rule-description',
-      this.className()
+      this.className(),
     ]
     .filter(iter => iter !== undefined)
     .join(' ');
@@ -112,19 +112,7 @@ class RuleDescription extends React.Component<IDescriptionProps, {}> {
     const { mod } = this.props;
     const style = { display: 'inline' };
 
-    if (mod !== undefined) {
-      return <p style={style}>{util.renderModName(mod, { version: true })}</p>;
-    }
-
-    if ((ref.logicalFileName === undefined)
-        && (ref.fileExpression === undefined)) {
-      return <p style={style}>{ref.fileMD5}</p>;
-    }
-    return (
-      <p style={style}>
-        {ref.logicalFileName || ref.fileExpression} {ref.versionMatch}
-    </p>
-    );
+    return <p style={style}>{(util as any).renderModReference(ref, mod)}</p>;
   }
 }
 
@@ -413,7 +401,7 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
 
     if ((staticRules.length > 0) || (customRules.length > 0)) {
       popover = (
-        <Popover id={`popover-${mod.id}`} style={{ maxWidth: 500 }}>
+        <Popover id={`popover-${util.sanitizeCSSId(mod.id)}`} className='popover-mod-rules'>
           {staticRules.map(rule => renderRule(rule, undefined))}
           {customRules.map(rule => renderRule(rule, this.removeRule))}
         </Popover>
