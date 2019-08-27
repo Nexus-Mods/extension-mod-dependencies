@@ -567,10 +567,16 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
       fileExpression: mod.installationPath,
       logicalFileName: attributes['logicalFileName'],
     };
+
+    let downloadGame = attributes['downloadGame'];
+    if ((downloadGame !== undefined) && Array.isArray(downloadGame)) {
+      downloadGame = downloadGame[0];
+    }
+
     this.context.api.lookupModMeta({
       fileMD5: attributes['fileMD5'],
       fileSize: attributes['fileSize'],
-      gameId: this.props.gameId,
+      gameId: downloadGame || this.props.gameId,
     })
       .then((meta: ILookupResult[]) => {
         if (this.mIsMounted && (meta.length > 0)) {
