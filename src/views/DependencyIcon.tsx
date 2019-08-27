@@ -296,7 +296,7 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
   }
 
   public componentWillReceiveProps(nextProps: IProps) {
-    if (this.props.mod !== nextProps.mod) {
+    if (this.lookupInfoChanged(this.props.mod, nextProps.mod)) {
       this.updateMod(nextProps.mod);
     }
 
@@ -548,6 +548,15 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
   private removeRule = (rule: IRule) => {
     const { gameId, mod, onRemoveRule } = this.props;
     onRemoveRule(gameId, mod.id, rule);
+  }
+
+  private lookupInfoChanged(lhs: types.IMod, rhs: types.IMod) {
+    const lhsAttr = lhs.attributes || {};
+    const rhsAttr = rhs.attributes || {};
+    return lhs.installationPath !== rhs.installationPath
+        || lhsAttr['fileMD5'] !== rhsAttr['fileMD5']
+        || lhsAttr['version'] !== rhsAttr['version']
+        || lhsAttr['logicalFileName'] !== rhsAttr['logicalFileName'];
   }
 
   private updateMod(mod: types.IMod) {
