@@ -576,8 +576,9 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
     this.context.api.lookupModMeta({
       fileMD5: attributes['fileMD5'],
       fileSize: attributes['fileSize'],
+      fileName: attributes['fileName'],
       gameId: downloadGame || this.props.gameId,
-    })
+    } as any)
       .then((meta: ILookupResult[]) => {
         if (this.mIsMounted && (meta.length > 0)) {
           this.nextState.modInfo = meta[0].value;

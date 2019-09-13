@@ -95,10 +95,21 @@ function updateMetaRules(api: types.IExtensionApi,
       return;
     }
     rules = rules.concat(mapRules(ref, mod.rules));
+    let downloadGame = mod.attributes['downloadGame'] || gameId;
+    if (Array.isArray(downloadGame)) {
+      downloadGame = downloadGame[0];
+    }
+
+    const state = api.store.getState();
+    const downloadPath = selectors.downloadPathForGame(state, downloadGame);
+    const fileName = util.getSafe(mod.attributes, ['fileName'], undefined);
+    const filePath = fileName !== undefined ? path.join(downloadPath, fileName) : undefined;
+
     return api.lookupModMeta({
       fileMD5: mod.attributes['fileMD5'],
       fileSize: mod.attributes['fileSize'],
-      gameId,
+      filePath,
+      gameId: downloadGame,
     })
       .then((meta: ILookupResult[]) => {
         if ((meta.length > 0) && (meta[0].value !== undefined)) {
@@ -218,10 +229,20 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
   return Promise.map(enabledMods, modLookup => {
     const mod: types.IMod = mods[modLookup.id];
 
+    let downloadGame = util.getSafe(mod.attributes, ['downloadGame'], gameMode);
+    if (Array.isArray(downloadGame)) {
+      downloadGame = downloadGame[0];
+    }
+
+    const downloadPath = selectors.downloadPathForGame(state, downloadGame);
+    const fileName = util.getSafe(mod.attributes, ['fileName'], undefined);
+    const filePath = fileName !== undefined ? path.join(downloadPath, fileName) : undefined;
+
     return api.lookupModMeta({
       fileMD5: util.getSafe(mod.attributes, ['fileMD5'], undefined),
       fileSize: util.getSafe(mod.attributes, ['fileSize'], undefined),
-      gameId: gameMode,
+      filePath,
+      gameId: downloadGame,
     })
       .then((meta: ILookupResult[]) => {
         const rules: IRule[] = [].concat(
