@@ -183,8 +183,9 @@ function updateConflictInfo(api: types.IExtensionApi, gameId: string,
     store.dispatch(actions.dismissNotification('mod-file-conflict'));
   } else {
     const message: string[] = [
-      t('There are unsolved file conflicts. This just means that two or more mods contain the same '
-        + 'files and you need to decide which of them loads last and thus provides the files.\n'),
+      t('There are unresolved file conflicts. This just means that two or more mods contain the '
+        + 'same files and you need to decide which of them loads last and thus provides '
+        + 'the files.\n'),
       '[table][tbody]',
     ].concat(Object.keys(unsolved).map(modId =>
       '[tr]' + t('[td]{{modName}}[/td]'
@@ -198,7 +199,7 @@ function updateConflictInfo(api: types.IExtensionApi, gameId: string,
     const showDetails = () => {
       store.dispatch(actions.showDialog(
         'info',
-        t('Unsolved file conflicts'), {
+        t('Unresolved file conflicts'), {
           bbcode: message.join('\n'),
           options: { translated: true, wrap: true },
         }, [
@@ -211,7 +212,7 @@ function updateConflictInfo(api: types.IExtensionApi, gameId: string,
 
     store.dispatch(actions.addNotification({
       type: 'warning',
-      message: 'There are unsolved file conflicts',
+      message: 'There are unresolved file conflicts',
       id: 'mod-file-conflict',
       noDismiss: true,
       actions: [{
@@ -280,7 +281,7 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
         const showDetails = () => {
           store.dispatch(actions.showDialog(
             'info',
-            t('Unsolved file conflicts'), {
+            t('Unresolved file conflicts'), {
               bbcode: message.join('<br/>'),
               options: { translated: true, wrap: true },
             }, [ { label: 'Close' } ]));
@@ -359,7 +360,7 @@ function showCycles(api: types.IExtensionApi, cycles: string[][], gameId: string
     links: cycles.map((cycle, idx) => (
       {
         label: cycle
-          .map(id => mods[id] !== undefined ? util.renderModName(mods[id]) : id)
+          .map(modId => mods[modId] !== undefined ? util.renderModName(mods[modId]) : modId)
           .map(name => `[${name}]`)
           .join(' --> '),
         action: () => {
