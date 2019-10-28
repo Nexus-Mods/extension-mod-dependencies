@@ -466,8 +466,8 @@ function changeMayAffectRules(before: types.IMod, after: types.IMod): boolean {
 function makeLoadOrderAttribute(api: types.IExtensionApi): types.ITableAttribute<types.IMod> {
   return {
     id: 'loadOrder',
-    name: 'Install Order',
-    description: 'Install order derived from mod dependencies',
+    name: 'Deploy Order',
+    description: 'Deploy order derived from mod dependencies',
     icon: 'order',
     placement: 'table',
     isToggleable: true,

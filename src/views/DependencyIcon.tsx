@@ -467,7 +467,7 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
         id={`btn-meta-overrides-${mod.id}`}
         className='btn-overrides'
         key={`overrides-${mod.id}`}
-        tooltip={t('This mod has files override the install order')}
+        tooltip={t('This mod has files override the deploy order')}
         icon='override'
         onClick={this.openOverrideDialog}
       />
