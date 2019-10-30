@@ -1,6 +1,7 @@
 import renderModName from '../util/renderModName';
 
 import { closeDialog, setType } from '../actions';
+import { NAMESPACE } from '../statics';
 
 import * as minimatch from 'minimatch';
 import { IReference, IRule, RuleType } from 'modmeta-db';
@@ -85,7 +86,9 @@ class Editor extends ComponentEx<IProps, IComponentState> {
                 <option value='before'>{t('Must load before')}</option>
                 <option value='after'>{t('Must load after')}</option>
                 <option value='requires'>{t('Requires')}</option>
-                <option value='conflicts'>{t('Conflicts with / Can\'t be loaded together with')}</option>
+                <option value='conflicts'>
+                  {t('Conflicts with / Can\'t be loaded together with')}
+                </option>
               </FormControl>
               {this.renderReference(reference)}
             </Modal.Body>
@@ -279,5 +282,5 @@ function mapDispatchToProps(dispatch: ThunkDispatch<any, null, Redux.Action>): I
   };
 }
 
-export default withTranslation([ 'common' ])(
+export default withTranslation([ 'common', NAMESPACE ])(
   connect(mapStateToProps, mapDispatchToProps)(Editor) as any) as React.ComponentClass<{}>;

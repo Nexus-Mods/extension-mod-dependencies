@@ -3,6 +3,7 @@ import { IConflict } from '../types/IConflict';
 import genGraphStyle from '../util/genGraphStyle';
 
 import { setEditCycle } from '../actions';
+import { NAMESPACE } from '../statics';
 
 import GraphView, { IGraphElement, IGraphSelection } from './GraphView';
 
@@ -14,8 +15,8 @@ import { withTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
 import * as Redux from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
-import { actions, ComponentEx, Modal, selectors, Spinner, types, util, ContextMenu } from 'vortex-api';
-const { Usage } = require('vortex-api');
+import { actions, ComponentEx, ContextMenu, Modal, selectors,
+         Spinner, types, Usage, util } from 'vortex-api';
 
 interface ILocalState {
   modRules: IBiDirRule[];
@@ -81,10 +82,10 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
       title: 'Load Last (among connected)',
       show: true,
       action: () => this.loadLast(),
-    }
+    },
    ];
 
-   private contextEdgeActions = [
+  private contextEdgeActions = [
     {
       title: 'Flip Rule',
       show: true,
@@ -95,7 +96,7 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
       show: true,
       action: () => this.removeRule(),
     },
-   ];
+  ];
 
   private contextBGActions = [
     {
@@ -107,7 +108,13 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
 
   constructor(props: IProps) {
     super(props);
-    this.initState({ highlighted: undefined, counter: 0, context: undefined, elements: undefined, working: false });
+    this.initState({
+      highlighted: undefined,
+      counter: 0,
+      context: undefined,
+      elements: undefined,
+      working: false,
+    });
     // TODO: horrible hack, just to get this to update when mod rules change
     this.mProxy = {
       setState: () => {
@@ -170,10 +177,12 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
           />
           <Usage infoId='conflicting-mods' persistent>
             <div>{t('This screen shows a cluster of mods that form one or more cycles.')}</div>
-            <div>{t('If there are too many connections you can highlight a single cycle by right-clicking on one of the mods.')}</div>
-            <div>{t('You can resolve a cycle by either removing or flipping one rule, so if you have a cycle '
-              + 'A->-B->-C->-A you could flip the arrow between C and A to get A->-B->-C-<-A which is no longer a cycle. Repeat this until '
-              + 'there are no cycles left.')}</div>
+            <div>{t('If there are too many connections you can highlight a single cycle '
+                    + 'by right-clicking on one of the mods.')}</div>
+            <div>{t('You can resolve a cycle by either removing or flipping one rule, '
+                    + 'so if you have a cycle A->-B->-C->-A you could flip the arrow '
+                    + 'between C and A to get A->-B->-C-<-A which is no longer a cycle. '
+                    + 'Repeat this until there are no cycles left.')}</div>
           </Usage>
         </Modal.Body>
         <Modal.Footer>
@@ -229,8 +238,10 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
 
     const elements: { [id: string]: IGraphElement } = editCycle.modIds.reduce((prev, modId) => {
       prev[modId] = {
-        title: util.renderModName(mods[modId]), connections: this.getAllLinks(props, modId),
-        class: `conflictnode`, readonly: false
+        title: util.renderModName(mods[modId]),
+        connections: this.getAllLinks(props, modId),
+        class: `conflictnode`,
+        readonly: false,
       };
       return prev;
     },  {});
@@ -291,7 +302,8 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
           reference: rule.reference,
         });
       } else {
-        const sourceId = editCycle.modIds.find(modId => util.testModReference(mods[modId], rule.source));
+        const sourceId = editCycle.modIds
+          .find(modId => util.testModReference(mods[modId], rule.source));
         onAddRule(editCycle.gameId, sourceId, {
           type: 'before',
           reference: rule.reference,
@@ -304,10 +316,10 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
     const { editCycle, localState, mods, onAddRule } = this.props;
     const { selection } = this.state.context;
 
-    const bidirRule = localState.modRules.find(rule =>
-          (rule.type === 'before')
-          && util.testModReference(mods[selection.source], rule.source)
-          && util.testModReference(mods[selection.target], rule.reference));
+    const bidirRule = localState.modRules.find(iter =>
+          (iter.type === 'before')
+          && util.testModReference(mods[selection.source], iter.source)
+          && util.testModReference(mods[selection.target], iter.reference));
     if (bidirRule === undefined) {
       return;
     }
@@ -335,17 +347,17 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
           rule.type === 'before'
           && util.testModReference(mods[selection.source], rule.source)
           && util.testModReference(mods[selection.target], rule.reference));
-        if (bidirRule === undefined) {
-          return;
-        }
-        const sourceId = bidirRule.original ? selection.source : selection.target;
-        const remRule: IRule = {
-          type: bidirRule.original ? 'before' : 'after',
-          reference: bidirRule.original ? bidirRule.reference : bidirRule.source,
-        };
+    if (bidirRule === undefined) {
+      return;
+    }
+    const sourceId = bidirRule.original ? selection.source : selection.target;
+    const remRule: IRule = {
+      type: bidirRule.original ? 'before' : 'after',
+      reference: bidirRule.original ? bidirRule.reference : bidirRule.source,
+    };
 
     this.nextState.working = true;
-    onRemoveRule(editCycle.gameId, sourceId, remRule)
+    onRemoveRule(editCycle.gameId, sourceId, remRule);
   }
 }
 
@@ -377,6 +389,6 @@ function mapDispatchToProps(dispatch: ThunkDispatch<any, null, Redux.Action>): I
   };
 }
 
-export default withTranslation(['common', 'dependency-manager'])(
+export default withTranslation(['common', NAMESPACE])(
   connect(mapStateToProps, mapDispatchToProps)(
     ConflictGraph) as any) as React.ComponentClass<IConflictGraphProps>;

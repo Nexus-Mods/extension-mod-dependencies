@@ -6,6 +6,8 @@ import { setConflictDialog, setFileOverrideDialog } from '../actions';
 
 import { RuleChoice } from '../util/getRuleTypes';
 
+import { NAMESPACE } from '../statics';
+
 import * as React from 'react';
 import { Button, FormControl,
          Modal, OverlayTrigger, Popover, Table } from 'react-bootstrap';
@@ -422,6 +424,6 @@ function mapDispatchToProps(dispatch: ThunkDispatch<any, null, Redux.Action>): I
   };
 }
 
-export default withTranslation(['common', 'dependency-manager'])(
+export default withTranslation(['common', NAMESPACE])(
   connect(mapStateToProps, mapDispatchToProps)(
   ConflictEditor) as any) as React.ComponentClass<{}>;

@@ -1,7 +1,8 @@
 import * as React from 'react';
-import { translate } from 'react-i18next';
+import { withTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
 import { Spinner, tooltip, util } from 'vortex-api';
+import { NAMESPACE } from '../statics';
 
 interface IBaseProps {
   t: ReactI18Next.TranslationFunction;
@@ -35,5 +36,5 @@ function mapStateToProps(state: any): IConnectedProps {
 }
 
 export default
-  translate(['common', 'dependency-manager'], { wait: false })
-  (connect(mapStateToProps)(ProgressFooter)) as React.ComponentClass<{}>;
+  withTranslation(['common', NAMESPACE])(
+    connect(mapStateToProps)(ProgressFooter) as any) as React.ComponentClass<{}>;
