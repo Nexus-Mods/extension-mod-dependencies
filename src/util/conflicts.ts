@@ -78,7 +78,9 @@ interface IConflictMap {
 
 function getConflictMap(files: IFileMap): IConflictMap {
   const conflictFiles = Object.keys(files)
-    .filter(filePath => (files[filePath].length > 1) && !isBlacklisted(filePath));
+    .filter(filePath => (files[filePath] !== undefined)
+                     && (files[filePath].length > 1)
+                     && !isBlacklisted(filePath));
 
   const conflicts: IConflictMap = {};
   conflictFiles.forEach(filePath => {
