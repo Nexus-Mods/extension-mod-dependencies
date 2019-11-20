@@ -26,7 +26,7 @@ import connectionReducer from './reducers';
 import { enabledModKeys } from './selectors';
 import unsolvedConflictsCheck from './unsolvedConflictsCheck';
 
-import * as Promise from 'bluebird';
+import Promise from 'bluebird';
 import I18next from 'i18next';
 import * as _ from 'lodash';
 import { ILookupResult, IModInfo, IReference, IRule, RuleType } from 'modmeta-db';
