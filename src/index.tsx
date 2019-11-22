@@ -258,7 +258,17 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
         return Promise.resolve(res);
       });
   })
-    .then((unfulfilled: Array<{ modId: string, rules: any[] }>) => {
+    .then((unfulfilled: Array<{ modId: string, rules: types.IModRule[] }>) => {
+      // allow anyone else handle this to give more specific notifications, e.g.
+      // based on mod type
+      return Promise.map(unfulfilled.filter(iter => iter !== null), iter =>
+        api.emitAndAwait('unfulfilled-rules', activeProfile.id, iter.modId, iter.rules)
+          .then((result: boolean) => Promise.resolve(result
+            ? undefined
+            : iter)))
+        .filter(iter => iter !== undefined);
+    })
+    .then((unfulfilled: Array<{ modId: string, rules: types.IModRule[] }>) => {
       const modsUnfulfilled = unfulfilled.filter(iter => iter !== null);
 
       if (modsUnfulfilled.length === 0) {
