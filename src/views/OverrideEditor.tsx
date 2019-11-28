@@ -360,7 +360,12 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
       cur = searchPos[0];
     }
 
-    filePath.split(nodePath.sep).forEach(comp => {
+    const components = filePath.split(nodePath.sep);
+    if (components.length === 1) {
+      components.unshift('.');
+    }
+
+    components.forEach(comp => {
       const findFunc = iter => iter.title === comp;
       cur = (cur === undefined)
         ? this.nextState.treeState.find(findFunc)
