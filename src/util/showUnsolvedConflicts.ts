@@ -1,4 +1,4 @@
-import { selectors, types } from 'vortex-api';
+import { selectors, types, util } from 'vortex-api';
 import { setConflictDialog } from '../actions';
 import { IBiDirRule } from '../types/IBiDirRule';
 import findRule from './findRule';
@@ -8,7 +8,17 @@ function showUnsolvedConflictsDialog(api: types.IExtensionApi, modRules: IBiDirR
   const gameMode = selectors.activeGameId(state);
   const mods = state.persistent.mods[gameMode]
 
-  const conflicts = (state.session as any).dependencies.conflicts;
+  const conflicts = util.getSafe(state.session, ['dependencies', 'conflicts'], undefined);
+  
+  if (conflicts === undefined) {
+    api.sendNotification({
+      type: 'info',
+      id: 'conflicts-not-calculated',
+      message: 'Conflicts haven\'t been calculated yet, please wait a moment',
+      displayMS: 5000,
+    });
+    return;
+  }
 
   let modsToShow = Object.keys(conflicts);
   

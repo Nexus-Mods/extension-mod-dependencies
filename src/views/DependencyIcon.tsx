@@ -593,13 +593,15 @@ const DependencyIconDrag =
     DragSource(type, dependencySource, collectDrag)(
       DependencyIcon));
 
+const emptyObj = {};
+
 function mapStateToProps(state: types.IState): IConnectedProps {
   const profile = selectors.activeProfile(state);
   const gameId = profile !== undefined ? profile.gameId : undefined;
 
   return {
     gameId,
-    conflicts: (state.session as any).dependencies.conflicts,
+    conflicts: util.getSafe(state.session, ['dependencies', 'conflicts'], emptyObj),
     mods: state.persistent.mods[gameId],
     enabledMods: enabledModKeys(state),
     modState: profile !== undefined ? profile.modState : undefined,
