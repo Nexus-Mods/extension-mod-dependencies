@@ -476,7 +476,7 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
 
   private renderConflictIcon(mod: types.IMod) {
     const { t, conflicts, highlightConflict } = this.props;
-    if (conflicts[mod.id] === undefined) {
+    if ((conflicts === undefined) || (conflicts[mod.id] === undefined)) {
       return null;
     }
 
