@@ -535,7 +535,7 @@ function once(api: types.IExtensionApi) {
         dependencyState.modRules = rules;
         // need to manually update any open conflict dialog - that's not pretty...
         const { conflictDialog } = store.getState().session.dependencies;
-        if (conflictDialog !== undefined) {
+        if (!!conflictDialog) {
           store.dispatch(setConflictDialog(conflictDialog.gameId, conflictDialog.modIds, rules));
         }
         dependenciesChanged();

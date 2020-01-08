@@ -263,7 +263,7 @@ class Editor extends ComponentEx<IProps, IComponentState> {
 }
 
 function mapStateToProps(state: any): IConnectedProps {
-  const dialog: IDialog = state.session.dependencies.dialog;
+  const dialog: IDialog = state.session.dependencies.dialog || undefined;
   const mod = dialog !== undefined
     ? util.getSafe(state, ['persistent', 'mods', dialog.gameId, dialog.modId], undefined)
     : undefined;

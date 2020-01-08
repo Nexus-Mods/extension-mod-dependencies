@@ -16,8 +16,8 @@ import { connect } from 'react-redux';
 import * as Redux from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
 import * as semver from 'semver';
-import { actions as vortexActions, ComponentEx, EmptyPlaceholder,
-         tooltip, types, util, Spinner } from 'vortex-api';
+import { actions as vortexActions, ComponentEx, EmptyPlaceholder, Spinner,
+         tooltip, types, util } from 'vortex-api';
 
 interface IConnectedProps {
   gameId: string;
