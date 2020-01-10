@@ -469,7 +469,7 @@ function mapStateToProps(state: types.IState): IConnectedProps {
   };
 }
 
-function mapDispatchToProps(dispatch: Redux.Dispatch<any>): IActionProps {
+function mapDispatchToProps(dispatch: any): IActionProps {
   return {
     onSetFileOverride: (gameId: string, modId: string, files: string[]) =>
       dispatch((actions as any).setFileOverride(gameId, modId, files)),

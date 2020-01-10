@@ -3,7 +3,7 @@ import renderModName from '../util/renderModName';
 import { closeDialog, setType } from '../actions';
 import { NAMESPACE } from '../statics';
 
-import * as minimatch from 'minimatch';
+import minimatch from 'minimatch';
 import { IReference, IRule, RuleType } from 'modmeta-db';
 import * as React from 'react';
 import { Button, Col, ControlLabel, Form, FormControl, FormGroup, Modal } from 'react-bootstrap';
@@ -124,7 +124,8 @@ class Editor extends ComponentEx<IProps, IComponentState> {
               />
             </Col>
           </FormGroup>
-        </Form>);
+        </Form>
+      );
     }
 
     let expressionInvalid = null;

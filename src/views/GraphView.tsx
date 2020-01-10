@@ -1,5 +1,5 @@
-import * as cytoscape from 'cytoscape';
-import * as coseBilkent from 'cytoscape-cose-bilkent';
+import cytoscape from 'cytoscape';
+import coseBilkent from 'cytoscape-cose-bilkent';
 import * as React from 'react';
 import { util } from 'vortex-api';
 
