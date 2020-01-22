@@ -2,11 +2,7 @@ import { IReference } from 'modmeta-db';
 import { types, util } from 'vortex-api';
 
 function renderReference(ref: any, mod: types.IMod) {
-  if (mod === undefined) {
-    return '';
-  }
-
-  if (ref.id !== undefined) {
+  if ((ref.id !== undefined) && (mod !== undefined)) {
     return util.renderModName(mod, { version: true });
   }
 
@@ -18,6 +14,11 @@ function renderReference(ref: any, mod: types.IMod) {
   if (ref.versionMatch !== undefined) {
     name += ' v' + ref.versionMatch;
   }
+
+  if (!name && (ref.id !== undefined)) {
+    name = ref.id;
+  }
+
   return name;
 }
 

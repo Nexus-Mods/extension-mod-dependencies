@@ -118,7 +118,7 @@ class RuleDescription extends React.Component<IDescriptionProps, {}> {
 
     if ((ref.logicalFileName === undefined)
         && (ref.fileExpression === undefined)) {
-      return <p style={style}>{ref.fileMD5}</p>;
+      return <p style={style}>{ref.fileMD5 || ref.id}</p>;
     }
     return (
       <p style={style}>
