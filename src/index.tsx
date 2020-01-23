@@ -170,8 +170,9 @@ function updateConflictInfo(api: types.IExtensionApi, gameId: string,
     store.dispatch(actions.dismissNotification('mod-file-conflict'));
   } else {
     const message: string[] = [
-      t('There are unsolved file conflicts. This just means that two or more mods contain the same '
-        + 'files and you need to decide which of them loads last and thus provides the files.\n'),
+      t('There are unresolved file conflicts. This just means that two or more mods contain the '
+        + 'same files and you need to decide which of them loads last and thus provides '
+        + 'the files.\n'),
       '[table][tbody]',
     ].concat(Object.keys(unsolved).map(modId =>
       '[tr]' + t('[td]{{modName}}[/td]'
@@ -185,7 +186,7 @@ function updateConflictInfo(api: types.IExtensionApi, gameId: string,
     const showDetails = () => {
       store.dispatch(actions.showDialog(
         'info',
-        t('Unsolved file conflicts'), {
+        t('Unresolved file conflicts'), {
           bbcode: message.join('\n'),
           options: { translated: true, wrap: true },
         }, [
@@ -198,7 +199,7 @@ function updateConflictInfo(api: types.IExtensionApi, gameId: string,
 
     store.dispatch(actions.addNotification({
       type: 'warning',
-      message: 'There are unsolved file conflicts',
+      message: 'There are unresolved file conflicts',
       id: 'mod-file-conflict',
       noDismiss: true,
       actions: [{
@@ -305,7 +306,7 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
 
           store.dispatch(actions.showDialog(
             'info',
-            t('Unsolved file conflicts'), {
+            t('Unresolved file conflicts'), {
               bbcode: message.join('<br/>'),
               options: { translated: true, wrap: true },
             }, dialogActions));
@@ -384,7 +385,7 @@ function showCycles(api: types.IExtensionApi, cycles: string[][], gameId: string
     links: cycles.map((cycle, idx) => (
       {
         label: cycle
-          .map(iter => mods[iter] !== undefined ? util.renderModName(mods[iter]) : iter)
+          .map(modId => mods[modId] !== undefined ? util.renderModName(mods[modId]) : modId)
           .map(name => `[${name}]`)
           .join(' --> '),
         action: () => {
@@ -490,8 +491,8 @@ function changeMayAffectRules(before: types.IMod, after: types.IMod): boolean {
 function makeLoadOrderAttribute(api: types.IExtensionApi): types.ITableAttribute<types.IMod> {
   return {
     id: 'loadOrder',
-    name: 'Install Order',
-    description: 'Install order derived from mod dependencies',
+    name: 'Deploy Order',
+    description: 'Deploy order derived from mod dependencies',
     icon: 'order',
     placement: 'table',
     isToggleable: true,
@@ -559,7 +560,7 @@ function once(api: types.IExtensionApi) {
         dependencyState.modRules = rules;
         // need to manually update any open conflict dialog - that's not pretty...
         const { conflictDialog } = store.getState().session.dependencies;
-        if (conflictDialog !== undefined) {
+        if (!!conflictDialog) {
           store.dispatch(setConflictDialog(conflictDialog.gameId, conflictDialog.modIds, rules));
         }
         dependenciesChanged();
@@ -589,7 +590,7 @@ function once(api: types.IExtensionApi) {
   api.events.on('gamemode-activated', (gameMode: string) => {
     // We just changed gamemodes - we should clear up any
     //  existing conflict information.
-    store.dispatch(setConflictInfo({}));
+    store.dispatch(setConflictInfo(undefined));
     updateConflictInfo(api, gameMode, {});
     updateRulesDebouncer.schedule(undefined, gameMode);
   });

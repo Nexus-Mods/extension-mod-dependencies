@@ -1,4 +1,5 @@
 import { closeDialog, setType } from '../actions';
+import { NAMESPACE } from '../statics';
 
 import * as minimatch from 'minimatch';
 import { IReference, IRule, RuleType } from 'modmeta-db';
@@ -260,7 +261,7 @@ class Editor extends ComponentEx<IProps, IComponentState> {
 }
 
 function mapStateToProps(state: any): IConnectedProps {
-  const dialog: IDialog = state.session.dependencies.dialog;
+  const dialog: IDialog = state.session.dependencies.dialog || undefined;
   const mod = dialog !== undefined
     ? util.getSafe(state, ['persistent', 'mods', dialog.gameId, dialog.modId], undefined)
     : undefined;
@@ -279,5 +280,5 @@ function mapDispatchToProps(dispatch: ThunkDispatch<any, null, Redux.Action>): I
   };
 }
 
-export default withTranslation([ 'common' ])(
+export default withTranslation([ 'common', NAMESPACE ])(
   connect(mapStateToProps, mapDispatchToProps)(Editor) as any) as React.ComponentClass<{}>;

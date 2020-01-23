@@ -5,6 +5,8 @@ import { setConflictDialog, setFileOverrideDialog } from '../actions';
 
 import { RuleChoice } from '../util/getRuleTypes';
 
+import { NAMESPACE } from '../statics';
+
 import * as React from 'react';
 import { Button, FormControl,
          Modal, OverlayTrigger, Popover, Table } from 'react-bootstrap';
@@ -13,8 +15,8 @@ import { connect } from 'react-redux';
 import * as Redux from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
 import * as semver from 'semver';
-import { actions as vortexActions, ComponentEx, EmptyPlaceholder,
-         log, tooltip, types, util } from 'vortex-api';
+import { actions as vortexActions, ComponentEx, EmptyPlaceholder, Spinner,
+         tooltip, types, util } from 'vortex-api';
 
 interface IConnectedProps {
   gameId: string;
@@ -108,6 +110,16 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
 
   public render(): JSX.Element {
     const {t, modIds, mods, conflicts} = this.props;
+
+    if (conflicts === undefined) {
+      // still loading
+      return (
+        <div className='conflicts-loading'>
+          <Spinner />
+          {t('Conflicts haven\'t been calculated yet')}
+        </div>
+      );
+    }
 
     let modName = '';
 
@@ -403,7 +415,7 @@ function mapStateToProps(state): IConnectedProps {
     gameId: dialog.gameId,
     modIds: dialog.modIds,
     conflicts:
-      util.getSafe(state, ['session', 'dependencies', 'conflicts'], emptyObj),
+      util.getSafe(state, ['session', 'dependencies', 'conflicts'], undefined),
     mods: dialog.gameId !== undefined ? state.persistent.mods[dialog.gameId] : emptyObj,
     modRules: dialog.modRules,
   };
@@ -421,6 +433,6 @@ function mapDispatchToProps(dispatch: ThunkDispatch<any, null, Redux.Action>): I
   };
 }
 
-export default withTranslation(['common', 'dependency-manager'])(
+export default withTranslation(['common', NAMESPACE])(
   connect(mapStateToProps, mapDispatchToProps)(
   ConflictEditor) as any) as React.ComponentClass<{}>;

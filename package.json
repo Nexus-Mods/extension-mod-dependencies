@@ -7,7 +7,7 @@
   "scripts": {
     "webpack": "webpack --config webpack.config.js --display-error-details --progress --profile --color",
     "installDev": "copyfiles -f dist/* ../../out/bundledPlugins/mod-dependency-manager",
-    "build": "npm run webpack && copyfiles -f src/stylesheets/*.scss dist && extractInfo",
+    "build": "npm run webpack && copyfiles -f src/stylesheets/*.scss dist && copyfiles -f src/language.json dist && extractInfo",
     "buildDev": "npm run build && npm run installDev"
   },
   "author": "Black Tree Gaming Ltd.",
@@ -52,7 +52,6 @@
     "react-sortable-tree-theme-file-explorer": "^2.0.0",
     "redux-act": "^1.7.3",
     "redux-thunk": "^2.3.0",
-    "semvish": "^1.1.0",
     "ts-loader": "^5.3.3",
     "turbowalk": "Nexus-Mods/node-turbowalk",
     "vortex-api": "Nexus-Mods/vortex-api",
