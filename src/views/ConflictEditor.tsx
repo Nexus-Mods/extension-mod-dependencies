@@ -100,7 +100,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     });
   }
 
-  public componentWillReceiveProps(nextProps: IProps) {
+  public UNSAFE_componentWillReceiveProps(nextProps: IProps) {
     // find existing rules for these conflicts
     this.nextState.rules = (nextProps.modIds || []).reduce(
         (prev: { [modId: string]: { [refId: string]: IRuleSpec } }, modId: string) => {

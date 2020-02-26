@@ -81,7 +81,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
     });
   }
 
-  public componentWillMount() {
+  public componentDidMount() {
     this.sortedMods(this.props)
       .then(sorted => {
         this.nextState.sortedMods = sorted;
@@ -91,7 +91,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
       });
   }
 
-  public componentWillReceiveProps(newProps: IProps) {
+  public UNSAFE_componentWillReceiveProps(newProps: IProps) {
     if ((newProps.modId !== this.props.modId)
         || (newProps.gameId !== this.props.gameId)
         || (newProps.conflicts !== this.props.conflicts)
@@ -336,7 +336,8 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
             {rowInfo.node.providers.map(provider => (
               <MenuItem key={provider} eventKey={provider}>
                 {renderName(provider)}
-              </MenuItem>))}
+              </MenuItem>
+            ))}
           </Dropdown.Menu>
         </Dropdown>
       )],

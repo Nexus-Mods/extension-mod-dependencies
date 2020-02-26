@@ -296,7 +296,7 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
     this.mIsMounted = false;
   }
 
-  public componentWillMount() {
+  public UNSAFE_componentWillMount() {
     this.updateMod(this.props.mod);
   }
 
@@ -309,7 +309,7 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
     this.mIsMounted = false;
   }
 
-  public componentWillReceiveProps(nextProps: IProps) {
+  public UNSAFE_componentWillReceiveProps(nextProps: IProps) {
     if (this.props.mod !== nextProps.mod) {
       this.updateMod(nextProps.mod);
     }

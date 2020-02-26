@@ -51,7 +51,7 @@ class Editor extends ComponentEx<IProps, IComponentState> {
     this.initState({ type: undefined, reference: undefined });
   }
 
-  public componentWillReceiveProps(nextProps: IProps) {
+  public UNSAFE_componentWillReceiveProps(nextProps: IProps) {
     if (this.props.dialog !== nextProps.dialog) {
       if ((nextProps.dialog !== undefined)
           && (nextProps.dialog.reference !== undefined)) {
