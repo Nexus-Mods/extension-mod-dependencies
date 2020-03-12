@@ -7,4 +7,7 @@ export interface IModLookupInfo {
   logicalFileName?: string;
   customFileName?: string;
   version: string;
+  source?: string;
+  modId?: string;
+  fileId?: string;
 }

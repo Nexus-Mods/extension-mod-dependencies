@@ -23,15 +23,9 @@ export const enabledModKeys = createSelector(currentGameMods, modState, (mods, m
         && (attributes['fileMD5'] || attributes['fileName']
             || attributes['logicalFileName'] || attributes['name'])) {
       res.push({
+        ...attributes,
         id: modId,
-        fileMD5: attributes['fileMD5'],
-        fileName: attributes['fileName'],
-        fileSizeBytes: attributes['fileSizeBytes'],
-        logicalFileName: attributes['logicalFileName'],
-        customFileName: attributes['customFileName'],
-        version: attributes['version'],
-        name: attributes['name'],
-      });
+      } as any);
     }
   });
 
