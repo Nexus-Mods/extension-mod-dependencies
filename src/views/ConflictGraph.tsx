@@ -364,7 +364,8 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
 const emptyObj = {};
 
 function mapStateToProps(state: types.IState, props: IProps): IConnectedProps {
-  let editCycle = util.getSafe(state, ['session', 'dependencies', 'editCycle'], undefined);
+  let editCycle = util.getSafe(state, ['session', 'dependencies', 'editCycle'], undefined)
+                || undefined;
   const gameMode = selectors.activeGameId(state);
   let gameId = editCycle !== undefined ? editCycle.gameId : undefined;
   if (gameMode !== gameId) {

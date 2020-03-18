@@ -13,7 +13,7 @@ export class DependenciesFilterComponent extends React.Component<types.IFilterPr
 
     const options = [
       { value: 'has-conflict', label: 'Conflict' },
-      { value: 'has-unsolved', label: 'Unsolved' },
+      { value: 'has-unsolved', label: 'Unresolved' },
     ];
     return (
       <Select
@@ -22,7 +22,6 @@ export class DependenciesFilterComponent extends React.Component<types.IFilterPr
         value={filter}
         onChange={this.changeFilter}
         searchable={false}
-        onInputChange={() => null}
       />
     );
   }

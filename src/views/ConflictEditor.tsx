@@ -16,8 +16,8 @@ import { connect } from 'react-redux';
 import * as Redux from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
 import * as semver from 'semver';
-import { actions as vortexActions, ComponentEx, EmptyPlaceholder,
-         log, tooltip, types, util } from 'vortex-api';
+import { actions as vortexActions, ComponentEx, EmptyPlaceholder, Spinner,
+         tooltip, types, util } from 'vortex-api';
 
 interface IConnectedProps {
   gameId: string;
@@ -111,6 +111,16 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
 
   public render(): JSX.Element {
     const {t, modIds, mods, conflicts} = this.props;
+
+    if (conflicts === undefined) {
+      // still loading
+      return (
+        <div className='conflicts-loading'>
+          <Spinner />
+          {t('Conflicts haven\'t been calculated yet')}
+        </div>
+      );
+    }
 
     let modName = '';
 
@@ -406,7 +416,7 @@ function mapStateToProps(state): IConnectedProps {
     gameId: dialog.gameId,
     modIds: dialog.modIds,
     conflicts:
-      util.getSafe(state, ['session', 'dependencies', 'conflicts'], emptyObj),
+      util.getSafe(state, ['session', 'dependencies', 'conflicts'], undefined),
     mods: dialog.gameId !== undefined ? state.persistent.mods[dialog.gameId] : emptyObj,
     modRules: dialog.modRules,
   };

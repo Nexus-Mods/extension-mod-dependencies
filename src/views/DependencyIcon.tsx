@@ -120,7 +120,7 @@ class RuleDescription extends React.Component<IDescriptionProps, {}> {
 
     if ((ref.logicalFileName === undefined)
         && (ref.fileExpression === undefined)) {
-      return <p style={style}>{ref.fileMD5}</p>;
+      return <p style={style}>{ref.fileMD5 || ref.id}</p>;
     }
     return (
       <p style={style}>
@@ -480,7 +480,7 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
 
   private renderConflictIcon(mod: types.IMod) {
     const { t, conflicts, highlightConflict } = this.props;
-    if (conflicts[mod.id] === undefined) {
+    if ((conflicts === undefined) || (conflicts[mod.id] === undefined)) {
       return null;
     }
 
@@ -597,13 +597,15 @@ const DependencyIconDrag =
     DragSource(type, dependencySource, collectDrag)(
       DependencyIcon));
 
+const emptyObj = {};
+
 function mapStateToProps(state: types.IState): IConnectedProps {
   const profile = selectors.activeProfile(state);
   const gameId = profile !== undefined ? profile.gameId : undefined;
 
   return {
     gameId,
-    conflicts: (state.session as any).dependencies.conflicts,
+    conflicts: util.getSafe(state.session, ['dependencies', 'conflicts'], emptyObj),
     mods: state.persistent.mods[gameId],
     enabledMods: enabledModKeys(state),
     modState: profile !== undefined ? profile.modState : undefined,

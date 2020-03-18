@@ -535,7 +535,7 @@ function once(api: types.IExtensionApi) {
         dependencyState.modRules = rules;
         // need to manually update any open conflict dialog - that's not pretty...
         const { conflictDialog } = store.getState().session.dependencies;
-        if (conflictDialog !== undefined) {
+        if (!!conflictDialog) {
           store.dispatch(setConflictDialog(conflictDialog.gameId, conflictDialog.modIds, rules));
         }
         dependenciesChanged();
@@ -565,7 +565,7 @@ function once(api: types.IExtensionApi) {
   api.events.on('gamemode-activated', (gameMode: string) => {
     // We just changed gamemodes - we should clear up any
     //  existing conflict information.
-    store.dispatch(setConflictInfo({}));
+    store.dispatch(setConflictInfo(undefined));
     updateConflictInfo(api, gameMode, {});
     updateRulesDebouncer.schedule(undefined, gameMode);
   });

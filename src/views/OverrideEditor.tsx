@@ -132,7 +132,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
         <div className='file-override-unsolved'>
           <div>
             <Trans i18nKey='unsolved-conflicts-first'>
-              This mod has unsolved conflicts.
+              This mod has unresolved conflicts.
               Please <a onClick={this.openConflictEditor}>create mod rules</a> to
               establish a default load order and only use this screen to make exceptions.
             </Trans>
@@ -361,7 +361,12 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
       cur = searchPos[0];
     }
 
-    filePath.split(nodePath.sep).forEach(comp => {
+    const components = filePath.split(nodePath.sep);
+    if (components.length === 1) {
+      components.unshift('.');
+    }
+
+    components.forEach(comp => {
       const findFunc = iter => iter.title === comp;
       cur = (cur === undefined)
         ? this.nextState.treeState.find(findFunc)

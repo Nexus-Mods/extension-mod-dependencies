@@ -15,11 +15,11 @@ function unsolvedConflictsCheck(api: types.IExtensionApi,
     return modRules.find(rule =>
       util.testModReference(source, rule.source)
       && util.testModReference(ref, rule.reference));
-  }
+  };
 
   const mods = util.getSafe(state, ['persistent', 'mods', selectors.activeGameId(state)], {});
   const conflicts: { [modId: string]: IConflict[] } =
-    util.getSafe(api.store.getState(), ['session', 'dependencies', 'conflicts'], {});
+    util.getSafe(state, ['session', 'dependencies', 'conflicts'], {}) || {};
 
   // find the first conflict that has no rule associated
   const firstConflict = Object.keys(conflicts).find(modId =>
@@ -40,7 +40,7 @@ function unsolvedConflictsCheck(api: types.IExtensionApi,
       [
         { label: 'Cancel' },
         { label: 'Show' },
-      ]
+      ],
     )
     .then((result: types.IDialogResult) => {
       if (result.action === 'Show') {
