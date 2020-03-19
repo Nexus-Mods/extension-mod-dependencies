@@ -81,6 +81,10 @@ function getRuleSpec(modId: string,
   return res;
 }
 
+function nop() {
+  // nop
+}
+
 /**
  * editor displaying mods that conflict with the selected one
  * and offering a quick way to set up rules between them
@@ -145,7 +149,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     );
 
     return (
-      <Modal id='conflict-editor-dialog' show={modIds !== undefined} onHide={this.close}>
+      <Modal id='conflict-editor-dialog' show={modIds !== undefined} onHide={nop}>
         <Modal.Header><Modal.Title>{modName}</Modal.Title></Modal.Header>
         <Modal.Body>
           {content}

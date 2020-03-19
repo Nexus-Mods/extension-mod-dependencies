@@ -61,6 +61,10 @@ interface IComponentState {
   sortError: boolean;
 }
 
+function nop() {
+  // nop
+}
+
 class OverrideEditor extends ComponentEx<IProps, IComponentState> {
   constructor(props: IProps) {
     super(props);
@@ -202,7 +206,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
     }
 
     return (
-      <Modal id='file-override-dialog' show={modId !== undefined} onHide={this.close}>
+      <Modal id='file-override-dialog' show={modId !== undefined} onHide={nop}>
         <Modal.Header><Modal.Title>{modName}</Modal.Title></Modal.Header>
         <Modal.Body>
           {content}

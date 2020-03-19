@@ -39,6 +39,10 @@ interface IComponentState {
 
 type IProps = IConnectedProps & IActionProps;
 
+function nop() {
+  // nop
+}
+
 /**
  * simple dialog to set dependency rules between two mods
  *
@@ -72,7 +76,7 @@ class Editor extends ComponentEx<IProps, IComponentState> {
     const { reference, type } = this.state;
 
     return (
-      <Modal show={dialog !== undefined} onHide={this.close}>
+      <Modal show={dialog !== undefined} onHide={nop}>
         {dialog !== undefined
           ? (
             <Modal.Body>
