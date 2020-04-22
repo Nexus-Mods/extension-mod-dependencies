@@ -26,15 +26,20 @@ import connectionReducer from './reducers';
 import { enabledModKeys } from './selectors';
 import unsolvedConflictsCheck from './unsolvedConflictsCheck';
 
-import * as Promise from 'bluebird';
-import I18next from 'i18next';
+import Promise from 'bluebird';
+import I18next, { TFunction, WithT } from 'i18next';
 import * as _ from 'lodash';
 import { ILookupResult, IModInfo, IReference, IRule, RuleType } from 'modmeta-db';
 import * as path from 'path';
 import * as React from 'react';
+import { withTranslation, WithTranslationProps } from 'react-i18next';
+import { connect } from 'react-redux';
 import {} from 'redux-thunk';
 import shortid = require('shortid');
-import { actions, log, selectors, types, util } from 'vortex-api';
+import { actions, log, PureComponentEx, selectors, ToolbarIcon, types, util } from 'vortex-api';
+
+const CONFLICT_NOTIFICATION_ID = 'mod-file-conflict';
+const UNFULFILLED_NOTIFICATION_ID = 'mod-rule-unfulfilled';
 
 function makeReference(mod: IModInfo): IReference {
   return {
@@ -168,7 +173,7 @@ function updateConflictInfo(api: types.IExtensionApi, gameId: string,
   // see if there is a mod that has conflicts for which there are no rules
   Object.keys(conflicts).forEach(modId => {
     const filtered = conflicts[modId].filter(conflict =>
-      (findRule(dependencyState.modRules, undefined, conflict.otherMod) === undefined)
+      (findRule(dependencyState.modRules, mods[modId], conflict.otherMod) === undefined)
       && !encountered.has(mapEnc(modId, conflict.otherMod.id)));
 
     if (filtered.length !== 0) {
@@ -180,7 +185,7 @@ function updateConflictInfo(api: types.IExtensionApi, gameId: string,
   });
 
   if (Object.keys(unsolved).length === 0) {
-    store.dispatch(actions.dismissNotification('mod-file-conflict'));
+    store.dispatch(actions.dismissNotification(CONFLICT_NOTIFICATION_ID));
   } else {
     const message: string[] = [
       t('There are unresolved file conflicts. This just means that two or more mods contain the '
@@ -213,7 +218,7 @@ function updateConflictInfo(api: types.IExtensionApi, gameId: string,
     store.dispatch(actions.addNotification({
       type: 'warning',
       message: 'There are unresolved file conflicts',
-      id: 'mod-file-conflict',
+      id: CONFLICT_NOTIFICATION_ID,
       noDismiss: true,
       actions: [{
         title: 'More',
@@ -265,7 +270,7 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
       const modsUnfulfilled = unfulfilled.filter(iter => iter !== null);
 
       if (modsUnfulfilled.length === 0) {
-        store.dispatch(actions.dismissNotification('mod-rule-unfulfilled'));
+        store.dispatch(actions.dismissNotification(UNFULFILLED_NOTIFICATION_ID));
       } else {
         const message: string[] = [
           t('There are mod dependency rules that aren\'t fulfilled.'),
@@ -290,7 +295,7 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
         store.dispatch(actions.addNotification({
           type: 'warning',
           message: 'Some mod dependencies are not fulfilled',
-          id: 'mod-rule-unfulfilled',
+          id: UNFULFILLED_NOTIFICATION_ID,
           noDismiss: true,
           actions: [{
             title: 'More',
@@ -600,13 +605,45 @@ function once(api: types.IExtensionApi) {
   });
 }
 
+interface IManageRuleButtonProps {
+  notifications: types.INotification[];
+  onClick: () => void;
+}
+
+class ManageRuleButtonImpl extends PureComponentEx<IManageRuleButtonProps & WithT, {}> {
+  public render() {
+    const { t, onClick, notifications } = this.props;
+    const hasConflicts = notifications.find(iter => iter.id === CONFLICT_NOTIFICATION_ID);
+    return (
+      <ToolbarIcon
+        id='manage-mod-rules-button'
+        icon='connection'
+        text={t('Manage Rules')}
+        className={hasConflicts ? 'toolbar-flash-button' : undefined}
+        onClick={onClick}
+      />
+    );
+  }
+}
+function mapStateToProps(state: types.IState) {
+  return {
+    notifications: state.session.notifications.notifications,
+  };
+}
+
+const ManageRuleButton = withTranslation(['common'])(
+  connect(mapStateToProps)(ManageRuleButtonImpl) as any);
+
 function main(context: types.IExtensionContext) {
   context.registerTableAttribute('mods', makeLoadOrderAttribute(context.api));
   context.registerTableAttribute('mods', makeDependenciesAttribute(context.api));
-  context.registerAction('mod-icons', 90, 'connection', {}, 'Manage Rules',
-    () => {
-      showUnsolvedConflictsDialog(context.api, dependencyState.modRules, true);
-    });
+  context.registerAction('mod-icons', 90, ManageRuleButton, {}, () => {
+    const state: types.IState = context.api.store.getState();
+    return {
+      notifications: state.session.notifications.notifications,
+      onClick: () => showUnsolvedConflictsDialog(context.api, dependencyState.modRules, true),
+    };
+  });
   context.registerReducer(['session', 'dependencies'], connectionReducer);
   context.registerDialog('mod-dependencies-connector', Connector);
   context.registerDialog('mod-dependencies-editor', Editor);
@@ -636,7 +673,7 @@ function main(context: types.IExtensionContext) {
         .length > 0) ? true : translate('No file conflicts') as string;
     });
 
-  (context as any).registerStartHook(50, 'check-unsolved-conflicts',
+  context.registerStartHook(50, 'check-unsolved-conflicts',
     (input: types.IRunParameters) => (input.options.suggestDeploy !== false)
         ? unsolvedConflictsCheck(context.api, dependencyState.modRules, input)
         : Promise.resolve(input));

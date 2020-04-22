@@ -134,7 +134,7 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
     (this.props.localState as any).detach(this.mProxy);
   }
 
-  public componentWillReceiveProps(newProps: IProps) {
+  public UNSAFE_componentWillReceiveProps(newProps: IProps) {
     if (newProps.editCycle === undefined) {
       return;
     }

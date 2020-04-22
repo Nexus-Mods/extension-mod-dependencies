@@ -14,7 +14,9 @@ import * as _ from 'lodash';
 import { ILookupResult, IModInfo, IReference, IRule, RuleType } from 'modmeta-db';
 import * as React from 'react';
 import { Overlay, Popover } from 'react-bootstrap';
-import { DragSource, DropTarget } from 'react-dnd';
+import { ConnectDragPreview, ConnectDragSource, ConnectDropTarget,
+         DragSource, DragSourceConnector, DragSourceMonitor, DragSourceSpec, DropTarget,
+         DropTargetConnector, DropTargetMonitor, DropTargetSpec } from 'react-dnd';
 import { getEmptyImage } from 'react-dnd-html5-backend';
 import { findDOMNode } from 'react-dom';
 import { connect } from 'react-redux';
@@ -166,13 +168,13 @@ interface IComponentState {
 }
 
 interface IDragProps {
-  connectDragSource: __ReactDnd.ConnectDragSource;
-  connectDragPreview: __ReactDnd.ConnectDragPreview;
+  connectDragSource: ConnectDragSource;
+  connectDragPreview: ConnectDragPreview;
   isDragging: boolean;
 }
 
 interface IDropProps {
-  connectDropTarget: __ReactDnd.ConnectDropTarget;
+  connectDropTarget: ConnectDropTarget;
   isOver: boolean;
   canDrop: boolean;
 }
@@ -192,7 +194,7 @@ function componentCenter(component: React.Component<any, any>) {
 // the only way to get at the cursor position. It doesn't fire events on movement though
 let cursorPosUpdater: NodeJS.Timer;
 let lastUpdatePos: { x: number, y: number } = { x: 0, y: 0 };
-function updateCursorPos(monitor: __ReactDnd.DragSourceMonitor,
+function updateCursorPos(monitor: DragSourceMonitor,
                          component: React.Component<any, any>,
                          onSetSource: (id: string, pos: { x: number, y: number }) => void,
                          onSetTarget: (id: string, pos: { x: number, y: number }) => void) {
@@ -218,14 +220,14 @@ function updateCursorPos(monitor: __ReactDnd.DragSourceMonitor,
     updateCursorPos(monitor, component, onSetSource, onSetTarget), 50);
 }
 
-const dependencySource: __ReactDnd.DragSourceSpec<IProps> = {
-  beginDrag(props: IProps, monitor: __ReactDnd.DragSourceMonitor, component) {
+const dependencySource: DragSourceSpec<IProps, any> = {
+  beginDrag(props: IProps, monitor: DragSourceMonitor, component) {
     updateCursorPos(monitor, component, props.onSetSource, props.onSetTarget);
     return {
       id: props.mod.id,
     };
   },
-  endDrag(props: IProps, monitor: __ReactDnd.DragSourceMonitor) {
+  endDrag(props: IProps, monitor: DragSourceMonitor) {
     clearTimeout(cursorPosUpdater);
     cursorPosUpdater = undefined;
 
@@ -245,8 +247,8 @@ const dependencySource: __ReactDnd.DragSourceSpec<IProps> = {
   },
 };
 
-const dependencyTarget: __ReactDnd.DropTargetSpec<IProps> = {
-  drop(props: IProps, monitor: __ReactDnd.DropTargetMonitor, component: any) {
+const dependencyTarget: DropTargetSpec<IProps> = {
+  drop(props: IProps, monitor: DropTargetMonitor, component: any) {
     const inst: DependencyIcon = component.decoratedRef.current;
     if (inst === undefined) {
       return undefined;
@@ -258,8 +260,8 @@ const dependencyTarget: __ReactDnd.DropTargetSpec<IProps> = {
   },
 };
 
-function collectDrag(conn: __ReactDnd.DragSourceConnector,
-                     monitor: __ReactDnd.DragSourceMonitor): IDragProps {
+function collectDrag(conn: DragSourceConnector,
+                     monitor: DragSourceMonitor): IDragProps {
   return {
     connectDragSource: conn.dragSource(),
     connectDragPreview: conn.dragPreview(),
@@ -267,8 +269,8 @@ function collectDrag(conn: __ReactDnd.DragSourceConnector,
   };
 }
 
-function collectDrop(conn: __ReactDnd.DropTargetConnector,
-                     monitor: __ReactDnd.DropTargetMonitor): IDropProps {
+function collectDrop(conn: DropTargetConnector,
+                     monitor: DropTargetMonitor): IDropProps {
   return {
     connectDropTarget: conn.dropTarget(),
     isOver: monitor.isOver(),
@@ -294,7 +296,7 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
     this.mIsMounted = false;
   }
 
-  public componentWillMount() {
+  public UNSAFE_componentWillMount() {
     this.updateMod(this.props.mod);
   }
 
@@ -307,7 +309,7 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
     this.mIsMounted = false;
   }
 
-  public componentWillReceiveProps(nextProps: IProps) {
+  public UNSAFE_componentWillReceiveProps(nextProps: IProps) {
     if (this.props.mod !== nextProps.mod) {
       this.updateMod(nextProps.mod);
     }
@@ -364,12 +366,13 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
       classes.push('connecting');
     }
 
-    return connectDropTarget(
+    return connectDropTarget((
       <div className={classes.join(' ')}>
         {this.renderConnectorIcon(mod)}
         {this.renderConflictIcon(mod)}
         {this.renderOverrideIcon(mod)}
-      </div>);
+      </div>
+    ));
   }
 
   private renderConnectorIcon(mod: types.IMod) {
@@ -428,27 +431,28 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
         );
     }
 
-    return connectDragSource(
-        <div style={{ display: 'inline' }}>
-          <tooltip.IconButton
-            id={`btn-meta-data-${mod.id}`}
-            className={classes.join(' ')}
-            key={`rules-${mod.id}`}
-            tooltip={t('Drag to another mod to define dependency')}
-            icon='connection'
-            ref={this.setRef}
-            onClick={this.toggleOverlay}
-          />
-          <Overlay
-            show={this.state.showOverlay}
-            onHide={this.hideOverlay}
-            placement='left'
-            rootClose={true}
-            target={this.mRef as any}
-          >
-            {popover}
-          </Overlay>
-        </div>);
+    return connectDragSource((
+      <div style={{ display: 'inline' }}>
+        <tooltip.IconButton
+          id={`btn-meta-data-${mod.id}`}
+          className={classes.join(' ')}
+          key={`rules-${mod.id}`}
+          tooltip={t('Drag to another mod to define dependency')}
+          icon='connection'
+          ref={this.setRef}
+          onClick={this.toggleOverlay}
+        />
+        <Overlay
+          show={this.state.showOverlay}
+          onHide={this.hideOverlay}
+          placement='left'
+          rootClose={true}
+          target={this.mRef as any}
+        >
+          {popover}
+        </Overlay>
+      </div>
+    ));
   }
 
   private findRule(ref: IModLookupInfo): IBiDirRule {

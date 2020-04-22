@@ -3,7 +3,7 @@ import { IModLookupInfo } from '../types/IModLookupInfo';
 
 import isBlacklisted from './blacklist';
 
-import * as Promise from 'bluebird';
+import Promise from 'bluebird';
 import * as path from 'path';
 import turbowalk from 'turbowalk';
 import { log, types, util } from 'vortex-api';
