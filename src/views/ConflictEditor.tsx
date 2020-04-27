@@ -194,6 +194,21 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
         .find(iter => !iter.original
                    && util.testModReference(conflict.otherMod, iter.reference)
                    && util.testModReference(mods[modId], iter.source));
+
+      // no "stored" rule, but maybe there is one among the unsaved changes
+      if (reverseRule === undefined) {
+        const reverseMod = Object.keys(rules).find(refId =>
+          (rules[refId][modId] !== undefined)
+          && (['before', 'after'].indexOf(rules[refId][modId].type) !== -1));
+        if (reverseMod !== undefined) {
+          reverseRule = {
+            source: { id: modId },
+            reference: { id: reverseMod },
+            original: false,
+            type: rules[reverseMod][modId].type === 'before' ? 'after' : 'before',
+          };
+        }
+      }
     }
 
     return (
