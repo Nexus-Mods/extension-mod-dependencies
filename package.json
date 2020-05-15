@@ -53,7 +53,7 @@
     "redux-thunk": "^2.3.0",
     "ts-loader": "^5.3.3",
     "turbowalk": "Nexus-Mods/node-turbowalk",
-    "vortex-api": "Nexus-Mods/Vortex-api#electron7",
+    "vortex-api": "Nexus-Mods/Vortex-api",
     "webpack": "^4.29.6"
   }
 }

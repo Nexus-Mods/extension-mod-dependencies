@@ -4108,9 +4108,9 @@ void-elements@^2.0.1:
   resolved "https://registry.yarnpkg.com/void-elements/-/void-elements-2.0.1.tgz#c066afb582bb1cb4128d60ea92392e94d5e9dbec"
   integrity sha1-wGavtYK7HLQSjWDqkjkulNXp2+w=
 
-vortex-api@Nexus-Mods/Vortex-api#electron7:
-  version "1.1.1-electron7.2"
-  resolved "https://codeload.github.com/Nexus-Mods/Vortex-api/tar.gz/fb7bda1f9f63cc0d0dd251bfe65dcb11e4449762"
+vortex-api@Nexus-Mods/Vortex-api:
+  version "1.2.11-r5"
+  resolved "https://codeload.github.com/Nexus-Mods/Vortex-api/tar.gz/1c90049dd3967511b495940c04d7f9d9ff3ddfd2"
 
 warning@^3.0.0:
   version "3.0.0"
