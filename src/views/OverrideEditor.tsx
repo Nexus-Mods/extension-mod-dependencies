@@ -331,6 +331,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
           id={`provider-select-${rowInfo.path.join('_')}`}
           data-filepath={rowInfo.node.path}
           onSelect={this.changeProvider as any}
+          title={renderName(rowInfo.node.selected)}
           pullRight
         >
           <Dropdown.Toggle>
