@@ -397,19 +397,19 @@ function generateLoadOrder(api: types.IExtensionApi): Promise<void> {
   const store = api.store;
   const gameMode = selectors.activeGameId(store.getState());
   const state: types.IState = store.getState();
-  const gameMods = state.persistent.mods[gameMode] || [];
+  const gameMods = state.persistent.mods[gameMode] || {};
   const profile = selectors.activeProfile(state);
   const mods = Object.keys(gameMods)
     .filter(key => util.getSafe(profile, ['modState', key, 'enabled'], false))
     .map(key => gameMods[key]);
   return util.sortMods(gameMode, mods, api)
-    .then(() => {
+    .then(sorted => {
       // no error in sorting? Close cycle editor if it's open
       const newState = api.store.getState();
       if (newState.session.dependencies.editCycle !== undefined) {
         api.store.dispatch(setEditCycle(undefined, undefined));
       }
-      return Promise.resolve(mods);
+      return Promise.resolve(sorted);
     })
     .catch((util as any).CycleError, err => {
       updateCycles(api, err.cycles);
