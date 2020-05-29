@@ -43,7 +43,10 @@ function makeGetRelPath(game: types.IGame) {
   return (mod: types.IMod): string => {
     if (modTypeResolver[mod.type] === undefined) {
       const modType: types.IModType = util.getModType(mod.type);
-      modTypeResolver[mod.type] = makeResolver(modType.options?.mergeMods ?? game.mergeMods);
+      if (modType === undefined) {
+        log('warn', 'mod has invalid mod type', mod.type);
+      }
+      modTypeResolver[mod.type] = makeResolver(modType?.options?.mergeMods ?? game.mergeMods);
     }
 
     return modTypeResolver[mod.type](mod);
@@ -81,7 +84,7 @@ function getAllFiles(game: types.IGame,
             }
             util.setdefault(files, relPathL, []).push({ mod, time: entry.mtime });
           } catch (err) {
-            log('error', 'invalid file entry - what is this?', entry);
+            log('error', 'invalid file entry - what is this?', { entry, error: err.stack });
           }
         }
       });
