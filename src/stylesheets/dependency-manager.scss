@@ -231,8 +231,13 @@
     }
 
     flex: 1 1 0;
-    .rstcustom__rowLabel {
+    .rstcustom__rowToolbar:not(:first-child) {
       flex: 1 1 auto;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .rstcustom__rowLabel {
+      // flex: 1 1 auto;
     }
   }
 
