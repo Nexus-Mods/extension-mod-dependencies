@@ -54,7 +54,7 @@ class DependenciesFilter implements types.ITableFilter {
     //   any information about file conflicts
     if (filter === 'has-conflict') {
       const conflicts = this.mGetConflicts();
-      
+
       if (conflicts === undefined) {
         return false;
       }
@@ -64,7 +64,9 @@ class DependenciesFilter implements types.ITableFilter {
       const conflicts = this.mGetConflicts();
       const mods = this.mGetMods();
 
-      if ((mods === undefined) || (mods[value] === undefined)) {
+      if ((mods === undefined)
+          || (mods[value] === undefined)
+          || (conflicts === undefined)) {
         return false;
       }
 
