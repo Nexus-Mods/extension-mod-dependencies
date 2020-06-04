@@ -178,13 +178,8 @@
 }
 
 .mod-conflict-list {
- .list-group-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    select {
-      width: initial;
-    }
+  select {
+    min-width: 4em;
   }
 }
 
