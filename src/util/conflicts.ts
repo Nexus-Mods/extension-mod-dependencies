@@ -3,7 +3,7 @@ import { IModLookupInfo } from '../types/IModLookupInfo';
 
 import isBlacklisted from './blacklist';
 
-import * as Promise from 'bluebird';
+import Promise from 'bluebird';
 import * as path from 'path';
 import turbowalk from 'turbowalk';
 import { log, types, util } from 'vortex-api';
@@ -26,28 +26,53 @@ function toLookupInfo(mod: types.IMod): IModLookupInfo {
   };
 }
 
+function makeGetRelPath(game: types.IGame) {
+  const makeResolver = (mergeMods: boolean | ((mod: types.IMod) => string)) => {
+    if (typeof(mergeMods) === 'boolean') {
+      return mergeMods
+        ? () => ''
+        : (mod: types.IMod) => mod.id;
+    } else {
+      return mergeMods;
+    }
+  };
+  const modTypeResolver: { [modType: string]: (mod: types.IMod) => string } = {
+    '': makeResolver(game.mergeMods),
+  };
+
+  return (mod: types.IMod): string => {
+    if (modTypeResolver[mod.type] === undefined) {
+      const modType: types.IModType = util.getModType(mod.type);
+      if (modType === undefined) {
+        log('warn', 'mod has invalid mod type', mod.type);
+      }
+      modTypeResolver[mod.type] = makeResolver(modType?.options?.mergeMods ?? game.mergeMods);
+    }
+
+    return modTypeResolver[mod.type](mod);
+  };
+}
+
 function getAllFiles(game: types.IGame,
                      basePath: string,
                      mods: types.IMod[],
                      activator: types.IDeploymentMethod): Promise<IFileMap> {
   const files: IFileMap = {};
 
+  const typeRelPath = makeGetRelPath(game);
+
   return Promise.map(mods.filter(mod => mod.installationPath !== undefined), (mod: types.IMod) => {
     const modPath = path.join(basePath, mod.installationPath);
+
     return turbowalk(modPath, entries => {
       entries.forEach(entry => {
         if (!entry.isDirectory) {
           try {
             let relPath = path.relative(modPath, entry.filePath);
             if (activator !== undefined) {
-              relPath = (activator as any).getDeployedPath(relPath);
+              relPath = activator.getDeployedPath(relPath);
             }
-            if (game.mergeMods !== true) {
-              const modSubDir = game.mergeMods === false
-                ? mod.installationPath
-                : game.mergeMods(mod);
-              relPath = path.join(modSubDir, relPath);
-            }
+            relPath = path.join(typeRelPath(mod), relPath);
 
             const relPathL = relPath.toLowerCase();
             // when getDeployedPath actually renames the file it's possible to get multiple
@@ -59,7 +84,7 @@ function getAllFiles(game: types.IGame,
             }
             util.setdefault(files, relPathL, []).push({ mod, time: entry.mtime });
           } catch (err) {
-            log('error', 'invalid file entry - what is this?', entry);
+            log('error', 'invalid file entry - what is this?', { entry, error: err.stack });
           }
         }
       });

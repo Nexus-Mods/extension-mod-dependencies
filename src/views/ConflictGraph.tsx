@@ -134,7 +134,7 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
     (this.props.localState as any).detach(this.mProxy);
   }
 
-  public componentWillReceiveProps(newProps: IProps) {
+  public UNSAFE_componentWillReceiveProps(newProps: IProps) {
     if (newProps.editCycle === undefined) {
       return;
     }
@@ -177,6 +177,8 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
           />
           <Usage infoId='conflicting-mods' persistent>
             <div>{t('This screen shows a cluster of mods that form one or more cycles.')}</div>
+            <div>{t('Arrows can be read as "then" (A ->- B reads "A, then B"), meaning the mod the '
+                    + 'arrow points towards is the one that overwrites the first one.')}</div>
             <div>{t('If there are too many connections you can highlight a single cycle '
                     + 'by right-clicking on one of the mods.')}</div>
             <div>{t('You can resolve a cycle by either removing or flipping one rule, '

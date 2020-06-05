@@ -1,5 +1,5 @@
-import * as cytoscape from 'cytoscape';
-import * as coseBilkent from 'cytoscape-cose-bilkent';
+import cytoscape from 'cytoscape';
+import coseBilkent from 'cytoscape-cose-bilkent';
 import * as React from 'react';
 import { util } from 'vortex-api';
 
@@ -45,7 +45,7 @@ class GraphView extends React.Component<IGraphViewProps, {}> {
     this.mLastProps = props;
   }
 
-  public componentWillReceiveProps(newProps: IGraphViewProps) {
+  public UNSAFE_componentWillReceiveProps(newProps: IGraphViewProps) {
     if (newProps.elements !== this.mLastProps.elements) {
       const changed = (util as any).objDiff(this.mLastProps.elements, newProps.elements);
       // bit of a hack because we got componentWillReceiveProps trigger twice with the same

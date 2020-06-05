@@ -69,7 +69,7 @@ function getRuleSpec(modId: string,
   (conflicts || []).forEach(conflict => {
     const existingRule = modRules
       .find(rule => (['before', 'after', 'conflicts'].indexOf(rule.type) !== -1)
-        && (util as any).testModReference(conflict.otherMod, rule.reference));
+        && util.testModReference(conflict.otherMod, rule.reference));
 
     res[conflict.otherMod.id] = existingRule !== undefined
       ? {
@@ -78,6 +78,10 @@ function getRuleSpec(modId: string,
       } : { type: undefined, version: 'any' };
   });
   return res;
+}
+
+function nop() {
+  // nop
 }
 
 /**
@@ -99,7 +103,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     });
   }
 
-  public componentWillReceiveProps(nextProps: IProps) {
+  public UNSAFE_componentWillReceiveProps(nextProps: IProps) {
     // find existing rules for these conflicts
     this.nextState.rules = (nextProps.modIds || []).reduce(
         (prev: { [modId: string]: { [refId: string]: IRuleSpec } }, modId: string) => {
@@ -144,7 +148,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     );
 
     return (
-      <Modal id='conflict-editor-dialog' show={modIds !== undefined} onHide={this.close}>
+      <Modal id='conflict-editor-dialog' show={modIds !== undefined} onHide={nop}>
         <Modal.Header><Modal.Title>{modName}</Modal.Title></Modal.Header>
         <Modal.Body>
           {content}
@@ -180,23 +184,28 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
 
     const rule = rules[modId][conflict.otherMod.id];
 
-    let reverseMod: string;
     let reverseRule: IBiDirRule;
-    let reverseType: string;
 
     if (rule.type === undefined) {
+      // no rule on this to solve the conflict but maybe there is one the other way around?
+
       reverseRule = modRules
         .find(iter => !iter.original
                    && util.testModReference(conflict.otherMod, iter.reference)
                    && util.testModReference(mods[modId], iter.source));
-      if (reverseRule !== undefined) {
-        reverseType = reverseRule.type;
-      } else {
-        reverseMod = Object.keys(rules).find(refId =>
+
+      // no "stored" rule, but maybe there is one among the unsaved changes
+      if (reverseRule === undefined) {
+        const reverseMod = Object.keys(rules).find(refId =>
           (rules[refId][modId] !== undefined)
           && (['before', 'after'].indexOf(rules[refId][modId].type) !== -1));
         if (reverseMod !== undefined) {
-          reverseType = rules[reverseMod][modId].type === 'before' ? 'after' : 'before';
+          reverseRule = {
+            source: { id: modId },
+            reference: { id: reverseMod },
+            original: false,
+            type: rules[reverseMod][modId].type === 'before' ? 'after' : 'before',
+          };
         }
       }
     }
@@ -213,11 +222,11 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
           <FormControl
             className='conflict-rule-select'
             componentClass='select'
-            value={rule.type || reverseType || 'norule'}
+            value={rule.type || reverseRule?.type || 'norule'}
             onChange={this.setRuleType}
             data-modid={modId}
             data-refid={conflict.otherMod.id}
-            disabled={(reverseRule !== undefined) || (reverseMod !== undefined)}
+            disabled={(reverseRule !== undefined)}
           >
             <option value='norule'>???</option>
             <option value='before'>
@@ -251,7 +260,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
             data-modid={modId}
             data-refid={conflict.otherMod.id}
             className='conflict-rule-version'
-            disabled={(reverseRule !== undefined) || (reverseMod !== undefined)}
+            disabled={(reverseRule !== undefined)}
           >
             <option value='any'>{t('Any version')}</option>
             {(conflict.otherMod.version && semver.valid(conflict.otherMod.version))

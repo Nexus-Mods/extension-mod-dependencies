@@ -3,13 +3,15 @@ import { setConflictDialog } from '../actions';
 import { IBiDirRule } from '../types/IBiDirRule';
 import findRule from './findRule';
 
-function showUnsolvedConflictsDialog(api: types.IExtensionApi, modRules: IBiDirRule[], showAll?: boolean) {
+function showUnsolvedConflictsDialog(api: types.IExtensionApi,
+                                     modRules: IBiDirRule[],
+                                     showAll?: boolean) {
   const state: types.IState = api.store.getState();
   const gameMode = selectors.activeGameId(state);
-  const mods = state.persistent.mods[gameMode]
+  const mods = state.persistent.mods[gameMode];
 
   const conflicts = util.getSafe(state.session, ['dependencies', 'conflicts'], undefined);
-  
+
   if (conflicts === undefined) {
     api.sendNotification({
       type: 'info',
@@ -21,7 +23,7 @@ function showUnsolvedConflictsDialog(api: types.IExtensionApi, modRules: IBiDirR
   }
 
   let modsToShow = Object.keys(conflicts);
-  
+
   if (!showAll) {
     modsToShow = modsToShow.filter(modId => conflicts[modId].find(conflict => {
       if (conflict.otherMod === undefined) {

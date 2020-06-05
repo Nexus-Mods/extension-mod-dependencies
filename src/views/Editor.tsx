@@ -1,7 +1,7 @@
 import { closeDialog, setType } from '../actions';
 import { NAMESPACE } from '../statics';
 
-import * as minimatch from 'minimatch';
+import minimatch from 'minimatch';
 import { IReference, IRule, RuleType } from 'modmeta-db';
 import * as React from 'react';
 import { Button, Col, ControlLabel, Form, FormControl, FormGroup, Modal } from 'react-bootstrap';
@@ -37,6 +37,10 @@ interface IComponentState {
 
 type IProps = IConnectedProps & IActionProps;
 
+function nop() {
+  // nop
+}
+
 /**
  * simple dialog to set dependency rules between two mods
  *
@@ -49,7 +53,7 @@ class Editor extends ComponentEx<IProps, IComponentState> {
     this.initState({ type: undefined, reference: undefined });
   }
 
-  public componentWillReceiveProps(nextProps: IProps) {
+  public UNSAFE_componentWillReceiveProps(nextProps: IProps) {
     if (this.props.dialog !== nextProps.dialog) {
       if ((nextProps.dialog !== undefined)
           && (nextProps.dialog.reference !== undefined)) {
@@ -70,7 +74,7 @@ class Editor extends ComponentEx<IProps, IComponentState> {
     const { reference, type } = this.state;
 
     return (
-      <Modal show={dialog !== undefined} onHide={this.close}>
+      <Modal show={dialog !== undefined} onHide={nop}>
         {dialog !== undefined
           ? (
             <Modal.Body>
@@ -122,7 +126,8 @@ class Editor extends ComponentEx<IProps, IComponentState> {
               />
             </Col>
           </FormGroup>
-        </Form>);
+        </Form>
+      );
     }
 
     let expressionInvalid = null;

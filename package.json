@@ -18,13 +18,11 @@
     ]
   },
   "devDependencies": {
-    "@types/i18next": "^12.1.0",
     "@types/immutability-helper": "^2.0.15",
     "@types/minimatch": "^2.0.29",
     "@types/react": "16.0.34",
     "@types/react-bootstrap": "^0.0.37",
     "@types/react-dom": "16.0.3",
-    "@types/react-i18next": "^8.1.0",
     "@types/react-redux": "4.4.35",
     "@types/react-router": "^2.0.41",
     "@types/react-sortable-tree": "^0.2.1",
@@ -35,9 +33,9 @@
     "bluebird": "^3.5.1",
     "copyfiles": "^2.1.1",
     "cytoscape": "^3.6.0",
-    "cytoscape-cose-bilkent": "^4.0.0",
+    "cytoscape-cose-bilkent": "^4.1.0",
     "cytoscape-edgehandles": "^3.5.1",
-    "i18next": "^15.1.1",
+    "i18next": "^19.0.3",
     "immutability-helper": "^2.6.6",
     "json-loader": "^0.5.4",
     "minimatch": "^3.0.4",
@@ -46,7 +44,8 @@
     "react-bootstrap": "^0.32.1",
     "react-dnd": "^7.4.5",
     "react-dom": "^16.2.0",
-    "react-i18next": "^10.9.0",
+    "react-i18next": "^11.2.7",
+    "react-redux": "^7.1.3",
     "react-select": "^1.2.1",
     "react-sortable-tree": "^2.6.2",
     "react-sortable-tree-theme-file-explorer": "^2.0.0",
@@ -54,7 +53,7 @@
     "redux-thunk": "^2.3.0",
     "ts-loader": "^5.3.3",
     "turbowalk": "Nexus-Mods/node-turbowalk",
-    "vortex-api": "Nexus-Mods/vortex-api",
+    "vortex-api": "Nexus-Mods/Vortex-api",
     "webpack": "^4.29.6"
   }
 }

@@ -10,7 +10,7 @@ import SearchBox, { ISearchMatch } from './SearchBox';
 import * as nodePath from 'path';
 import * as React from 'react';
 import { Button, Dropdown, MenuItem, Modal } from 'react-bootstrap';
-import { Trans, withTranslation } from 'react-i18next';
+import { Trans, withTranslation, WithTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
 import * as TreeT from 'react-sortable-tree';
 import { } from 'react-sortable-tree-theme-file-explorer';
@@ -39,6 +39,7 @@ interface IConnectedProps {
   conflicts: IConflict[];
   mods: { [modId: string]: types.IMod };
   profile: types.IProfile;
+  installPath: string;
 }
 
 interface IActionProps {
@@ -47,7 +48,7 @@ interface IActionProps {
   onConflictDialog: (gameId: string, modIds: string[], modRules: IBiDirRule[]) => void;
 }
 
-type IProps = IOverrideEditorProps & IConnectedProps & IActionProps;
+type IProps = IOverrideEditorProps & IConnectedProps & IActionProps & Partial<WithTranslation>;
 
 interface IComponentState {
   treeState: IFileTree[];
@@ -59,6 +60,10 @@ interface IComponentState {
   modRules: IBiDirRule[];
   sorting: boolean;
   sortError: boolean;
+}
+
+function nop() {
+  // nop
 }
 
 class OverrideEditor extends ComponentEx<IProps, IComponentState> {
@@ -81,7 +86,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
     });
   }
 
-  public componentWillMount() {
+  public componentDidMount() {
     this.sortedMods(this.props)
       .then(sorted => {
         this.nextState.sortedMods = sorted;
@@ -91,7 +96,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
       });
   }
 
-  public componentWillReceiveProps(newProps: IProps) {
+  public UNSAFE_componentWillReceiveProps(newProps: IProps) {
     if ((newProps.modId !== this.props.modId)
         || (newProps.gameId !== this.props.gameId)
         || (newProps.conflicts !== this.props.conflicts)
@@ -202,7 +207,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
     }
 
     return (
-      <Modal id='file-override-dialog' show={modId !== undefined} onHide={this.close}>
+      <Modal id='file-override-dialog' show={modId !== undefined} onHide={nop}>
         <Modal.Header><Modal.Title>{modName}</Modal.Title></Modal.Header>
         <Modal.Body>
           {content}
@@ -323,10 +328,13 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
 
     return {
       buttons: rowInfo.node.isDirectory ? [] : [(
+        <a data-row={rowInfo.path} onClick={this.preview}>{t('Preview')}</a>
+      ), (
         <Dropdown
           id={`provider-select-${rowInfo.path.join('_')}`}
           data-filepath={rowInfo.node.path}
           onSelect={this.changeProvider as any}
+          title={renderName(rowInfo.node.selected)}
           pullRight
         >
           <Dropdown.Toggle>
@@ -336,11 +344,48 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
             {rowInfo.node.providers.map(provider => (
               <MenuItem key={provider} eventKey={provider}>
                 {renderName(provider)}
-              </MenuItem>))}
+              </MenuItem>
+            ))}
           </Dropdown.Menu>
         </Dropdown>
       )],
     };
+  }
+
+  private findByPath(nodes: IFileTree[], path: string[]): IFileTree {
+    const temp = nodes.find(tree => tree.path === path[0]);
+    if ((path.length === 1) || (temp === undefined)) {
+      return temp;
+    }
+
+    return this.findByPath(temp.children, path.slice(1));
+  }
+
+  private preview = (evt: React.MouseEvent<any>) => {
+    const { installPath, mods } = this.props;
+    const { treeState } = this.state;
+    const pathStr = evt.currentTarget.getAttribute('data-row');
+    const path = pathStr.split(',');
+    const node = this.findByPath(treeState, path);
+
+    if (node !== undefined) {
+      // selected provider first, default second, everything else after
+      const sortIdx = modId =>
+        modId === node.selected ? 0
+        : modId === node.providers[0] ? 1
+        : 2;
+
+      const filePath = path[path.length - 1];
+      const options = node.providers.sort((lhs, rhs) => sortIdx(lhs) - sortIdx(rhs))
+        .map(modId => {
+          const mod = mods[modId];
+          return {
+            label: util.renderModName(mod),
+            filePath: nodePath.join(installPath, mod.installationPath, filePath),
+          };
+        });
+      this.context.api.events.emit('preview-files', options);
+    }
   }
 
   private onChangeTree = (newTreeState: IFileTree[]) => {
@@ -469,12 +514,14 @@ function mapStateToProps(state: types.IState): IConnectedProps {
     modId: dialog.modId,
     mods: dialog.gameId !== undefined ? state.persistent.mods[dialog.gameId] : emptyObj,
     profile: selectors.activeProfile(state),
+    installPath:
+      dialog.gameId !== undefined ? selectors.installPathForGame(state, dialog.gameId) : undefined,
     conflicts:
       util.getSafe(state, ['session', 'dependencies', 'conflicts', dialog.modId], emptyArr),
   };
 }
 
-function mapDispatchToProps(dispatch: Redux.Dispatch<any>): IActionProps {
+function mapDispatchToProps(dispatch: any): IActionProps {
   return {
     onSetFileOverride: (gameId: string, modId: string, files: string[]) =>
       dispatch((actions as any).setFileOverride(gameId, modId, files)),

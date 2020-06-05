@@ -31,7 +31,7 @@ class SearchBox extends ComponentEx<ISearchBoxProps, ISearchBoxState> {
     });
   }
 
-  public componentWillReceiveProps(newProps: ISearchBoxProps) {
+  public UNSAFE_componentWillReceiveProps(newProps: ISearchBoxProps) {
     if (newProps.matches !== this.props.matches) {
       this.updateMatches(newProps.matches);
     }

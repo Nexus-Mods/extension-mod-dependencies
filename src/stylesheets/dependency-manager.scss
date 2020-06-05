@@ -178,13 +178,8 @@
 }
 
 .mod-conflict-list {
- .list-group-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    select {
-      width: initial;
-    }
+  select {
+    min-width: 4em;
   }
 }
 
@@ -231,8 +226,13 @@
     }
 
     flex: 1 1 0;
-    .rstcustom__rowLabel {
+    .rstcustom__rowToolbar:not(:first-child) {
       flex: 1 1 auto;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .rstcustom__rowLabel {
+      // flex: 1 1 auto;
     }
   }
 
