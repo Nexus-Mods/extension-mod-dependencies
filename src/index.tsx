@@ -357,7 +357,7 @@ function showCycles(api: types.IExtensionApi, cycles: string[][], gameId: string
   const state: types.IState = api.store.getState();
   const mods = state.persistent.mods[gameId];
   const id = shortid();
-  (api.showDialog as any)('error', 'Cycles', {
+  api.showDialog('error', 'Cycles', {
     text: 'Dependency rules between your mods contain cycles, '
       + 'like "A after B" and "B after A". You need to remove one of the '
       + 'rules causing the cycle, otherwise your mods can\'t be '
@@ -369,7 +369,7 @@ function showCycles(api: types.IExtensionApi, cycles: string[][], gameId: string
           .map(name => `[${name}]`)
           .join(' --> '),
         action: () => {
-          (api as any).closeDialog(id);
+          api.closeDialog(id);
           api.store.dispatch(setEditCycle(gameId, cycle));
         },
       }
@@ -411,7 +411,7 @@ function generateLoadOrder(api: types.IExtensionApi): Promise<void> {
       }
       return Promise.resolve(sorted);
     })
-    .catch((util as any).CycleError, err => {
+    .catch(util.CycleError, err => {
       updateCycles(api, err.cycles);
       api.sendNotification({
         id: 'mod-cycle-warning',
