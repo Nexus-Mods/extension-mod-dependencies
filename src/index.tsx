@@ -310,7 +310,7 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
 function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
   const store = api.store;
   const state = store.getState();
-  const modPath = selectors.installPath(state);
+  const stagingPath = selectors.installPath(state);
   const gameId = selectors.activeGameId(state);
   if (gameId === undefined) {
     return Promise.resolve();
@@ -337,7 +337,7 @@ function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
   const activator = util.getCurrentActivator(state, gameId, true);
 
   store.dispatch(actions.startActivity('mods', 'conflicts'));
-  return determineConflicts(game, modPath, mods, activator)
+  return determineConflicts(api, game, stagingPath, mods, activator)
     .then(conflictMap => {
       if (!_.isEqual(conflictMap, state.session.dependencies.conflicts)) {
         store.dispatch(setConflictInfo(conflictMap));
