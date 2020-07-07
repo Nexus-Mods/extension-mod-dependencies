@@ -1,10 +1,10 @@
 import minimatch = require('minimatch');
 
 const blacklist = [
-  'fomod\\*',
-  'readme*',
-  'meta.ini',       // Mod Organizer
-  'mod.manifest',   // Kingdom Come: Deliverance
+  '**\\fomod\\*',
+  '**\\readme*',
+  '**\\meta.ini',       // Mod Organizer
+  '**\\mod.manifest',   // Kingdom Come: Deliverance
 ];
 
 function isBlacklisted(filePath: string): boolean {

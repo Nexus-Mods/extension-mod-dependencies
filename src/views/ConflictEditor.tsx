@@ -174,7 +174,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     const popover = (
       <Popover
         className='conflict-popover'
-        id={`conflict-popover-${conflict.otherMod}`}
+        id={`conflict-popover-${conflict.otherMod.id}`}
       >
         {conflict.files.slice(0).sort().map(fileName => <p key={fileName}>{fileName}</p>)}
         <Button data-modid={modId} onClick={this.openOverrideDialog}>
