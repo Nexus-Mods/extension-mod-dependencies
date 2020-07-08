@@ -8,6 +8,15 @@ import * as path from 'path';
 import turbowalk from 'turbowalk';
 import { log, types, util } from 'vortex-api';
 
+// using absolute paths for conflict detection is required to detect conflicts
+// across mod types, but this causes various problems across the application
+// that we would have to review with sufficient time before we can apply this.
+// besides: just because we detect file conflicts doesn't mean we can actually
+//   solve them. Currently mod types are still deployed one after the other so
+//   setting install order rules between mods of different types doesn't have
+//   the expected effect until the deployment system is overhauled.
+const ABSOLUTE_PATHS: boolean = false;
+
 interface IFileMap {
   [filePath: string]: Array<{ mod: types.IMod, time: number }>;
 }
@@ -30,11 +39,19 @@ function makeGetRelPath(api: types.IExtensionApi, game: types.IGame) {
   const makeResolver = (basePath: string,
                         mergeMods: boolean | ((mod: types.IMod) => string)) => {
     if (typeof(mergeMods) === 'boolean') {
-      return mergeMods
-        ? () => basePath
-        : (mod: types.IMod) => path.join(basePath, mod.id);
+      if (ABSOLUTE_PATHS) {
+        return mergeMods
+          ? () => basePath
+          : (mod: types.IMod) => path.join(basePath, mod.id);
+      } else {
+        return mergeMods
+          ? () => ''
+          : (mod: types.IMod) => mod.id;
+      }
     } else {
-      return (mod: types.IMod) => path.join(basePath, mergeMods(mod));
+      return ABSOLUTE_PATHS
+        ? (mod: types.IMod) => path.join(basePath, mergeMods(mod))
+        : mergeMods;
     }
   };
 
