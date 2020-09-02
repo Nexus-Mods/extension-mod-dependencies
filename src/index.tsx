@@ -163,6 +163,7 @@ function updateConflictInfo(api: types.IExtensionApi, gameId: string,
 
   if (mods === undefined) {
     // TODO: how can this happen?
+    store.dispatch(actions.dismissNotification(CONFLICT_NOTIFICATION_ID));
     return;
   }
 
@@ -210,7 +211,7 @@ function updateConflictInfo(api: types.IExtensionApi, gameId: string,
         }, [
           { label: 'Close' },
           { label: 'Show', action: () => {
-            showUnsolvedConflictsDialog(api, dependencyState.modRules);
+            showUnsolvedConflictsDialog(api, dependencyState.modRules, undefined, gameId);
            } },
       ]));
     };
