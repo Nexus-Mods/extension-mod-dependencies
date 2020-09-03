@@ -116,16 +116,6 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
   public render(): JSX.Element {
     const {t, modIds, mods, conflicts} = this.props;
 
-    if (conflicts === undefined) {
-      // still loading
-      return (
-        <div className='conflicts-loading'>
-          <Spinner />
-          {t('Conflicts haven\'t been calculated yet')}
-        </div>
-      );
-    }
-
     let modName = '';
 
     if (modIds !== undefined) {
@@ -136,17 +126,26 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       }
     }
 
-    const content = (modIds !== undefined) && (modIds.length > 0) ? (
-      <Table className='mod-conflict-list'>
-        <tbody>
-          {(modIds || [])
-              .map(modId => (conflicts[modId] || [])
-                .map(conflict => this.renderConflict(modId, conflict)))}
-        </tbody>
-      </Table>
-    ) : (
-      <EmptyPlaceholder icon='conflict' text={t('You have no file conflicts. Wow!')} />
-    );
+    const content = (conflicts === undefined)
+      ? (
+        <div className='conflicts-loading'>
+          <Spinner />
+          {t('Conflicts haven\'t been calculated yet')}
+        </div>
+      )
+      : (modIds !== undefined) && (modIds.length > 0)
+      ? (
+        <Table className='mod-conflict-list'>
+          <tbody>
+            {(modIds || [])
+                .map(modId => (conflicts[modId] || [])
+                  .map(conflict => this.renderConflict(modId, conflict)))}
+          </tbody>
+        </Table>
+      )
+      : (
+        <EmptyPlaceholder icon='conflict' text={t('You have no file conflicts. Wow!')} />
+      );
 
     return (
       <Modal id='conflict-editor-dialog' show={modIds !== undefined} onHide={nop}>
