@@ -95,22 +95,29 @@ function nop() {
 class ConflictEditor extends ComponentEx<IProps, IComponentState> {
   constructor(props: IProps) {
     super(props);
-    this.initState({
-      rules: (props.modIds || []).reduce(
+    this.initState({ rules: {} });
+  }
+
+  public componentDidMount() {
+    this.nextState.rules = (this.props.modIds || []).reduce(
           (prev: { [modId: string]: { [refId: string]: IRuleSpec } }, modId: string) => {
-        prev[modId] = getRuleSpec(modId, props.mods, props.conflicts[modId]);
+        prev[modId] = getRuleSpec(modId, this.props.mods, this.props.conflicts[modId]);
         return prev;
-      }, {}),
-    });
+      }, {});
   }
 
   public UNSAFE_componentWillReceiveProps(nextProps: IProps) {
-    // find existing rules for these conflicts
-    this.nextState.rules = (nextProps.modIds || []).reduce(
-        (prev: { [modId: string]: { [refId: string]: IRuleSpec } }, modId: string) => {
-      prev[modId] = getRuleSpec(modId, nextProps.mods, nextProps.conflicts[modId]);
-      return prev;
-    }, {});
+    if ((this.props.conflicts !== nextProps.conflicts)
+        || (this.props.gameId !== nextProps.gameId)
+        || (this.props.modIds !== nextProps.modIds)
+        || (this.props.modRules !== nextProps.modRules)) {
+      // find existing rules for these conflicts
+      this.nextState.rules = (nextProps.modIds || []).reduce(
+          (prev: { [modId: string]: { [refId: string]: IRuleSpec } }, modId: string) => {
+        prev[modId] = getRuleSpec(modId, nextProps.mods, nextProps.conflicts[modId]);
+        return prev;
+      }, {});
+    }
   }
 
   public render(): JSX.Element {
@@ -138,8 +145,10 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
         <Table className='mod-conflict-list'>
           <tbody>
             {(modIds || [])
-                .map(modId => (conflicts[modId] || [])
-                  .map(conflict => this.renderConflict(modId, conflict)))}
+                .map(modId => ({ id: modId, name: util.renderModName(mods[modId]) }))
+                .sort((lhs, rhs) => lhs.name.localeCompare(rhs.name))
+                .map(({ id, name }) => (conflicts[id] || [])
+                  .map(conflict => this.renderConflict(id, name, conflict)))}
           </tbody>
         </Table>
       )
@@ -161,7 +170,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     );
   }
 
-  private renderConflict = (modId: string, conflict: IConflict) => {
+  private renderConflict = (modId: string, name: string, conflict: IConflict) => {
     const {t, modRules, mods} = this.props;
     const {rules} = this.state;
 
@@ -188,25 +197,18 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
 
     if (rule.type === undefined) {
       // no rule on this to solve the conflict but maybe there is one the other way around?
+      const refId = conflict.otherMod.id;
+      const reverseMod =
+        (rules[refId]?.[modId] !== undefined)
+        && (['before', 'after'].indexOf(rules[refId]?.[modId].type) !== -1);
 
-      reverseRule = modRules
-        .find(iter => !iter.original
-                   && util.testModReference(conflict.otherMod, iter.reference)
-                   && util.testModReference(mods[modId], iter.source));
-
-      // no "stored" rule, but maybe there is one among the unsaved changes
-      if (reverseRule === undefined) {
-        const reverseMod = Object.keys(rules).find(refId =>
-          (rules[refId][modId] !== undefined)
-          && (['before', 'after'].indexOf(rules[refId][modId].type) !== -1));
-        if (reverseMod !== undefined) {
-          reverseRule = {
-            source: { id: modId },
-            reference: { id: reverseMod },
-            original: false,
-            type: rules[reverseMod][modId].type === 'before' ? 'after' : 'before',
-          };
-        }
+      if (reverseMod) {
+        reverseRule = {
+          source: { id: modId },
+          reference: { id: refId },
+          original: false,
+          type: rules[refId][modId].type === 'before' ? 'after' : 'before',
+        };
       }
     }
 
@@ -216,7 +218,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
           {t('Load')}
         </td>
         <td className='conflict-rule-owner'>
-          <div>{util.renderModName(mods[modId])}</div>
+          <div>{name}</div>
         </td>
         <td>
           <FormControl
@@ -375,10 +377,9 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
   }
 
   private openOverrideDialog = (evt: React.MouseEvent<any>) => {
-    const { gameId, onClose, onOverrideDialog } = this.props;
+    const { gameId, onOverrideDialog } = this.props;
     const modId = evt.currentTarget.getAttribute('data-modid');
     onOverrideDialog(gameId, modId);
-    onClose();
   }
 
   private save = () => {
