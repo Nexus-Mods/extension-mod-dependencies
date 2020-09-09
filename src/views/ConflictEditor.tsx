@@ -198,17 +198,30 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     if (rule.type === undefined) {
       // no rule on this to solve the conflict but maybe there is one the other way around?
       const refId = conflict.otherMod.id;
-      const reverseMod =
-        (rules[refId]?.[modId] !== undefined)
-        && (['before', 'after'].indexOf(rules[refId]?.[modId].type) !== -1);
 
-      if (reverseMod) {
-        reverseRule = {
-          source: { id: modId },
-          reference: { id: refId },
-          original: false,
-          type: rules[refId][modId].type === 'before' ? 'after' : 'before',
-        };
+      if (rules[refId] !== undefined) {
+        // this path is taken in the case where the dialog shows the rules for both mods.
+        // since the rules for the other mod might be changed, we have to use the unsaved state
+        const reverseMod =
+          (rules[refId]?.[modId] !== undefined)
+          && (['before', 'after'].indexOf(rules[refId]?.[modId].type) !== -1);
+
+        if (reverseMod) {
+          reverseRule = {
+            source: { id: modId },
+            reference: { id: refId },
+            original: false,
+            type: rules[refId][modId].type === 'before' ? 'after' : 'before',
+          };
+        }
+      } else {
+        // if the dialog shows only the rules for the one mod, the reverse rules are taken
+        // from modRules because rules doesn't contain them and we they can't get changed in
+        // this dialog anyway
+        reverseRule = modRules
+          .find(iter => !iter.original
+                    && util.testModReference(conflict.otherMod, iter.reference)
+                    && util.testModReference(mods[modId], iter.source));
       }
     }
 
