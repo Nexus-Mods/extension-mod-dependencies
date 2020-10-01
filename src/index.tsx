@@ -671,7 +671,7 @@ function main(context: types.IExtensionContext) {
       return (util.getSafe(store.getState(),
                            ['session', 'dependencies', 'conflicts', instanceIds[0]],
                            [])
-        .length > 0) ? true : translate('No file conflicts') as string;
+        .length > 0) ? true : 'No file conflicts';
     });
 
   context.registerStartHook(50, 'check-unsolved-conflicts',
