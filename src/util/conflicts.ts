@@ -138,11 +138,11 @@ interface IConflictMap {
   [lhsId: string]: { [rhsId: string]: { files: string[], suggestion: ConflictSuggestion } };
 }
 
-function getConflictMap(files: IFileMap): IConflictMap {
+function getConflictMap(files: IFileMap, game: types.IGame): IConflictMap {
   const conflictFiles = Object.keys(files)
     .filter(filePath => (files[filePath] !== undefined)
                      && (files[filePath].length > 1)
-                     && !isBlacklisted(filePath));
+                     && !isBlacklisted(filePath, game));
 
   const conflicts: IConflictMap = {};
   conflictFiles.forEach(filePath => {
@@ -180,7 +180,7 @@ function findConflicts(api: types.IExtensionApi,
                        : Promise<{ [modId: string]: IConflict[] }> {
   return getAllFiles(api, game, stagingPath, mods, activator)
     .then((files: IFileMap) => {
-      const conflictMap = getConflictMap(files);
+      const conflictMap = getConflictMap(files, game);
       const conflictsByMod: { [modId: string]: IConflict[] } = {};
       Object.keys(conflictMap).forEach(lhsId => {
         Object.keys(conflictMap[lhsId]).forEach(rhsId => {
