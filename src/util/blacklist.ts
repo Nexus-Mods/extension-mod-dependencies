@@ -5,6 +5,7 @@ const blacklist = [
   '**\\fomod\\*',
   '**\\readme*',
   '**\\.git',
+  '**\\.hgignore',
   '**\\.gitignore',
   '**\\.gitattributes',
   '**\\meta.ini',       // Mod Organizer
