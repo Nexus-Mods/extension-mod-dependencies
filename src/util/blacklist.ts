@@ -4,6 +4,9 @@ import { types } from 'vortex-api';
 const blacklist = [
   '**\\fomod\\*',
   '**\\readme*',
+  '**\\.git',
+  '**\\.gitignore',
+  '**\\.gitattributes',
   '**\\meta.ini',       // Mod Organizer
   '**\\mod.manifest',   // Kingdom Come: Deliverance
 ];
