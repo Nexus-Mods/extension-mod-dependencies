@@ -1,15 +1,17 @@
 import minimatch = require('minimatch');
+import * as path from 'path';
 import { types } from 'vortex-api';
 
 const blacklist = [
-  '**\\fomod\\*',
-  '**\\readme*',
-  '**\\.git',
-  '**\\.hgignore',
-  '**\\.gitignore',
-  '**\\.gitattributes',
-  '**\\meta.ini',       // Mod Organizer
-  '**\\mod.manifest',   // Kingdom Come: Deliverance
+  path.join('**', 'fomod', '*'),
+  path.join('**', 'readme*'),
+  path.join('**', '.git'),
+  path.join('**', '.hgignore'),
+  path.join('**', '.gitignore'),
+  path.join('**', '.gitattributes'),
+  path.join('**', '_macosx', '**', '*'),
+  path.join('**', 'meta.ini'),       // Mod Organizer
+  path.join('**', 'mod.manifest'),   // Kingdom Come: Deliverance
 ];
 
 const getBlacklist = (() => {
