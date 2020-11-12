@@ -18,7 +18,7 @@ import { log, types, util } from 'vortex-api';
 const ABSOLUTE_PATHS: boolean = false;
 
 interface IFileMap {
-  [filePath: string]: Array<{ mod: types.IMod, time: number }>;
+  [filePath: string]: Array<{ mod: types.IMod, relPath: string, time: number }>;
 }
 
 function toLookupInfo(mod: types.IMod): IModLookupInfo {
@@ -119,7 +119,7 @@ function getAllFiles(api: types.IExtensionApi,
                 && (files[relPathL].find(iter => iter.mod === mod) !== undefined)) {
               return;
             }
-            util.setdefault(files, relPathL, []).push({ mod, time: entry.mtime });
+            util.setdefault(files, relPathL, []).push({ mod, relPath, time: entry.mtime });
           } catch (err) {
             log('error', 'invalid file entry - what is this?', { entry, error: err.stack });
           }
@@ -145,8 +145,8 @@ function getConflictMap(files: IFileMap, game: types.IGame): IConflictMap {
                      && !isBlacklisted(filePath, game));
 
   const conflicts: IConflictMap = {};
-  conflictFiles.forEach(filePath => {
-    const file = files[filePath];
+  conflictFiles.forEach(fileKey => {
+    const file = files[fileKey];
     for (let i = 0; i < file.length; ++i) {
       for (let j = 0; j < file.length; ++j) {
         if (i !== j) {
@@ -157,7 +157,7 @@ function getConflictMap(files: IFileMap, game: types.IGame): IConflictMap {
             : undefined;
           const entry = util.setdefault(util.setdefault(conflicts, file[i].mod.id, {}),
                           file[j].mod.id, { files: [], suggestion: undefined });
-          entry.files.push(filePath);
+          entry.files.push(file[0].relPath);
           if (suggestion !== undefined) {
             if (entry.suggestion === undefined) {
               entry.suggestion = suggestion;

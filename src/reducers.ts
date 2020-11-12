@@ -57,7 +57,7 @@ const sessionReducer: types.IReducerSpec = {
     connection: undefined,
     dialog: undefined,
     highlightConflicts: false,
-    conflicts: {},
+    conflicts: undefined,
     conflictDialog: undefined,
     overrideDialog: undefined,
     editCycle: undefined,

@@ -163,6 +163,7 @@ function updateConflictInfo(api: types.IExtensionApi, gameId: string,
 
   if (mods === undefined) {
     // TODO: how can this happen?
+    log('error', 'no mods to calculate conflicts for');
     store.dispatch(actions.dismissNotification(CONFLICT_NOTIFICATION_ID));
     return;
   }
@@ -312,11 +313,12 @@ function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
   const store = api.store;
   const state = store.getState();
   const stagingPath = selectors.installPath(state);
-  const gameId = selectors.activeGameId(state);
-  if (gameId === undefined) {
+  const gameMode = selectors.activeGameId(state);
+  log('debug', 'check conflicts and rules', { gameMode });
+  if (gameMode === undefined) {
     return Promise.resolve();
   }
-  const game = util.getGame(gameId);
+  const game = util.getGame(gameMode);
   if ((game === undefined) || (game.mergeMods === false)) {
     // in the case mergeMods === false, conflicts aren't possible because
     // each mod is deployed into a unique subdirectory.
@@ -332,10 +334,10 @@ function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
   }
 
   const modState = selectors.activeProfile(state).modState;
-  const mods = Object.keys(state.persistent.mods[gameId] || {})
+  const mods = Object.keys(state.persistent.mods[gameMode] || {})
     .filter(modId => util.getSafe(modState, [modId, 'enabled'], false))
-    .map(modId => state.persistent.mods[gameId][modId]);
-  const activator = util.getCurrentActivator(state, gameId, true);
+    .map(modId => state.persistent.mods[gameMode][modId]);
+  const activator = util.getCurrentActivator(state, gameMode, true);
 
   store.dispatch(actions.startActivity('mods', 'conflicts'));
   return determineConflicts(api, game, stagingPath, mods, activator)
@@ -343,7 +345,7 @@ function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
       if (!_.isEqual(conflictMap, state.session.dependencies.conflicts)) {
         store.dispatch(setConflictInfo(conflictMap));
       }
-      updateConflictInfo(api, gameId, conflictMap);
+      updateConflictInfo(api, gameMode, conflictMap);
       return checkRulesFulfilled(api);
     })
     .catch(err => {
@@ -571,9 +573,12 @@ function once(api: types.IExtensionApi) {
   api.events.on('gamemode-activated', (gameMode: string) => {
     // We just changed gamemodes - we should clear up any
     //  existing conflict information.
+    log('debug', 'game mode activated, updating conflict info', { gameMode });
     store.dispatch(setConflictInfo(undefined));
     updateConflictInfo(api, gameMode, {});
-    updateRulesDebouncer.schedule(undefined, gameMode);
+    updateRulesDebouncer.schedule(() => {
+      updateConflictDebouncer.schedule(undefined);
+    }, gameMode);
   });
 
   api.events.on('edit-mod-cycle', (gameId: string, cycle: string[]) => {
