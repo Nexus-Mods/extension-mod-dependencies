@@ -145,7 +145,10 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
         <Table className='mod-conflict-list'>
           <tbody>
             {(modIds || [])
-                .map(modId => ({ id: modId, name: util.renderModName(mods[modId]) }))
+                .map(modId => ({
+                  id: modId,
+                  name: util.renderModName(mods[modId], { version: true }),
+                }))
                 .sort((lhs, rhs) => lhs.name.localeCompare(rhs.name))
                 .map(({ id, name }) => (conflicts[id] || [])
                   .map(conflict => this.renderConflict(id, name, conflict)))}
@@ -256,7 +259,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
         <td className='conflict-rule-description'>
           <div className='conflict-rule-reference'>
             <div className='conflict-rule-name'>
-              <div>{util.renderModName(mods[conflict.otherMod.id])}</div>
+              <div>{util.renderModName(mods[conflict.otherMod.id], { version: true })}</div>
               <OverlayTrigger trigger='click' rootClose placement='right' overlay={popover}>
                 <a>{
                   t('{{ count }} conflicting file', {

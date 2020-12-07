@@ -316,7 +316,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
     const { t, mods } = this.props;
 
     const renderName = (id: string, clip?: number) => {
-      let name: string = mods[id] !== undefined ? util.renderModName(mods[id]) : '';
+      let name: string = mods[id] !== undefined ? util.renderModName(mods[id], { version: true }) : '';
       if (clip && name.length > clip) {
         name = name.substr(0, clip - 3) + '...';
       }
