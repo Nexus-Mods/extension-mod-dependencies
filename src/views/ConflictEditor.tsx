@@ -160,7 +160,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       );
 
     return (
-      <Modal id='conflict-editor-dialog' show={modIds !== undefined} onHide={nop}>
+      <Modal onKeyPress={this.onKeyPress} id='conflict-editor-dialog' show={modIds !== undefined} onHide={nop}>
         <Modal.Header><Modal.Title>{modName}</Modal.Title></Modal.Header>
         <Modal.Body>
           {content}
@@ -171,6 +171,12 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
         </Modal.Footer>
       </Modal>
     );
+  }
+
+  private onKeyPress = (evt: React.KeyboardEvent<Button>) => {
+    if (evt.charCode === 13) {
+      this.save();
+    }
   }
 
   private renderConflict = (modId: string, name: string, conflict: IConflict) => {
