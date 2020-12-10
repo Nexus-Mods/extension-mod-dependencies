@@ -173,7 +173,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     );
   }
 
-  private onKeyPress = (evt: React.KeyboardEvent<Button>) => {
+  private onKeyPress = (evt: React.KeyboardEvent<Modal>) => {
     if (evt.charCode === 13) {
       this.save();
     }
