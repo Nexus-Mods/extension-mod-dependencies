@@ -16,7 +16,7 @@ import { connect } from 'react-redux';
 import * as Redux from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
 import * as semver from 'semver';
-import { actions as vortexActions, ComponentEx, EmptyPlaceholder, Spinner,
+import { actions as vortexActions, ComponentEx, EmptyPlaceholder, FormInput, Spinner,
          tooltip, types, util } from 'vortex-api';
 
 interface IConnectedProps {
@@ -44,6 +44,7 @@ interface IRuleSpec {
 }
 
 interface IComponentState {
+  filterValue: string;
   rules: { [modId: string]: { [refId: string]: IRuleSpec } };
 }
 
@@ -95,7 +96,7 @@ function nop() {
 class ConflictEditor extends ComponentEx<IProps, IComponentState> {
   constructor(props: IProps) {
     super(props);
-    this.initState({ rules: {} });
+    this.initState({ rules: {}, filterValue: '' });
   }
 
   public componentDidMount() {
@@ -122,6 +123,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
 
   public render(): JSX.Element {
     const {t, modIds, mods, conflicts} = this.props;
+    const { filterValue } = this.state;
 
     let modName = '';
 
@@ -145,6 +147,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
         <Table className='mod-conflict-list'>
           <tbody>
             {(modIds || [])
+                .filter(modId => this.applyFilter(modId))
                 .map(modId => ({
                   id: modId,
                   name: util.renderModName(mods[modId], { version: true }),
@@ -163,6 +166,14 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       <Modal onKeyPress={this.onKeyPress} id='conflict-editor-dialog' show={modIds !== undefined} onHide={nop}>
         <Modal.Header><Modal.Title>{modName}</Modal.Title></Modal.Header>
         <Modal.Body>
+          <FormInput
+            className='conflict-filter-input'
+            value={filterValue}
+            placeholder={t('Search for a rule...')}
+            onChange={this.onFilterChange}
+            debounceTimer={100}
+            clearable
+          />
           {content}
         </Modal.Body>
         <Modal.Footer>
@@ -171,6 +182,15 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
         </Modal.Footer>
       </Modal>
     );
+  }
+
+  private onFilterChange = (input) => {
+    this.nextState.filterValue = input;
+  }
+
+  private applyFilter = (modId: string): boolean => {
+    const { filterValue } = this.state;
+    return modId.toLowerCase().includes(filterValue.toLowerCase()) || !filterValue;
   }
 
   private onKeyPress = (evt: React.KeyboardEvent<Modal>) => {
