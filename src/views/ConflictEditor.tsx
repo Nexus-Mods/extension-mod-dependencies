@@ -189,8 +189,11 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
   }
 
   private applyFilter = (modId: string): boolean => {
+    const { mods } = this.props;
     const { filterValue } = this.state;
-    return modId.toLowerCase().includes(filterValue.toLowerCase()) || !filterValue;
+    const mod: types.IMod = mods[modId];
+    const modName: string = util.getSafe(mod, ['attributes', 'modName'], modId);
+    return modName.toLowerCase().includes(filterValue.toLowerCase()) || !filterValue;
   }
 
   private onKeyPress = (evt: React.KeyboardEvent<Modal>) => {
