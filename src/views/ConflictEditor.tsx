@@ -380,7 +380,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       text: t('This will remove the existing rule so you can set a new one on this mod.'),
     }, [
         { label: 'Cancel' },
-        { label: 'Remove Rule', action: () => {
+        { label: 'Remove Rule', default: true, action: () => {
           onRemoveRule(gameId, refMod.id, {
             type: originalRule.type,
             reference: originalRule.reference,
