@@ -191,8 +191,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
   private applyFilter = (modId: string): boolean => {
     const { mods } = this.props;
     const { filterValue } = this.state;
-    const mod: types.IMod = mods[modId];
-    const modName: string = util.getSafe(mod, ['attributes', 'modName'], modId);
+    const modName: string = util.renderModName(mods[modId]);
     return modName.toLowerCase().includes(filterValue.toLowerCase()) || !filterValue;
   }
 
