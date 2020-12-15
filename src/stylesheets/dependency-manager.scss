@@ -295,6 +295,19 @@
       border-top: 0;
     }
   }
+
+  .modal-footer {
+    display: flex;
+    justify-content: space-between;
+    .conflict-editor-main-actions {
+      width: 100%;
+      justify-self: right;
+    }
+    .conflict-editor-secondary-actions {
+      width: 100%;
+      justify-self: left;
+    }
+  }
 }
 
 #conflict-graph-dialog {

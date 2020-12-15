@@ -16,7 +16,7 @@ import { connect } from 'react-redux';
 import * as Redux from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
 import * as semver from 'semver';
-import { actions as vortexActions, ComponentEx, EmptyPlaceholder, FormInput, Spinner,
+import { actions as vortexActions, ComponentEx, EmptyPlaceholder, FlexLayout, FormInput, Spinner,
          tooltip, types, util } from 'vortex-api';
 
 interface IConnectedProps {
@@ -31,6 +31,7 @@ interface IActionProps {
   onClose: () => void;
   onAddRule: (gameId: string, modId: string, rule: any) => void;
   onRemoveRule: (gameId: string, modId: string, rule: any) => void;
+  onClearRules: (gameId: string, modId: string) => void;
   onOverrideDialog: (gameId: string, modId: string) => void;
 }
 
@@ -100,11 +101,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
   }
 
   public componentDidMount() {
-    this.nextState.rules = (this.props.modIds || []).reduce(
-          (prev: { [modId: string]: { [refId: string]: IRuleSpec } }, modId: string) => {
-        prev[modId] = getRuleSpec(modId, this.props.mods, this.props.conflicts[modId]);
-        return prev;
-      }, {});
+    this.refreshRules(this.props);
   }
 
   public UNSAFE_componentWillReceiveProps(nextProps: IProps) {
@@ -113,11 +110,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
         || (this.props.modIds !== nextProps.modIds)
         || (this.props.modRules !== nextProps.modRules)) {
       // find existing rules for these conflicts
-      this.nextState.rules = (nextProps.modIds || []).reduce(
-          (prev: { [modId: string]: { [refId: string]: IRuleSpec } }, modId: string) => {
-        prev[modId] = getRuleSpec(modId, nextProps.mods, nextProps.conflicts[modId]);
-        return prev;
-      }, {});
+      this.refreshRules(nextProps);
     }
   }
 
@@ -181,12 +174,88 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
           {content}
         </Modal.Body>
         <Modal.Footer>
-          <Button onClick={this.close}>{t('Cancel')}</Button>
-          <Button onClick={this.save}>{t('Save')}</Button>
+          <FlexLayout.Fixed className='conflict-editor-secondary-actions'>
+            <Button onClick={this.clearRules}>{t('Clear Rules')}</Button>
+            <Button onClick={this.useSuggested}>{t('Use Suggested')}</Button>
+          </FlexLayout.Fixed>
+          <FlexLayout.Fixed className='conflict-editor-main-actions'>
+            <Button onClick={this.close}>{t('Cancel')}</Button>
+            <Button onClick={this.save}>{t('Save')}</Button>
+          </FlexLayout.Fixed>
         </Modal.Footer>
       </Modal>
     );
   }
+
+  private refreshRules = (props: IProps) => {
+    this.nextState.rules = (props.modIds || []).reduce(
+        (prev: { [modId: string]: { [refId: string]: IRuleSpec } }, modId: string) => {
+      prev[modId] = getRuleSpec(modId, props.mods, props.conflicts[modId]);
+      return prev;
+    }, {});
+  }
+
+  private clearRules = () => {
+    const { t, modIds, gameId, onClearRules } = this.props;
+    this.context.api.showDialog('question', t('Confirm'), {
+      text: t('This will clear/remove the existing conflict rules from ALL of your mods, '
+            + 'Please be aware that this action cannot be undone and the mod rules will have to be set again.'),
+    }, [
+        { label: 'Cancel', default: true },
+        {
+          label: 'Clear Rules',
+          action: () => {
+            modIds.forEach(id => onClearRules(gameId, id));
+            this.refreshRules(this.props);
+          }
+        },
+    ]);
+  };
+
+  private useSuggested = () => {
+    const { t, mods, modIds, conflicts } = this.props;
+    this.context.api.showDialog('question', t('Confirm'), {
+      text: t('Vortex can set some of the rules automatically based on the installation time of each mod. '
+            + 'Mods installed more recently will be loaded after old ones. This may not be the correct choice for all rules. '
+            + 'Would you like to use these suggested rules?'),
+    }, [
+        { label: 'Cancel', default: true },
+        {
+          label: 'Use Suggested',
+          action: () => {
+            this.nextState.rules = (modIds || []).reduce(
+              (prev: { [modId: string]: { [refId: string]: IRuleSpec } }, modId: string) => {
+                const modRules = (mods[modId] !== undefined)
+                  ? (mods[modId].rules || [])
+                  : [];
+
+                const res: { [modId: string]: IRuleSpec } = {};
+                (conflicts[modId] || []).forEach(conflict => {
+                  const existingRule = modRules
+                    .find(rule => (['before', 'after', 'conflicts'].indexOf(rule.type) !== -1)
+                      && util.testModReference(conflict.otherMod, rule.reference));
+
+                  res[conflict.otherMod.id] = (conflict.suggestion !== null)
+                    ? {
+                        type: conflict.suggestion,
+                        version: (existingRule !== undefined)
+                          ? importVersion(existingRule.reference.versionMatch)
+                          : 'any',
+                      }
+                    : (existingRule !== undefined)
+                      ? {
+                          type: existingRule.type as any,
+                          version: importVersion(existingRule.reference.versionMatch),
+                        }
+                      : { type: undefined, version: 'any' };
+                });
+              prev[modId] = res;
+              return prev;
+            }, {});
+          }
+        },
+    ]);
+  };
 
   private onFilterChange = (input) => {
     this.nextState.filterValue = input;
@@ -497,6 +566,8 @@ function mapDispatchToProps(dispatch: ThunkDispatch<any, null, Redux.Action>): I
       dispatch(vortexActions.addModRule(gameId, modId, rule)),
     onRemoveRule: (gameId, modId, rule) =>
       dispatch(vortexActions.removeModRule(gameId, modId, rule)),
+    onClearRules: (gameId, modId) =>
+      dispatch(vortexActions.clearModRules(gameId, modId)),
     onOverrideDialog: (gameId: string, modId: string) =>
       dispatch(setFileOverrideDialog(gameId, modId)),
   };
