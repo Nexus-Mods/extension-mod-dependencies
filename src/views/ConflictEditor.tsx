@@ -361,9 +361,11 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
             <option value='before'>
               {conflict.suggestion === 'before' ? t('before (suggested)') : t('before')}
             </option>
+            <option value='before_all'>{t('Before All')}</option>
             <option value='after'>
               {conflict.suggestion === 'after' ? t('after (suggested)') : t('after')}
             </option>
+            <option value='after_all'>{t('After All')}</option>
             <option value='conflicts'>{t('never together with')}</option>
           </FormControl>
         </td>
@@ -481,10 +483,22 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
 
   private setRuleType = (evt: React.MouseEvent<any>) => {
     const modId = evt.currentTarget.getAttribute('data-modid');
-    const refId = evt.currentTarget.getAttribute('data-refid');
-    this.nextState.rules[modId][refId].type = (evt.currentTarget.value === 'norule')
-      ? undefined
-      : evt.currentTarget.value;
+    if (['before_all', 'after_all'].indexOf(evt.currentTarget.value) !== -1) {
+      const refIds = Object.keys(this.state.rules[modId]);
+      this.nextState.rules[modId] = refIds.reduce((accum, iter) => {
+        const setRules = {
+          ...this.state.rules[modId]?.[iter] || [],
+          type: (evt.currentTarget.value === 'before_all') ? 'before' : 'after',
+        };
+        accum[iter] = setRules;
+        return accum;
+      }, {});
+    } else {
+      const refId = evt.currentTarget.getAttribute('data-refid');
+      this.nextState.rules[modId][refId].type = (evt.currentTarget.value === 'norule')
+        ? undefined
+        : evt.currentTarget.value;
+    }
   }
 
   private setRuleVersion = (evt: React.MouseEvent<any>) => {
