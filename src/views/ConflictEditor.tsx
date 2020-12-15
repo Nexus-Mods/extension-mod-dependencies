@@ -135,6 +135,17 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       }
     }
 
+    const filterInput = ((conflicts !== undefined) && (modIds?.length > 0))
+      ? <FormInput
+          className='conflict-filter-input'
+          value={filterValue}
+          placeholder={t('Search for a rule...')}
+          onChange={this.onFilterChange}
+          debounceTimer={100}
+          clearable
+        />
+      : null;
+
     const content = (conflicts === undefined)
       ? (
         <div className='conflicts-loading'>
@@ -142,38 +153,31 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
           {t('Conflicts haven\'t been calculated yet')}
         </div>
       )
-      : (modIds !== undefined) && (modIds.length > 0)
-      ? (
-        <Table className='mod-conflict-list'>
-          <tbody>
-            {(modIds || [])
-                .filter(modId => this.applyFilter(modId))
-                .map(modId => ({
-                  id: modId,
-                  name: util.renderModName(mods[modId], { version: true }),
-                }))
-                .sort((lhs, rhs) => lhs.name.localeCompare(rhs.name))
-                .map(({ id, name }) => (conflicts[id] || [])
-                  .map(conflict => this.renderConflict(id, name, conflict)))}
-          </tbody>
-        </Table>
-      )
-      : (
-        <EmptyPlaceholder icon='conflict' text={t('You have no file conflicts. Wow!')} />
-      );
+      : (modIds?.length > 0)
+        ? (
+          <Table className='mod-conflict-list'>
+            <tbody>
+              {(modIds || [])
+                  .map(modId => ({
+                    id: modId,
+                    name: util.renderModName(mods[modId], { version: true }),
+                  }))
+                  .sort((lhs, rhs) => lhs.name.localeCompare(rhs.name))
+                  .map(({ id, name }) => (conflicts[id] || [])
+                    .filter(conflict => this.applyFilter(conflict, id))
+                    .map(conflict => this.renderConflict(id, name, conflict)))}
+            </tbody>
+          </Table>
+        )
+        : (
+          <EmptyPlaceholder icon='conflict' text={t('You have no file conflicts. Wow!')} />
+        );
 
     return (
       <Modal onKeyPress={this.onKeyPress} id='conflict-editor-dialog' show={modIds !== undefined} onHide={nop}>
         <Modal.Header><Modal.Title>{modName}</Modal.Title></Modal.Header>
         <Modal.Body>
-          <FormInput
-            className='conflict-filter-input'
-            value={filterValue}
-            placeholder={t('Search for a rule...')}
-            onChange={this.onFilterChange}
-            debounceTimer={100}
-            clearable
-          />
+          {filterInput}
           {content}
         </Modal.Body>
         <Modal.Footer>
@@ -188,11 +192,21 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     this.nextState.filterValue = input;
   }
 
-  private applyFilter = (modId: string): boolean => {
+  private applyFilter = (conflict: IConflict, modId: string): boolean => {
     const { mods } = this.props;
     const { filterValue } = this.state;
+    if (!filterValue) {
+      return true;
+    }
+
+    if (mods[conflict.otherMod.id] === undefined) {
+      return false;
+    }
+
+    const isMatch = (val: string) => val.toLowerCase().includes(filterValue.toLowerCase());
     const modName: string = util.renderModName(mods[modId]);
-    return modName.toLowerCase().includes(filterValue.toLowerCase()) || !filterValue;
+    const otherModName: string = util.renderModName(mods[conflict.otherMod.id]);
+    return isMatch(modName) || isMatch(otherModName);
   }
 
   private onKeyPress = (evt: React.KeyboardEvent<Modal>) => {
