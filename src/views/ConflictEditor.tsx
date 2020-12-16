@@ -31,7 +31,6 @@ interface IActionProps {
   onClose: () => void;
   onAddRule: (gameId: string, modId: string, rule: any) => void;
   onRemoveRule: (gameId: string, modId: string, rule: any) => void;
-  onClearRules: (gameId: string, modId: string) => void;
   onOverrideDialog: (gameId: string, modId: string) => void;
 }
 
@@ -196,17 +195,25 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
   }
 
   private clearRules = () => {
-    const { t, modIds, gameId, onClearRules } = this.props;
+    const { t, modIds, conflicts } = this.props;
     this.context.api.showDialog('question', t('Confirm'), {
       text: t('This will clear/remove the existing conflict rules from ALL of your mods, '
-            + 'Please be aware that this action cannot be undone and the mod rules will have to be set again.'),
+            + 'Please be aware that if saved, this action cannot be undone and the mod rules '
+            + 'will have to be set again.'),
     }, [
         { label: 'Cancel', default: true },
         {
           label: 'Clear Rules',
           action: () => {
-            modIds.forEach(id => onClearRules(gameId, id));
-            this.refreshRules(this.props);
+            this.nextState.rules = (modIds || []).reduce(
+              (prev: { [modId: string]: { [refId: string]: IRuleSpec } }, modId: string) => {
+                const res: { [modId: string]: IRuleSpec } = {};
+                (conflicts[modId] || []).forEach(conflict => {
+                  res[conflict.otherMod.id] = { type: undefined, version: 'any' };
+                });
+                prev[modId] = res;
+                return prev;
+            }, {});
           }
         },
     ]);
@@ -215,9 +222,9 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
   private useSuggested = () => {
     const { t, mods, modIds, conflicts } = this.props;
     this.context.api.showDialog('question', t('Confirm'), {
-      text: t('Vortex can set some of the rules automatically based on the installation time of each mod. '
-            + 'Mods installed more recently will be loaded after old ones. This may not be the correct choice for all rules. '
-            + 'Would you like to use these suggested rules?'),
+      text: t('Vortex can set some of the rules automatically based on the last modified time of each conflicting file. '
+            + 'Files that have been modified/created more recently will be loaded after older ones. '
+            + 'This may not be the correct choice for all rules, and shouldn\'t be perceived as such.'),
     }, [
         { label: 'Cancel', default: true },
         {
@@ -361,11 +368,11 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
             <option value='before'>
               {conflict.suggestion === 'before' ? t('before (suggested)') : t('before')}
             </option>
-            <option value='before_all'>{t('Before All')}</option>
+            <option value='before_all'>{t('before All')}</option>
             <option value='after'>
               {conflict.suggestion === 'after' ? t('after (suggested)') : t('after')}
             </option>
-            <option value='after_all'>{t('After All')}</option>
+            <option value='after_all'>{t('after All')}</option>
             <option value='conflicts'>{t('never together with')}</option>
           </FormControl>
         </td>
@@ -580,8 +587,6 @@ function mapDispatchToProps(dispatch: ThunkDispatch<any, null, Redux.Action>): I
       dispatch(vortexActions.addModRule(gameId, modId, rule)),
     onRemoveRule: (gameId, modId, rule) =>
       dispatch(vortexActions.removeModRule(gameId, modId, rule)),
-    onClearRules: (gameId, modId) =>
-      dispatch(vortexActions.clearModRules(gameId, modId)),
     onOverrideDialog: (gameId: string, modId: string) =>
       dispatch(setFileOverrideDialog(gameId, modId)),
   };
