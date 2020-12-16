@@ -368,11 +368,11 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
             <option value='before'>
               {conflict.suggestion === 'before' ? t('before (suggested)') : t('before')}
             </option>
-            <option value='before_all'>{t('before All')}</option>
+            <option value='before_all'>{t('before all')}</option>
             <option value='after'>
               {conflict.suggestion === 'after' ? t('after (suggested)') : t('after')}
             </option>
-            <option value='after_all'>{t('after All')}</option>
+            <option value='after_all'>{t('after all')}</option>
             <option value='conflicts'>{t('never together with')}</option>
           </FormControl>
         </td>
@@ -494,7 +494,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       const refIds = Object.keys(this.state.rules[modId]);
       this.nextState.rules[modId] = refIds.reduce((accum, iter) => {
         const setRules = {
-          ...this.state.rules[modId]?.[iter] || [],
+          version: this.state.rules[modId]?.[iter]?.version || 'any',
           type: (evt.currentTarget.value === 'before_all') ? 'before' : 'after',
         };
         accum[iter] = setRules;
