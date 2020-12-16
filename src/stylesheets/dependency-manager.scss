@@ -291,6 +291,19 @@
     padding: $gutter-width;
     max-height: 80vh;
     overflow-y: auto;
+    .mod-conflict-group-header {
+      label {
+        margin-top: 5px;
+      }
+      a {
+        margin-left: 5px;
+      }
+    }
+
+    table{
+      table-layout: fixed;
+    }
+
     td {
       border-top: 0;
     }

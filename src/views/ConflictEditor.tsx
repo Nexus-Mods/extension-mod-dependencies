@@ -146,24 +146,8 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
         </div>
       )
       : (modIds?.length > 0)
-        ? (
-          <Table className='mod-conflict-list'>
-            <tbody>
-              {(modIds || [])
-                  .map(modId => ({
-                    id: modId,
-                    name: util.renderModName(mods[modId], { version: true }),
-                  }))
-                  .sort((lhs, rhs) => lhs.name.localeCompare(rhs.name))
-                  .map(({ id, name }) => (conflicts[id] || [])
-                    .filter(conflict => this.applyFilter(conflict, id))
-                    .map(conflict => this.renderConflict(id, name, conflict)))}
-            </tbody>
-          </Table>
-        )
-        : (
-          <EmptyPlaceholder icon='conflict' text={t('You have no file conflicts. Wow!')} />
-        );
+        ? ( this.renderConflicts() )
+        : ( <EmptyPlaceholder icon='conflict' text={t('You have no file conflicts. Wow!')} /> );
 
     return (
       <Modal onKeyPress={this.onKeyPress} id='conflict-editor-dialog' show={modIds !== undefined} onHide={nop}>
@@ -175,7 +159,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
         <Modal.Footer>
           <FlexLayout.Fixed className='conflict-editor-secondary-actions'>
             <Button onClick={this.clearRules}>{t('Clear Rules')}</Button>
-            <Button onClick={this.useSuggested}>{t('Use Suggested')}</Button>
+            <Button onClick={this.useSuggested}>{t('Use Suggestions')}</Button>
           </FlexLayout.Fixed>
           <FlexLayout.Fixed className='conflict-editor-main-actions'>
             <Button onClick={this.close}>{t('Cancel')}</Button>
@@ -222,9 +206,17 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
   private useSuggested = () => {
     const { t, mods, modIds, conflicts } = this.props;
     this.context.api.showDialog('question', t('Confirm'), {
-      text: t('Vortex can set some of the rules automatically based on the last modified time of each conflicting file. '
-            + 'Files that have been modified/created more recently will be loaded after older ones. '
-            + 'This may not be the correct choice for all rules, and shouldn\'t be perceived as such.'),
+      bbcode: t('Vortex can set some of the rules automatically based on the last modified time of each conflicting file. '
+              + 'Files that have been modified/created more recently will be loaded after older ones. '
+              + 'This may not be the correct choice for all rules, and shouldn\'t be perceived as such.[br][/br][br][/br]'
+              + 'Loading mods in the incorrect order can lead to in-game errors such as:[br][/br][br][/br]'
+              + '[list][*]Mods not having an effect on the game[*]Incorrect textures or models showing up '
+              + '[*]The game crashing[/list][br][/br]If you find that your mods don\'t work correctly ' 
+              + 'you can always come here and change their order.[br][/br][br][/br]'
+              + 'As a general guideline: patches and options should load after their base mod, mods that depend '
+              + 'on another one should load after the dependency. Beyond that you\'re probably best off loading '
+              + 'newer mods after older ones, lesser known mods after the very popular ones and then the ones you '
+              + 'care most about after the ones you can live without.'),
     }, [
         { label: 'Cancel', default: true },
         {
@@ -291,6 +283,66 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     }
   }
 
+  private renderConflicts = (): JSX.Element => {
+    const { t, conflicts, mods, modIds } = this.props;
+    const modEntries = (modIds || [])
+      .map(modId => ({
+        id: modId,
+        name: util.renderModName(mods[modId], { version: true }),
+      }))
+      .sort((lhs, rhs) => lhs.name.localeCompare(rhs.name))
+
+    const renderModEntry = (modId: string, name: string) => (
+    <div key={`mod-conflict-element-${modId}`}>
+      <div className='mod-conflict-group-header'>
+        <label>{util.renderModName(mods[modId])}</label>
+        <a data-modid={modId} data-action='before_all' onClick={this.applyGroupRule}>{t('Before All')}</a>
+        <a data-modid={modId} data-action='after_all' onClick={this.applyGroupRule}>{t('After All')}</a>
+      </div>
+      <Table className='mod-conflict-list'>
+        <tbody>
+          {(conflicts[modId] || [])
+            .filter(conflict => this.applyFilter(conflict, modId))
+            .map((conf: IConflict) => this.renderConflict(modId, name, conf))}
+        </tbody>
+      </Table>
+    </div>
+    );
+
+    return (modEntries.length > 0)
+      ? (
+        <div>
+          {modEntries.map(entry => renderModEntry(entry.id, entry.name))}
+        </div>
+      )
+      : null;
+  }
+
+  private applyGroupRule = (evt: React.MouseEvent<any>) => {
+    evt.preventDefault();
+    const { rules } = this.state;
+    const action = evt.currentTarget.getAttribute('data-action');
+    const modId = evt.currentTarget.getAttribute('data-modid');
+    if (['after_all', 'before_all'].indexOf(action) === -1) {
+      return;
+    }
+
+    const refIds = Object.keys(rules[modId]);
+    this.nextState.rules[modId] = refIds.reduce((accum, iter) => {
+      const setRules = {
+        version: rules[modId]?.[iter]?.version || 'any',
+        type: (action === 'before_all') ? 'before' : 'after',
+      };
+
+      accum[iter] = setRules;
+      return accum;
+    }, {});
+
+    refIds.forEach(refMod => {
+      this.nextState.rules[refMod][modId] = { type: undefined, version: 'any' };
+    });
+  }
+
   private renderConflict = (modId: string, name: string, conflict: IConflict) => {
     const {t, modRules, mods} = this.props;
     const {rules} = this.state;
@@ -348,7 +400,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
 
     return (
       <tr key={JSON.stringify(conflict)}>
-        <td>
+        <td style={{ width: '8em' }}>
           {t('Load')}
         </td>
         <td className='conflict-rule-owner'>
@@ -368,11 +420,9 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
             <option value='before'>
               {conflict.suggestion === 'before' ? t('before (suggested)') : t('before')}
             </option>
-            <option value='before_all'>{t('before all')}</option>
             <option value='after'>
               {conflict.suggestion === 'after' ? t('after (suggested)') : t('after')}
             </option>
-            <option value='after_all'>{t('after all')}</option>
             <option value='conflicts'>{t('never together with')}</option>
           </FormControl>
         </td>
@@ -409,7 +459,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
               : null}
           </FormControl>
         </td>
-        <td>
+        <td style={{ width: '5em' }}>
           {this.renderReverseRule(modId, reverseRule)}
         </td>
       </tr>
@@ -490,22 +540,10 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
 
   private setRuleType = (evt: React.MouseEvent<any>) => {
     const modId = evt.currentTarget.getAttribute('data-modid');
-    if (['before_all', 'after_all'].indexOf(evt.currentTarget.value) !== -1) {
-      const refIds = Object.keys(this.state.rules[modId]);
-      this.nextState.rules[modId] = refIds.reduce((accum, iter) => {
-        const setRules = {
-          version: this.state.rules[modId]?.[iter]?.version || 'any',
-          type: (evt.currentTarget.value === 'before_all') ? 'before' : 'after',
-        };
-        accum[iter] = setRules;
-        return accum;
-      }, {});
-    } else {
-      const refId = evt.currentTarget.getAttribute('data-refid');
-      this.nextState.rules[modId][refId].type = (evt.currentTarget.value === 'norule')
-        ? undefined
-        : evt.currentTarget.value;
-    }
+    const refId = evt.currentTarget.getAttribute('data-refid');
+    this.nextState.rules[modId][refId].type = (evt.currentTarget.value === 'norule')
+      ? undefined
+      : evt.currentTarget.value;
   }
 
   private setRuleVersion = (evt: React.MouseEvent<any>) => {
