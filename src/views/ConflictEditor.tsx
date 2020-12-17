@@ -295,10 +295,10 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     const renderModEntry = (modId: string, name: string) => (
     <div key={`mod-conflict-element-${modId}`}>
       <div className='mod-conflict-group-header'>
-        <label>{util.renderModName(mods[modId])}</label>
-        <a data-modid={modId} data-action='before_all' onClick={this.applyGroupRule}>{t('Before All')}</a>
-        <a data-modid={modId} data-action='after_all' onClick={this.applyGroupRule}>{t('After All')}</a>
-      </div>
+          <label>{util.renderModName(mods[modId])}</label>
+          <a data-modid={modId} data-action='before_all' onClick={this.applyGroupRule}>{t('Before All')}</a>
+          <a data-modid={modId} data-action='after_all' onClick={this.applyGroupRule}>{t('After All')}</a>
+        </div>
       <Table className='mod-conflict-list'>
         <tbody>
           {(conflicts[modId] || [])
@@ -320,6 +320,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
 
   private applyGroupRule = (evt: React.MouseEvent<any>) => {
     evt.preventDefault();
+    const { modIds, conflicts } = this.props;
     const { rules } = this.state;
     const action = evt.currentTarget.getAttribute('data-action');
     const modId = evt.currentTarget.getAttribute('data-modid');
@@ -338,9 +339,13 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       return accum;
     }, {});
 
-    refIds.forEach(refMod => {
-      this.nextState.rules[refMod][modId] = { type: undefined, version: 'any' };
-    });
+    if ((conflicts !== undefined) && (Object.keys(conflicts).length === modIds?.length)) {
+      // We're displaying the referenced conflicts in the editor. Need to modify
+      //  those as well.
+      refIds.forEach(refMod => {
+        this.nextState.rules[refMod][modId] = { type: undefined, version: 'any' };
+      });
+    }
   }
 
   private renderConflict = (modId: string, name: string, conflict: IConflict) => {
