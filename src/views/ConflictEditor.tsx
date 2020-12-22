@@ -44,6 +44,7 @@ interface IRuleSpec {
 }
 
 interface IComponentState {
+  showOnlyUnresolved: boolean;
   filterValue: string;
   rules: { [modId: string]: { [refId: string]: IRuleSpec } };
 }
@@ -96,7 +97,11 @@ function nop() {
 class ConflictEditor extends ComponentEx<IProps, IComponentState> {
   constructor(props: IProps) {
     super(props);
-    this.initState({ rules: {}, filterValue: '' });
+    this.initState({
+      rules: {},
+      filterValue: '',
+      showOnlyUnresolved: false
+    });
   }
 
   public componentDidMount() {
@@ -115,7 +120,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
 
   public render(): JSX.Element {
     const {t, modIds, mods, conflicts} = this.props;
-    const { filterValue } = this.state;
+    const { filterValue, showOnlyUnresolved } = this.state;
 
     let modName = '';
 
@@ -160,6 +165,9 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
           <FlexLayout.Fixed className='conflict-editor-secondary-actions'>
             <Button onClick={this.clearRules}>{t('Clear Rules')}</Button>
             <Button onClick={this.useSuggested}>{t('Use Suggestions')}</Button>
+            <Button
+              onClick={this.toggleShowUnresolved}>{showOnlyUnresolved ? t('Show All') : t('Show Unresolved')}
+            </Button>
           </FlexLayout.Fixed>
           <FlexLayout.Fixed className='conflict-editor-main-actions'>
             <Button onClick={this.close}>{t('Cancel')}</Button>
@@ -202,6 +210,10 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
         },
     ]);
   };
+
+  private toggleShowUnresolved = () => {
+    this.nextState.showOnlyUnresolved = !this.state.showOnlyUnresolved;
+  }
 
   private useSuggested = () => {
     const { t, mods, modIds, conflicts } = this.props;
@@ -262,8 +274,8 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
 
   private applyFilter = (conflict: IConflict, modId: string): boolean => {
     const { mods } = this.props;
-    const { filterValue } = this.state;
-    if (!filterValue) {
+    const { filterValue, rules, showOnlyUnresolved } = this.state;
+    if (!filterValue && !showOnlyUnresolved) {
       return true;
     }
 
@@ -271,10 +283,28 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       return false;
     }
 
+    const isUnresolved = (modId, otherModId) => {
+      const isRuleSet: boolean = (rules[otherModId]?.[modId] === undefined)
+      ? (mods[otherModId].rules || [])
+         .find(rule => (['before', 'after', 'conflicts'].indexOf(rule.type) !== -1)
+                      && (util as any).testModReference(mods[modId], rule.reference)) !== undefined
+      : rules[otherModId][modId].type !== undefined;
+
+      return (showOnlyUnresolved)
+        ? (rules[modId][otherModId] === undefined)
+          ? !isRuleSet
+          : (rules[modId][otherModId].type === undefined) && !isRuleSet
+        : true;
+    }
+
     const isMatch = (val: string) => val.toLowerCase().includes(filterValue.toLowerCase());
     const modName: string = util.renderModName(mods[modId]);
     const otherModName: string = util.renderModName(mods[conflict.otherMod.id]);
-    return isMatch(modName) || isMatch(otherModName);
+    const testFilterMatch = () => (filterValue)
+      ? (isMatch(modName) || isMatch(otherModName))
+      : true;
+
+    return testFilterMatch() && isUnresolved(modId, conflict.otherMod.id);
   }
 
   private onKeyPress = (evt: React.KeyboardEvent<Modal>) => {
@@ -292,22 +322,24 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       }))
       .sort((lhs, rhs) => lhs.name.localeCompare(rhs.name))
 
-    const renderModEntry = (modId: string, name: string) => (
-    <div key={`mod-conflict-element-${modId}`}>
-      <div className='mod-conflict-group-header'>
-          <label>{util.renderModName(mods[modId])}</label>
-          <a data-modid={modId} data-action='before_all' onClick={this.applyGroupRule}>{t('Before All')}</a>
-          <a data-modid={modId} data-action='after_all' onClick={this.applyGroupRule}>{t('After All')}</a>
-        </div>
-      <Table className='mod-conflict-list'>
-        <tbody>
-          {(conflicts[modId] || [])
-            .filter(conflict => this.applyFilter(conflict, modId))
-            .map((conf: IConflict) => this.renderConflict(modId, name, conf))}
-        </tbody>
-      </Table>
-    </div>
-    );
+    const renderModEntry = (modId: string, name: string) => {
+      const filtered = (conflicts[modId] || [])
+        .filter(conflict => this.applyFilter(conflict, modId));
+      return (filtered.length > 0) ? (
+      <div key={`mod-conflict-element-${modId}`}>
+        <div className='mod-conflict-group-header'>
+            <label>{util.renderModName(mods[modId])}</label>
+            <a data-modid={modId} data-action='before_all' onClick={this.applyGroupRule}>{t('Before All')}</a>
+            <a data-modid={modId} data-action='after_all' onClick={this.applyGroupRule}>{t('After All')}</a>
+          </div>
+        <Table className='mod-conflict-list'>
+          <tbody>
+            {filtered.map((conf: IConflict) => this.renderConflict(modId, name, conf))}
+          </tbody>
+        </Table>
+      </div>
+      ) : null
+    };
 
     return (modEntries.length > 0)
       ? (
