@@ -17,7 +17,8 @@ function unsolvedConflictsCheck(api: types.IExtensionApi,
       && util.testModReference(ref, rule.reference));
   };
 
-  const mods = util.getSafe(state, ['persistent', 'mods', selectors.activeGameId(state)], {});
+  const gameMode = selectors.activeGameId(state);
+  const mods = util.getSafe(state, ['persistent', 'mods', gameMode], {});
   const conflicts: { [modId: string]: IConflict[] } =
     util.getSafe(state, ['session', 'dependencies', 'conflicts'], {}) || {};
 
@@ -44,7 +45,7 @@ function unsolvedConflictsCheck(api: types.IExtensionApi,
     )
     .then((result: types.IDialogResult) => {
       if (result.action === 'Show') {
-        showUnsolvedConflictsDialog(api, modRules);
+        showUnsolvedConflictsDialog(api, modRules, undefined, gameMode);
       }
       return Promise.reject(new util.ProcessCanceled('Unresolved File conflicts'));
     });

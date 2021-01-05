@@ -8,8 +8,17 @@ import * as path from 'path';
 import turbowalk from 'turbowalk';
 import { log, types, util } from 'vortex-api';
 
+// using absolute paths for conflict detection is required to detect conflicts
+// across mod types, but this causes various problems across the application
+// that we would have to review with sufficient time before we can apply this.
+// besides: just because we detect file conflicts doesn't mean we can actually
+//   solve them. Currently mod types are still deployed one after the other so
+//   setting install order rules between mods of different types doesn't have
+//   the expected effect until the deployment system is overhauled.
+const ABSOLUTE_PATHS: boolean = false;
+
 interface IFileMap {
-  [filePath: string]: Array<{ mod: types.IMod, time: number }>;
+  [filePath: string]: Array<{ mod: types.IMod, relPath: string, time: number }>;
 }
 
 function toLookupInfo(mod: types.IMod): IModLookupInfo {
@@ -26,43 +35,71 @@ function toLookupInfo(mod: types.IMod): IModLookupInfo {
   };
 }
 
-function makeGetRelPath(game: types.IGame) {
-  const makeResolver = (mergeMods: boolean | ((mod: types.IMod) => string)) => {
+function makeGetRelPath(api: types.IExtensionApi, game: types.IGame) {
+  const makeResolver = (basePath: string,
+                        mergeMods: boolean | ((mod: types.IMod) => string)) => {
     if (typeof(mergeMods) === 'boolean') {
-      return mergeMods
-        ? () => ''
-        : (mod: types.IMod) => mod.id;
+      if (ABSOLUTE_PATHS) {
+        return mergeMods
+          ? () => basePath
+          : (mod: types.IMod) => path.join(basePath, mod.id);
+      } else {
+        return mergeMods
+          ? () => ''
+          : (mod: types.IMod) => mod.id;
+      }
     } else {
-      return mergeMods;
+      return ABSOLUTE_PATHS
+        ? (mod: types.IMod) => path.join(basePath, mergeMods(mod))
+        : mergeMods;
     }
   };
-  const modTypeResolver: { [modType: string]: (mod: types.IMod) => string } = {
-    '': makeResolver(game.mergeMods),
-  };
+
+  const state: types.IState = api.getState();
+  const discovery = state.settings.gameMode.discovered[game.id];
+
+  const modPaths = game.getModPaths(discovery.path);
+  const modTypeResolver: { [modType: string]: (mod: types.IMod) => string } =
+    Object.keys(modPaths).reduce((prev, modTypeId) => {
+      if (modTypeId === '') {
+        prev[modTypeId] = makeResolver(modPaths[modTypeId], game.mergeMods);
+      } else {
+        const modType = util.getModType(modTypeId);
+        prev[modTypeId] = makeResolver(
+          modPaths[modTypeId],
+          modType?.options?.mergeMods ?? game.mergeMods);
+      }
+      return prev;
+    }, {});
 
   return (mod: types.IMod): string => {
     if (modTypeResolver[mod.type] === undefined) {
       const modType: types.IModType = util.getModType(mod.type);
       if (modType === undefined) {
         log('warn', 'mod has invalid mod type', mod.type);
+        // fall back to default resolver
+        return modTypeResolver[''](mod);
       }
-      modTypeResolver[mod.type] = makeResolver(modType?.options?.mergeMods ?? game.mergeMods);
+      modTypeResolver[mod.type] = makeResolver(
+        modType.getPath(game),
+        modType?.options?.mergeMods ?? game.mergeMods);
     }
 
     return modTypeResolver[mod.type](mod);
   };
 }
 
-function getAllFiles(game: types.IGame,
-                     basePath: string,
+function getAllFiles(api: types.IExtensionApi,
+                     game: types.IGame,
+                     stagingPath: string,
                      mods: types.IMod[],
                      activator: types.IDeploymentMethod): Promise<IFileMap> {
   const files: IFileMap = {};
 
-  const typeRelPath = makeGetRelPath(game);
+  const typeRelPath = makeGetRelPath(api, game);
 
   return Promise.map(mods.filter(mod => mod.installationPath !== undefined), (mod: types.IMod) => {
-    const modPath = path.join(basePath, mod.installationPath);
+    const modPath = path.join(stagingPath, mod.installationPath);
 
     return turbowalk(modPath, entries => {
       entries.forEach(entry => {
@@ -82,7 +119,7 @@ function getAllFiles(game: types.IGame,
                 && (files[relPathL].find(iter => iter.mod === mod) !== undefined)) {
               return;
             }
-            util.setdefault(files, relPathL, []).push({ mod, time: entry.mtime });
+            util.setdefault(files, relPathL, []).push({ mod, relPath, time: entry.mtime });
           } catch (err) {
             log('error', 'invalid file entry - what is this?', { entry, error: err.stack });
           }
@@ -101,15 +138,15 @@ interface IConflictMap {
   [lhsId: string]: { [rhsId: string]: { files: string[], suggestion: ConflictSuggestion } };
 }
 
-function getConflictMap(files: IFileMap): IConflictMap {
+function getConflictMap(files: IFileMap, game: types.IGame): IConflictMap {
   const conflictFiles = Object.keys(files)
     .filter(filePath => (files[filePath] !== undefined)
                      && (files[filePath].length > 1)
-                     && !isBlacklisted(filePath));
+                     && !isBlacklisted(filePath, game));
 
   const conflicts: IConflictMap = {};
-  conflictFiles.forEach(filePath => {
-    const file = files[filePath];
+  conflictFiles.forEach(fileKey => {
+    const file = files[fileKey];
     for (let i = 0; i < file.length; ++i) {
       for (let j = 0; j < file.length; ++j) {
         if (i !== j) {
@@ -120,7 +157,7 @@ function getConflictMap(files: IFileMap): IConflictMap {
             : undefined;
           const entry = util.setdefault(util.setdefault(conflicts, file[i].mod.id, {}),
                           file[j].mod.id, { files: [], suggestion: undefined });
-          entry.files.push(filePath);
+          entry.files.push(file[0].relPath);
           if (suggestion !== undefined) {
             if (entry.suggestion === undefined) {
               entry.suggestion = suggestion;
@@ -135,14 +172,15 @@ function getConflictMap(files: IFileMap): IConflictMap {
   return conflicts;
 }
 
-function findConflicts(game: types.IGame,
-                       basePath: string,
+function findConflicts(api: types.IExtensionApi,
+                       game: types.IGame,
+                       stagingPath: string,
                        mods: types.IMod[],
                        activator: types.IDeploymentMethod)
                        : Promise<{ [modId: string]: IConflict[] }> {
-  return getAllFiles(game, basePath, mods, activator)
+  return getAllFiles(api, game, stagingPath, mods, activator)
     .then((files: IFileMap) => {
-      const conflictMap = getConflictMap(files);
+      const conflictMap = getConflictMap(files, game);
       const conflictsByMod: { [modId: string]: IConflict[] } = {};
       Object.keys(conflictMap).forEach(lhsId => {
         Object.keys(conflictMap[lhsId]).forEach(rhsId => {

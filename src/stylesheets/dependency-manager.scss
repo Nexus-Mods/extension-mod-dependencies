@@ -103,6 +103,7 @@
 
   p {
     margin: 0px;
+    white-space: nowrap;
   }
 }
 
@@ -170,6 +171,20 @@
   &.connecting {
     width: 150%;
     margin-left: -25%;
+  }
+}
+
+.conflict-filter-input {
+  padding: 10px 0;
+  margin-bottom: 5px !important;
+  position: relative;
+  border-color: $border-color;
+  width: 20em;
+  z-index: 0;
+  .form-control {
+    position: initial;
+    float: unset;
+    z-index: unset;
   }
 }
 
@@ -276,8 +291,34 @@
     padding: $gutter-width;
     max-height: 80vh;
     overflow-y: auto;
+    .mod-conflict-group-header {
+      label {
+        margin-top: 5px;
+      }
+      a {
+        margin-left: 5px;
+      }
+    }
+
+    table{
+      table-layout: fixed;
+    }
+
     td {
       border-top: 0;
+    }
+  }
+
+  .modal-footer {
+    display: flex;
+    justify-content: space-between;
+    .conflict-editor-main-actions {
+      width: 100%;
+    }
+    .conflict-editor-secondary-actions {
+      display: flex;
+      width: 100%;
+      justify-self: left;
     }
   }
 }

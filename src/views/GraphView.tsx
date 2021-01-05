@@ -30,7 +30,7 @@ export interface IGraphViewProps {
 }
 
 function san(input: string): string {
-  return input.replace(/[ &()'.;:]/g, '_');
+  return input.replace(/[^a-zA-Z0-9_-]/g, (invalid) => `_${invalid.charCodeAt(0)}_`);
 }
 
 class GraphView extends React.Component<IGraphViewProps, {}> {

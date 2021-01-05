@@ -5,10 +5,13 @@ import findRule from './findRule';
 
 function showUnsolvedConflictsDialog(api: types.IExtensionApi,
                                      modRules: IBiDirRule[],
-                                     showAll?: boolean) {
+                                     showAll?: boolean,
+                                     gameId?: string) {
   const state: types.IState = api.store.getState();
-  const gameMode = selectors.activeGameId(state);
-  const mods = state.persistent.mods[gameMode];
+  if (gameId === undefined) {
+    gameId = selectors.activeGameId(state);
+  }
+  const mods = state.persistent.mods[gameId] ?? {};
 
   const conflicts = util.getSafe(state.session, ['dependencies', 'conflicts'], undefined);
 
@@ -35,7 +38,7 @@ function showUnsolvedConflictsDialog(api: types.IExtensionApi,
   }
 
   if (modsToShow.length > 0 || showAll) {
-    api.store.dispatch(setConflictDialog(gameMode, modsToShow, modRules));
+    api.store.dispatch(setConflictDialog(gameId, modsToShow, modRules));
   }
 }
 
