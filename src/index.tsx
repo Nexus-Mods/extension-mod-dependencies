@@ -162,8 +162,7 @@ function updateConflictInfo(api: types.IExtensionApi, gameId: string,
   const unsolved: { [modId: string]: IConflict[] } = {};
 
   if (mods === undefined) {
-    // TODO: how can this happen?
-    log('error', 'no mods to calculate conflicts for');
+    // normal before the first mod for a game is installed
     store.dispatch(actions.dismissNotification(CONFLICT_NOTIFICATION_ID));
     return;
   }
