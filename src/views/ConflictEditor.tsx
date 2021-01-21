@@ -6,6 +6,8 @@ import { setConflictDialog, setFileOverrideDialog } from '../actions';
 
 import { RuleChoice } from '../util/getRuleTypes';
 
+import ConflictEditorTips from './ConflictEditorTips';
+
 import { NAMESPACE } from '../statics';
 
 import * as React from 'react';
@@ -167,9 +169,17 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
           onClick={clickFunc}>{t(text)}
         </Button>);
 
+    const tips = <ConflictEditorTips/>;
     return (
       <Modal id='conflict-editor-dialog' show={modIds !== undefined} onHide={nop}>
-        <Modal.Header><Modal.Title>{modName}</Modal.Title></Modal.Header>
+        <Modal.Header>
+        <FlexLayout type='column'>
+          <FlexLayout.Fixed style={{ justifyContent: 'space-between', display: 'flex' }}>
+            <Modal.Title>{modName}</Modal.Title>
+            <tooltip.Icon name='dialog-info' tooltip={tips}/>
+          </FlexLayout.Fixed>
+        </FlexLayout>
+        </Modal.Header>
         <Modal.Body>
           {filterInput}
           {content}
@@ -203,9 +213,9 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
   private clearRules = () => {
     const { t, modIds, conflicts } = this.props;
     this.context.api.showDialog('question', t('Confirm'), {
-      text: t('This will clear/remove the existing conflict rules from ALL of your mods, '
-            + 'Please be aware that if saved, this action cannot be undone and the mod rules '
-            + 'will have to be set again.'),
+      text: t('This change will only be applied once you choose to "Save" the change in the main '
+        + 'dialogue window. Please be aware that once saved, this action cannot be undone and the '
+        + 'mod rules will have to be set again.'),
     }, [
         { label: 'Cancel', default: true },
         {
@@ -232,17 +242,16 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
   private useSuggested = () => {
     const { t, mods, modIds, conflicts } = this.props;
     this.context.api.showDialog('question', t('Confirm'), {
-      bbcode: t('Vortex can set some of the rules automatically based on the last modified time of each conflicting file. '
-              + 'Files that have been modified/created more recently will be loaded after older ones. '
-              + 'This may not be the correct choice for all rules, and shouldn\'t be perceived as such.[br][/br][br][/br]'
+      bbcode: t('Vortex can set some of the rules automatically based on the last modified date. '
+              + 'Mods with newer files will be loaded after mods with older files, effectively overriding '
+              + 'older mods. While this is a quick way to resolve mod conflicts with generally decent results, '
+              + 'it is no guarantee for a working mod load order.[br][/br][br][/br]'
+              + 'Please note: Vortex will be unable to suggest rules for mods with files '
+              + 'that are both older than some and newer than others from a conflicting mod.[br][/br][br][/br]'
               + 'Loading mods in the incorrect order can lead to in-game errors such as:[br][/br][br][/br]'
               + '[list][*]Mods not having an effect on the game[*]Incorrect textures or models showing up '
               + '[*]The game crashing[/list][br][/br]If you find that your mods don\'t work correctly ' 
-              + 'you can always come here and change their order.[br][/br][br][/br]'
-              + 'As a general guideline: patches and options should load after their base mod, mods that depend '
-              + 'on another one should load after the dependency. Beyond that you\'re probably best off loading '
-              + 'newer mods after older ones, lesser known mods after the very popular ones and then the ones you '
-              + 'care most about after the ones you can live without.'),
+              + 'you can always come here and change their order.'),
     }, [
         { label: 'Cancel', default: true },
         {
