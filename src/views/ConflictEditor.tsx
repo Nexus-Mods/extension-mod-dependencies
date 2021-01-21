@@ -144,6 +144,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       : null;
 
     const hasConflicts = !!modIds?.length;
+    const hasAppliedFilters = hideResolved || !!filterValue;
     const content = (conflicts === undefined)
       ? (
         <div className='conflicts-loading'>
@@ -155,6 +156,17 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
         ? ( this.renderConflicts() )
         : ( <EmptyPlaceholder icon='conflict' text={t('You have no file conflicts. Wow!')} /> );
 
+    const renderButton = (clickFunc: () => void, text: string) => hasAppliedFilters
+      ? (<tooltip.Button
+          disabled={true}
+          onClick={clickFunc}
+          tooltip='Unavailable when filters are applied'>{t(text)}
+        </tooltip.Button>)
+      : (<Button
+          disabled={!hasConflicts}
+          onClick={clickFunc}>{t(text)}
+        </Button>);
+
     return (
       <Modal id='conflict-editor-dialog' show={modIds !== undefined} onHide={nop}>
         <Modal.Header><Modal.Title>{modName}</Modal.Title></Modal.Header>
@@ -164,14 +176,8 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
         </Modal.Body>
         <Modal.Footer>
           <FlexLayout.Fixed className='conflict-editor-secondary-actions'>
-            <Button
-              disabled={!hasConflicts}
-              onClick={this.clearRules}>{t('Clear Rules')}
-            </Button>
-            <Button
-              disabled={!hasConflicts}
-              onClick={this.useSuggested}>{t('Use Suggestions')}
-            </Button>
+            {renderButton(this.clearRules, 'Clear Rules')}
+            {renderButton(this.useSuggested, 'Use Suggestions')}
             <Button
               disabled={!hasConflicts}
               onClick={this.toggleHideResolved}>{hideResolved ? t('Show Resolved') : t('Hide Resolved')}
