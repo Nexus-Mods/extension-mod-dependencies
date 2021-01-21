@@ -143,6 +143,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
         />
       : null;
 
+    const hasConflicts = !!modIds?.length;
     const content = (conflicts === undefined)
       ? (
         <div className='conflicts-loading'>
@@ -150,7 +151,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
           {t('Conflicts haven\'t been calculated yet')}
         </div>
       )
-      : (modIds?.length > 0)
+      : (hasConflicts)
         ? ( this.renderConflicts() )
         : ( <EmptyPlaceholder icon='conflict' text={t('You have no file conflicts. Wow!')} /> );
 
@@ -163,10 +164,17 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
         </Modal.Body>
         <Modal.Footer>
           <FlexLayout.Fixed className='conflict-editor-secondary-actions'>
-            <Button onClick={this.clearRules}>{t('Clear Rules')}</Button>
-            <Button onClick={this.useSuggested}>{t('Use Suggestions')}</Button>
             <Button
-              onClick={this.toggleHideResolved}>{hideResolved ? t('Show All') : t('Hide Resolved')}
+              disabled={!hasConflicts}
+              onClick={this.clearRules}>{t('Clear Rules')}
+            </Button>
+            <Button
+              disabled={!hasConflicts}
+              onClick={this.useSuggested}>{t('Use Suggestions')}
+            </Button>
+            <Button
+              disabled={!hasConflicts}
+              onClick={this.toggleHideResolved}>{hideResolved ? t('Show Resolved') : t('Hide Resolved')}
             </Button>
           </FlexLayout.Fixed>
           <FlexLayout.Fixed className='conflict-editor-main-actions'>
