@@ -253,6 +253,7 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
       gameId: downloadGame,
     })
       .then((meta: ILookupResult[]) => {
+        // get both the rules from the meta server and the ones stored with the mod
         const rules: IRule[] = [].concat(
           ((meta.length > 0) && (meta[0].value !== undefined)) ? meta[0].value.rules || [] : [],
           util.getSafe(mods[modLookup.id], ['rules'], []),
@@ -335,8 +336,7 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
 
 // determine all conflicts and check if they are fulfilled or not
 function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
-  const store = api.store;
-  const state = store.getState();
+  const state = api.getState();
   const stagingPath = selectors.installPath(state);
   const gameMode = selectors.activeGameId(state);
   log('debug', 'check conflicts and rules', { gameMode });
@@ -359,16 +359,18 @@ function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
   }
 
   const modState = selectors.activeProfile(state).modState;
-  const mods = Object.keys(state.persistent.mods[gameMode] || {})
+  const gameMods = state.persistent.mods[gameMode] ?? {};
+  const mods = Object.keys(gameMods)
     .filter(modId => util.getSafe(modState, [modId, 'enabled'], false))
+    .filter(modId => util.getModType(gameMods[modId].type).options?.['noConflicts'] !== true)
     .map(modId => state.persistent.mods[gameMode][modId]);
   const activator = util.getCurrentActivator(state, gameMode, true);
 
-  store.dispatch(actions.startActivity('mods', 'conflicts'));
+  api.store.dispatch(actions.startActivity('mods', 'conflicts'));
   return determineConflicts(api, game, stagingPath, mods, activator)
     .then(conflictMap => {
-      if (!_.isEqual(conflictMap, state.session.dependencies.conflicts)) {
-        store.dispatch(setConflictInfo(conflictMap));
+      if (!_.isEqual(conflictMap, state.session['dependencies'].conflicts)) {
+        api.store.dispatch(setConflictInfo(conflictMap));
       }
       updateConflictInfo(api, gameMode, conflictMap);
       return checkRulesFulfilled(api);
@@ -377,7 +379,7 @@ function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
       api.showErrorNotification('Failed to determine conflicts', err);
     })
     .finally(() => {
-      store.dispatch(actions.stopActivity('mods', 'conflicts'));
+      api.store.dispatch(actions.stopActivity('mods', 'conflicts'));
     });
 }
 
