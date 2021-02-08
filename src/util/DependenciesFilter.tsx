@@ -3,17 +3,18 @@ import { ILocalState } from '../views/DependencyIcon';
 import * as React from 'react';
 import Select from 'react-select';
 import { types, util } from 'vortex-api';
+import { NAMESPACE } from '../statics';
 import { IBiDirRule } from '../types/IBiDirRule';
 import { IConflict } from '../types/IConflict';
 import { IModLookupInfo } from '../types/IModLookupInfo';
 
 export class DependenciesFilterComponent extends React.Component<types.IFilterProps, {}> {
   public render(): JSX.Element {
-    const { filter } = this.props;
+    const { t, filter } = this.props;
 
     const options = [
-      { value: 'has-conflict', label: 'Conflict' },
-      { value: 'has-unsolved', label: 'Unresolved' },
+      { value: 'has-conflict', label: t('Conflict', { ns: NAMESPACE }) },
+      { value: 'has-unsolved', label: t('Unresolved', { ns: NAMESPACE }) },
     ];
     return (
       <Select
