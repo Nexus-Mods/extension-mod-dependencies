@@ -239,12 +239,14 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
     }
 
     const elements: { [id: string]: IGraphElement } = editCycle.modIds.reduce((prev, modId) => {
-      prev[modId] = {
-        title: util.renderModName(mods[modId]),
-        connections: this.getAllLinks(props, modId),
-        class: `conflictnode`,
-        readonly: false,
-      };
+      if (mods[modId] !== undefined) {
+        prev[modId] = {
+          title: util.renderModName(mods[modId]),
+          connections: this.getAllLinks(props, modId),
+          class: `conflictnode`,
+          readonly: false,
+        };
+      }
       return prev;
     },  {});
 
