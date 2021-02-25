@@ -126,7 +126,10 @@ function getAllFiles(api: types.IExtensionApi,
         }
       });
     }, { })
-    .catch({ code: 'ENOTFOUND' }, err => {
+    .catch(err => {
+      if (!(['ENOENT', 'ENOTFOUND'].includes(err.code))) {
+        return Promise.reject(err);
+      }
       log('error', 'Mod directory not found', { modDirectory: mod.installationPath });
       return {};
     });
