@@ -5,6 +5,8 @@ import { setConflictDialog, setFileOverrideDialog } from '../actions';
 
 import { RuleChoice } from '../util/getRuleTypes';
 
+import ConflictEditorTips from './ConflictEditorTips';
+
 import { NAMESPACE } from '../statics';
 
 import * as React from 'react';
@@ -43,7 +45,7 @@ interface IRuleSpec {
 }
 
 interface IComponentState {
-  showOnlyUnresolved: boolean;
+  hideResolved: boolean;
   filterValue: string;
   rules: { [modId: string]: { [refId: string]: IRuleSpec } };
 }
@@ -99,7 +101,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     this.initState({
       rules: {},
       filterValue: '',
-      showOnlyUnresolved: false
+      hideResolved: false
     });
   }
 
@@ -119,7 +121,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
 
   public render(): JSX.Element {
     const {t, modIds, mods, conflicts} = this.props;
-    const { filterValue, showOnlyUnresolved } = this.state;
+    const { filterValue, hideResolved } = this.state;
 
     let modName = '';
 
@@ -142,6 +144,8 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
         />
       : null;
 
+    const hasConflicts = !!modIds?.length;
+    const hasAppliedFilters = hideResolved || !!filterValue;
     const content = (conflicts === undefined)
       ? (
         <div className='conflicts-loading'>
@@ -149,23 +153,43 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
           {t('Conflicts haven\'t been calculated yet')}
         </div>
       )
-      : (modIds?.length > 0)
+      : (hasConflicts)
         ? ( this.renderConflicts() )
         : ( <EmptyPlaceholder icon='conflict' text={t('You have no file conflicts. Wow!')} /> );
 
+    const renderButton = (clickFunc: () => void, text: string) => hasAppliedFilters
+      ? (<tooltip.Button
+          disabled={true}
+          onClick={clickFunc}
+          tooltip='Unavailable when filters are applied'>{t(text)}
+        </tooltip.Button>)
+      : (<Button
+          disabled={!hasConflicts}
+          onClick={clickFunc}>{t(text)}
+        </Button>);
+
+    const tips = <ConflictEditorTips/>;
     return (
-      <Modal onKeyPress={this.onKeyPress} id='conflict-editor-dialog' show={modIds !== undefined} onHide={nop}>
-        <Modal.Header><Modal.Title>{modName}</Modal.Title></Modal.Header>
+      <Modal id='conflict-editor-dialog' show={modIds !== undefined} onHide={nop}>
+        <Modal.Header>
+        <FlexLayout type='column'>
+          <FlexLayout.Fixed style={{ justifyContent: 'space-between', display: 'flex' }}>
+            <Modal.Title>{modName}</Modal.Title>
+            <tooltip.Icon name='dialog-info' tooltip={tips}/>
+          </FlexLayout.Fixed>
+        </FlexLayout>
+        </Modal.Header>
         <Modal.Body>
           {filterInput}
           {content}
         </Modal.Body>
         <Modal.Footer>
           <FlexLayout.Fixed className='conflict-editor-secondary-actions'>
-            <Button onClick={this.clearRules}>{t('Clear Rules')}</Button>
-            <Button onClick={this.useSuggested}>{t('Use Suggestions')}</Button>
+            {renderButton(this.clearRules, 'Clear Rules')}
+            {renderButton(this.useSuggested, 'Use Suggestions')}
             <Button
-              onClick={this.toggleShowUnresolved}>{showOnlyUnresolved ? t('Show All') : t('Show Unresolved')}
+              disabled={!hasConflicts}
+              onClick={this.toggleHideResolved}>{hideResolved ? t('Show Resolved') : t('Hide Resolved')}
             </Button>
           </FlexLayout.Fixed>
           <FlexLayout.Fixed className='conflict-editor-main-actions'>
@@ -188,9 +212,9 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
   private clearRules = () => {
     const { t, modIds, conflicts } = this.props;
     this.context.api.showDialog('question', t('Confirm'), {
-      text: t('This will clear/remove the existing conflict rules from ALL of your mods, '
-            + 'Please be aware that if saved, this action cannot be undone and the mod rules '
-            + 'will have to be set again.'),
+      text: t('This change will only be applied once you choose to "Save" the change in the main '
+        + 'dialogue window. Please be aware that once saved, this action cannot be undone and the '
+        + 'mod rules will have to be set again.'),
     }, [
         { label: 'Cancel', default: true },
         {
@@ -210,24 +234,23 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     ]);
   };
 
-  private toggleShowUnresolved = () => {
-    this.nextState.showOnlyUnresolved = !this.state.showOnlyUnresolved;
+  private toggleHideResolved = () => {
+    this.nextState.hideResolved = !this.state.hideResolved;
   }
 
   private useSuggested = () => {
     const { t, mods, modIds, conflicts } = this.props;
     this.context.api.showDialog('question', t('Confirm'), {
-      bbcode: t('Vortex can set some of the rules automatically based on the last modified time of each conflicting file. '
-              + 'Files that have been modified/created more recently will be loaded after older ones. '
-              + 'This may not be the correct choice for all rules, and shouldn\'t be perceived as such.[br][/br][br][/br]'
+      bbcode: t('Vortex can set some of the rules automatically based on the last modified date. '
+              + 'Mods with newer files will be loaded after mods with older files, effectively overriding '
+              + 'older mods. While this is a quick way to resolve mod conflicts with generally decent results, '
+              + 'it is no guarantee for a working mod load order.[br][/br][br][/br]'
+              + 'Please note: Vortex will be unable to suggest rules for mods with files '
+              + 'that are both older than some and newer than others from a conflicting mod.[br][/br][br][/br]'
               + 'Loading mods in the incorrect order can lead to in-game errors such as:[br][/br][br][/br]'
               + '[list][*]Mods not having an effect on the game[*]Incorrect textures or models showing up '
               + '[*]The game crashing[/list][br][/br]If you find that your mods don\'t work correctly ' 
-              + 'you can always come here and change their order.[br][/br][br][/br]'
-              + 'As a general guideline: patches and options should load after their base mod, mods that depend '
-              + 'on another one should load after the dependency. Beyond that you\'re probably best off loading '
-              + 'newer mods after older ones, lesser known mods after the very popular ones and then the ones you '
-              + 'care most about after the ones you can live without.'),
+              + 'you can always come here and change their order.'),
     }, [
         { label: 'Cancel', default: true },
         {
@@ -273,8 +296,8 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
 
   private applyFilter = (conflict: IConflict, modId: string): boolean => {
     const { mods } = this.props;
-    const { filterValue, rules, showOnlyUnresolved } = this.state;
-    if (!filterValue && !showOnlyUnresolved) {
+    const { filterValue, rules, hideResolved } = this.state;
+    if (!filterValue && !hideResolved) {
       return true;
     }
 
@@ -289,7 +312,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
                       && (util as any).testModReference(mods[modId], rule.reference)) !== undefined
       : rules[otherModId][modId].type !== undefined;
 
-      return (showOnlyUnresolved)
+      return (hideResolved)
         ? (rules[modId][otherModId] === undefined)
           ? !isRuleSet
           : (rules[modId][otherModId].type === undefined) && !isRuleSet
@@ -306,12 +329,6 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     return testFilterMatch() && isUnresolved(modId, conflict.otherMod.id);
   }
 
-  private onKeyPress = (evt: React.KeyboardEvent<Modal>) => {
-    if (evt.charCode === 13) {
-      this.save();
-    }
-  }
-
   private renderConflicts = (): JSX.Element => {
     const { t, conflicts, mods, modIds } = this.props;
     const modEntries = (modIds || [])
@@ -321,9 +338,19 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       }))
       .sort((lhs, rhs) => lhs.name.localeCompare(rhs.name))
 
+    let renderedConflictsCount = 0;
+    const renderPlaceholder = () => ((modEntries.length > 0) && (renderedConflictsCount === 0))
+      ? (<EmptyPlaceholder
+          icon='conflict'
+          text={t('Filters are applied')}
+          subtext={t('Please remove applied filters to view all conflicts')}
+        />)
+      : null;
+
     const renderModEntry = (modId: string, name: string) => {
       const filtered = (conflicts[modId] || [])
         .filter(conflict => this.applyFilter(conflict, modId));
+      renderedConflictsCount += filtered.length;
       return (filtered.length > 0) ? (
       <div key={`mod-conflict-element-${modId}`}>
         <div className='mod-conflict-group-header'>
@@ -344,6 +371,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       ? (
         <div>
           {modEntries.map(entry => renderModEntry(entry.id, entry.name))}
+          {renderPlaceholder()}
         </div>
       )
       : null;
@@ -570,6 +598,8 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
 
   private close = () => {
     const { onClose } = this.props;
+    this.nextState.filterValue = '';
+    this.nextState.hideResolved = false;
     onClose();
   }
 

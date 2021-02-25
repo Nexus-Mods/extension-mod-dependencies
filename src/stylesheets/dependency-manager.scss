@@ -113,10 +113,6 @@
   vertical-align: top;
 }
 
-.conflict-rule-description {
-  display: inline-block;
-}
-
 .conflict-rule-reference {
   display: flex;
   align-items: center;
@@ -124,6 +120,11 @@
   .conflict-rule-name {
     flex: 2 1 0;
     margin: 0 4px;
+    max-width: 100%;
+    > div {
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
   }
   .conflict-rule-version {
     flex: 1 1 0;
@@ -133,6 +134,7 @@
 .conflict-rule-owner {
   div {
     overflow: hidden;
+    text-overflow: ellipsis;
     max-width: 15em;
   }
 }

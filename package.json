@@ -12,11 +12,6 @@
   },
   "author": "Black Tree Gaming Ltd.",
   "license": "GPL-3.0",
-  "babel": {
-    "presets": [
-      "es2015"
-    ]
-  },
   "devDependencies": {
     "@types/immutability-helper": "^2.0.15",
     "@types/minimatch": "^2.0.29",

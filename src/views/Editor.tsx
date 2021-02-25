@@ -85,11 +85,11 @@ class Editor extends ComponentEx<IProps, IComponentState> {
                 value={type}
                 style={{ marginTop: 20, marginBottom: 20 }}
               >
-                <option value='before'>{t('Must load before')}</option>
-                <option value='after'>{t('Must load after')}</option>
+                <option value='before'>{t('Must deploy before')}</option>
+                <option value='after'>{t('Must deploy after')}</option>
                 <option value='requires'>{t('Requires')}</option>
                 <option value='conflicts'>
-                  {t('Conflicts with / Can\'t be loaded together with')}
+                  {t('Conflicts with / Can\'t be deployed together with')}
                 </option>
               </FormControl>
               {this.renderReference(reference)}
