@@ -388,18 +388,26 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       return;
     }
 
-    const refIds = Object.keys(rules[modId]);
-    refIds.forEach(refId => {
-    const origRule = (mods[modId].rules || [])
+    const findRule = (mod: types.IMod, refId: string) => (mods[mod.id].rules || [])
       .find(rule => (['before', 'after', 'conflicts'].indexOf(rule.type) !== -1)
-                  && (util as any).testModReference(mods[refId], rule.reference));
+                 && (util as any).testModReference(mods[refId], rule.reference));
+
+    const refIds = Object.keys(rules[modId]);
+    const unassignedRefIds = refIds.filter(refId =>
+      (findRule(mods[refId], modId) === undefined)
+   && (findRule(mods[modId], refId) === undefined));
+
+    const collection = (unassignedRefIds.length > 0)
+      ? unassignedRefIds : refIds;
+    collection.forEach(refId => {
+    const origRule = findRule(mods[modId], refId);
 
     if (origRule !== undefined) {
       onRemoveRule(gameId, modId, origRule);
     }
 
     const refRules = getRuleSpec(refId, mods, conflicts[refId]);
-    if (refRules?.[modId] !== undefined) {
+    if (refRules?.[modId]?.type !== undefined) {
       onRemoveRule(gameId, refId, {
         reference: {
           id: modId,
