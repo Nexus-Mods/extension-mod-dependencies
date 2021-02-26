@@ -176,7 +176,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
         <FlexLayout type='column'>
           <FlexLayout.Fixed style={{ justifyContent: 'space-between', display: 'flex' }}>
             <Modal.Title>{modName}</Modal.Title>
-            <tooltip.Icon name='dialog-info' tooltip={tips}/>
+            <tooltip.Icon id='dialog-info' name='dialog-info' tooltip={tips}/>
           </FlexLayout.Fixed>
         </FlexLayout>
         </Modal.Header>
@@ -380,32 +380,43 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
 
   private applyGroupRule = (evt: React.MouseEvent<any>) => {
     evt.preventDefault();
-    const { modIds, conflicts } = this.props;
+    const { conflicts, gameId, mods, onAddRule, onRemoveRule } = this.props;
     const { rules } = this.state;
     const action = evt.currentTarget.getAttribute('data-action');
     const modId = evt.currentTarget.getAttribute('data-modid');
-    if (['after_all', 'before_all'].indexOf(action) === -1) {
+    if (['after_all', 'before_all'].indexOf(action) === -1 || conflicts === undefined) {
       return;
     }
 
     const refIds = Object.keys(rules[modId]);
-    this.nextState.rules[modId] = refIds.reduce((accum, iter) => {
-      const setRules = {
-        version: rules[modId]?.[iter]?.version || 'any',
-        type: (action === 'before_all') ? 'before' : 'after',
-      };
+    refIds.forEach(refId => {
+    const origRule = (mods[modId].rules || [])
+      .find(rule => (['before', 'after', 'conflicts'].indexOf(rule.type) !== -1)
+                  && (util as any).testModReference(mods[refId], rule.reference));
 
-      accum[iter] = setRules;
-      return accum;
-    }, {});
+    if (origRule !== undefined) {
+      onRemoveRule(gameId, modId, origRule);
+    }
 
-    if ((conflicts !== undefined) && (Object.keys(conflicts).length === modIds?.length)) {
-      // We're displaying the referenced conflicts in the editor. Need to modify
-      //  those as well.
-      refIds.forEach(refMod => {
-        this.nextState.rules[refMod][modId] = { type: undefined, version: 'any' };
+    const refRules = getRuleSpec(refId, mods, conflicts[refId]);
+    if (refRules?.[modId] !== undefined) {
+      onRemoveRule(gameId, refId, {
+        reference: {
+          id: modId,
+          versionMatch: this.translateModVersion(mods[modId], refRules[modId].version),
+        },
+        type: refRules[modId].type,
       });
     }
+
+    onAddRule(gameId, modId, {
+      reference: {
+        id: refId,
+        versionMatch: this.translateModVersion(mods[refId], rules[modId][refId].version),
+      },
+      type: (action === 'before_all') ? 'before' : 'after',
+    });
+  });
   }
 
   private renderConflict = (modId: string, name: string, conflict: IConflict) => {
