@@ -20,6 +20,7 @@ import { ThunkDispatch } from 'redux-thunk';
 import * as semver from 'semver';
 import { actions as vortexActions, ComponentEx, EmptyPlaceholder, FlexLayout, FormInput, Spinner,
          tooltip, types, util } from 'vortex-api';
+import { hashHistory } from 'react-router/lib/routerHistory';
 
 interface IConnectedProps {
   gameId: string;
@@ -295,29 +296,31 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     this.nextState.filterValue = input;
   }
 
+  private isUnresolved = (modId, otherModId) => {
+    const { mods } = this.props;
+    const { rules, hideResolved } = this.state;
+    const isRuleSet: boolean = (rules[otherModId]?.[modId] === undefined)
+    ? (mods[otherModId].rules || [])
+       .find(rule => (['before', 'after', 'conflicts'].indexOf(rule.type) !== -1)
+                    && (util as any).testModReference(mods[modId], rule.reference)) !== undefined
+    : rules[otherModId][modId].type !== undefined;
+
+    return (hideResolved)
+      ? (rules[modId][otherModId] === undefined)
+        ? !isRuleSet
+        : (rules[modId][otherModId].type === undefined) && !isRuleSet
+      : true;
+  }
+
   private applyFilter = (conflict: IConflict, modId: string): boolean => {
     const { mods } = this.props;
-    const { filterValue, rules, hideResolved } = this.state;
+    const { filterValue, hideResolved } = this.state;
     if (!filterValue && !hideResolved) {
       return true;
     }
 
     if (mods[conflict.otherMod.id] === undefined) {
       return false;
-    }
-
-    const isUnresolved = (modId, otherModId) => {
-      const isRuleSet: boolean = (rules[otherModId]?.[modId] === undefined)
-      ? (mods[otherModId].rules || [])
-         .find(rule => (['before', 'after', 'conflicts'].indexOf(rule.type) !== -1)
-                      && (util as any).testModReference(mods[modId], rule.reference)) !== undefined
-      : rules[otherModId][modId].type !== undefined;
-
-      return (hideResolved)
-        ? (rules[modId][otherModId] === undefined)
-          ? !isRuleSet
-          : (rules[modId][otherModId].type === undefined) && !isRuleSet
-        : true;
     }
 
     const isMatch = (val: string) => val.toLowerCase().includes(filterValue.toLowerCase());
@@ -327,7 +330,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       ? (isMatch(modName) || isMatch(otherModName))
       : true;
 
-    return testFilterMatch() && isUnresolved(modId, conflict.otherMod.id);
+    return testFilterMatch() && this.isUnresolved(modId, conflict.otherMod.id);
   }
 
   private renderConflicts = (): JSX.Element => {
@@ -378,10 +381,27 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       : null;
   }
 
+  private confirmGroupRule = (modId: string, refIds: string[], apply: () => void) => {
+    const { t } = this.props;
+    this.context.api.showDialog('question', t('Confirm'), {
+      bbcode: t('You are about to apply a group rule (before/after all), to the following '
+        + 'mods: [br][/br][br][/br]{{mods}}[br][/br][br][/br]'
+        + 'Please note that this action is not automatically reversible, if applied '
+        + 'and the results are not satisfactory, you will have to modify the rules back manually.',
+        { replace: { mods: [modId].concat(refIds).join('[br][/br]') } }),
+    }, [
+        { label: 'Cancel', default: true },
+        {
+          label: 'Apply Rule',
+          action: () => apply(),
+        },
+      ]);
+  }
+
   private applyGroupRule = (evt: React.MouseEvent<any>) => {
     evt.preventDefault();
     const { conflicts, gameId, mods, onAddRule, onRemoveRule } = this.props;
-    const { rules } = this.state;
+    const { rules, hideResolved, filterValue } = this.state;
     const action = evt.currentTarget.getAttribute('data-action');
     const modId = evt.currentTarget.getAttribute('data-modid');
     if (['after_all', 'before_all'].indexOf(action) === -1 || conflicts === undefined) {
@@ -392,39 +412,56 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       .find(rule => (['before', 'after', 'conflicts'].indexOf(rule.type) !== -1)
                  && (util as any).testModReference(mods[refId], rule.reference));
 
-    const refIds = Object.keys(rules[modId]);
-    const unassignedRefIds = refIds.filter(refId =>
-      (findRule(mods[refId], modId) === undefined)
-   && (findRule(mods[modId], refId) === undefined));
+    const hasAppliedFilters = hideResolved || !!filterValue;
+    const refIds = (hasAppliedFilters)
+      ? Object.keys(rules[modId]).filter(refId => {
+        const refModName = util.renderModName(mods[refId]).toLowerCase();
+        const matchesFilter = refModName.includes(filterValue.toLowerCase());
+        return matchesFilter || this.isUnresolved(modId, refId);
+      })
+      : Object.keys(rules[modId]);
+    const unassignedRefIds = refIds.filter(refId => {
+      const currentModRule = rules[modId]?.[refId]?.type;
+      const currentRefRule = rules[refId]?.[modId]?.type;
+      const hasRule = (rule: RuleChoice) => rule !== undefined;
+      return (!hasRule(currentModRule) && !hasRule(currentRefRule));
+    });
 
-    const collection = (unassignedRefIds.length > 0)
-      ? unassignedRefIds : refIds;
-    collection.forEach(refId => {
-    const origRule = findRule(mods[modId], refId);
+    const applyRule = () => {
+      const collection = (unassignedRefIds.length > 0)
+        ? unassignedRefIds : refIds;
+      collection.forEach(refId => {
+        const origRule = findRule(mods[modId], refId);
 
-    if (origRule !== undefined) {
-      onRemoveRule(gameId, modId, origRule);
-    }
+        if (origRule !== undefined) {
+          onRemoveRule(gameId, modId, origRule);
+        }
 
-    const refRules = getRuleSpec(refId, mods, conflicts[refId]);
-    if (refRules?.[modId]?.type !== undefined) {
-      onRemoveRule(gameId, refId, {
-        reference: {
-          id: modId,
-          versionMatch: this.translateModVersion(mods[modId], refRules[modId].version),
-        },
-        type: refRules[modId].type,
+        const refRules = getRuleSpec(refId, mods, conflicts[refId]);
+        if (refRules?.[modId]?.type !== undefined) {
+          onRemoveRule(gameId, refId, {
+            reference: {
+              id: modId,
+              versionMatch: this.translateModVersion(mods[modId], refRules[modId].version),
+            },
+            type: refRules[modId].type,
+          });
+        }
+
+        onAddRule(gameId, modId, {
+          reference: {
+            id: refId,
+            versionMatch: this.translateModVersion(mods[refId], rules[modId][refId].version),
+          },
+          type: (action === 'before_all') ? 'before' : 'after',
+        });
       });
     }
-
-    onAddRule(gameId, modId, {
-      reference: {
-        id: refId,
-        versionMatch: this.translateModVersion(mods[refId], rules[modId][refId].version),
-      },
-      type: (action === 'before_all') ? 'before' : 'after',
-    });
-  });
+    if (unassignedRefIds.length > 0) {
+      applyRule();
+    } else {
+      this.confirmGroupRule(modId, refIds, applyRule);
+    }
   }
 
   private renderConflict = (modId: string, name: string, conflict: IConflict) => {
