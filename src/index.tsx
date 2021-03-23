@@ -640,6 +640,7 @@ const ManageRuleButton = withTranslation(['common'])(
   connect(mapStateToProps)(ManageRuleButtonImpl) as any);
 
 function main(context: types.IExtensionContext) {
+  context.registerReducer(['session', 'dependencies'], connectionReducer);
   context.registerTableAttribute('mods', makeLoadOrderAttribute(context.api));
   context.registerTableAttribute('mods', makeDependenciesAttribute(context.api));
   context.registerAction('mod-icons', 90, ManageRuleButton, {}, () => {
@@ -649,7 +650,6 @@ function main(context: types.IExtensionContext) {
       onClick: () => showUnsolvedConflictsDialog(context.api, dependencyState.modRules, true),
     };
   });
-  context.registerReducer(['session', 'dependencies'], connectionReducer);
   context.registerDialog('mod-dependencies-connector', Connector);
   context.registerDialog('mod-dependencies-editor', Editor);
   context.registerDialog('mod-conflict-editor', ConflictEditor);
