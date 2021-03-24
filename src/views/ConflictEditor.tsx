@@ -20,7 +20,6 @@ import { ThunkDispatch } from 'redux-thunk';
 import * as semver from 'semver';
 import { actions as vortexActions, ComponentEx, EmptyPlaceholder, FlexLayout, FormInput, Spinner,
          tooltip, types, util } from 'vortex-api';
-import { hashHistory } from 'react-router/lib/routerHistory';
 
 interface IConnectedProps {
   gameId: string;
