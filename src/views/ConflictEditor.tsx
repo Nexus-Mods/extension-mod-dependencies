@@ -416,7 +416,8 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       ? Object.keys(rules[modId]).filter(refId => {
         const refModName = util.renderModName(mods[refId]).toLowerCase();
         const matchesFilter = refModName.includes(filterValue.toLowerCase());
-        return matchesFilter || this.isUnresolved(modId, refId);
+        return (!!filterValue && matchesFilter)
+            || (hideResolved && this.isUnresolved(modId, refId));
       })
       : Object.keys(rules[modId]);
     const unassignedRefIds = refIds.filter(refId => {
