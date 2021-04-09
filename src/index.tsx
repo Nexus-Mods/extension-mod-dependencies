@@ -678,6 +678,22 @@ function main(context: types.IExtensionContext) {
         .length > 0) ? true : 'No file conflicts';
     });
 
+  context.api.events.on('remove-mod', (gameMode, modId) => {
+    const state = context.api.getState();
+    const mods: { [modId: string]: types.IMod } =
+      util.getSafe(state, ['persistent', 'mods', gameMode], {});
+    const modIds = Object.keys(mods);
+    for (const id of modIds) {
+      if (mods[id]?.rules !== undefined) {
+        const rule = mods[id].rules.find((rule: types.IModRule) =>
+          rule.reference?.id === modId);
+        if (rule !== undefined) {
+          context.api.store.dispatch(actions.removeModRule(gameMode, id, rule));
+        }
+      }
+    }
+  });
+
   context.registerStartHook(50, 'check-unsolved-conflicts',
     (input: types.IRunParameters) => (input.options.suggestDeploy !== false)
         ? unsolvedConflictsCheck(context.api, dependencyState.modRules, input)
