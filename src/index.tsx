@@ -348,7 +348,12 @@ function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
       return checkRulesFulfilled(api);
     })
     .catch(err => {
-      api.showErrorNotification('Failed to determine conflicts', err);
+      // 1392 means that the file/folder is corrupt/unreadable
+      // 433 means that the storage device is not connected
+      // Each are user hardware/environment issues which we can
+      //  do nothing about.
+      const allowReport = ![1392, 433].includes(err?.systemCode);
+      api.showErrorNotification('Failed to determine conflicts', err, { allowReport });
     })
     .finally(() => {
       store.dispatch(actions.stopActivity('mods', 'conflicts'));
