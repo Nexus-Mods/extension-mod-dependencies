@@ -589,6 +589,20 @@ function once(api: types.IExtensionApi) {
     store.dispatch(setEditCycle(gameId, cycle));
   });
 
+  api.events.on('remove-mod', (gameMode, modId) => {
+    const state = api.getState();
+    const mods: { [modId: string]: types.IMod } = state.persistent.mods[gameMode] ?? {};
+    Object.keys(mods).forEach(id => {
+      if (mods[id]?.rules !== undefined) {
+        const rule = mods[id].rules.find((iter: types.IModRule) =>
+          iter.reference?.id === modId);
+        if (rule !== undefined) {
+          api.store.dispatch(actions.removeModRule(gameMode, id, rule));
+        }
+      }
+    });
+  });
+
   api.onStateChange(['persistent', 'mods'], (oldState, newState) => {
     const gameMode = selectors.activeGameId(store.getState());
     if (oldState[gameMode] !== newState[gameMode]) {
@@ -682,22 +696,6 @@ function main(context: types.IExtensionContext) {
                            [])
         .length > 0) ? true : 'No file conflicts';
     });
-
-  context.api.events.on('remove-mod', (gameMode, modId) => {
-    const state = context.api.getState();
-    const mods: { [modId: string]: types.IMod } =
-      util.getSafe(state, ['persistent', 'mods', gameMode], {});
-    const modIds = Object.keys(mods);
-    for (const id of modIds) {
-      if (mods[id]?.rules !== undefined) {
-        const rule = mods[id].rules.find((rule: types.IModRule) =>
-          rule.reference?.id === modId);
-        if (rule !== undefined) {
-          context.api.store.dispatch(actions.removeModRule(gameMode, id, rule));
-        }
-      }
-    }
-  });
 
   context.registerStartHook(50, 'check-unsolved-conflicts',
     (input: types.IRunParameters) => (input.options.suggestDeploy !== false)
