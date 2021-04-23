@@ -224,7 +224,9 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
   private getAllLinks(props: IProps, modId: string): string[] {
     const { editCycle, localState, mods } = props;
     return localState.modRules
-      .filter(rule => (rule.type === 'after') && util.testModReference(mods[modId], rule.source))
+      .filter(rule => rule.original
+                   && (rule.type === 'after')
+                   && util.testModReference(mods[modId], rule.source))
       .map(rule => editCycle.modIds.filter(refId =>
         util.testModReference(mods[refId], rule.reference)))
       .reduce((prev, refs) => [...prev, ...refs], []);
