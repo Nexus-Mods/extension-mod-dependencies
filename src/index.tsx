@@ -361,7 +361,7 @@ function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
   const gameMods = state.persistent.mods[gameMode] ?? {};
   const mods = Object.keys(gameMods)
     .filter(modId => util.getSafe(modState, [modId, 'enabled'], false))
-    .filter(modId => util.getModType(gameMods[modId].type).options?.['noConflicts'] !== true)
+    .filter(modId => util.getModType(gameMods[modId].type)?.options?.['noConflicts'] !== true)
     .map(modId => state.persistent.mods[gameMode][modId]);
   const activator = util.getCurrentActivator(state, gameMode, true);
 
@@ -581,7 +581,10 @@ function once(api: types.IExtensionApi) {
   }, 200);
 
   const updateConflictDebouncer = new util.Debouncer(() =>
-    checkConflictsAndRules(api), 2000);
+    checkConflictsAndRules(api)
+      .catch(err => {
+        api.showErrorNotification('Failed to determine mod conflicts', err);
+      }), 2000);
 
   api.setStylesheet('dependency-manager',
     path.join(__dirname, 'dependency-manager.scss'));
