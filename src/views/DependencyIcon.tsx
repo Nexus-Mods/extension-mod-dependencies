@@ -112,18 +112,17 @@ class RuleDescription extends React.Component<IDescriptionProps, {}> {
 
   private renderReference = (ref: any): JSX.Element => {
     const { mod } = this.props;
-    const style = { display: 'inline' };
 
     if (mod !== undefined) {
-      return <p style={style}>{util.renderModName(mod, { version: true })}</p>;
+      return <p className='rule-mod-name'>{util.renderModName(mod, { version: true })}</p>;
     }
 
     if ((ref.logicalFileName === undefined)
         && (ref.fileExpression === undefined)) {
-      return <p style={style}>{ref.fileMD5 || ref.id}</p>;
+      return <p className='rule-mod-name'>{ref.fileMD5 || ref.id}</p>;
     }
     return (
-      <p style={style}>
+      <p className='rule-mod-name'>
         {ref.logicalFileName || ref.fileExpression} {ref.versionMatch}
     </p>
     );

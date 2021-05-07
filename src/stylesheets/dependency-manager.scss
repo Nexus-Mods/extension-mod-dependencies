@@ -140,6 +140,18 @@
 }
 
 .rule-description {
+  display: flex;
+
+  p {
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+  }
+
+  .rule-mod-name {
+    flex: 1 1 0;
+    margin-left: 1em;
+  }
+
   .btn-embed {
     margin-left: $half-gutter;
   }
