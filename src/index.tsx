@@ -596,6 +596,9 @@ function once(api: types.IExtensionApi) {
         dependencyState.modRules = rules;
         dependenciesChanged();
         updateConflictDebouncer.schedule(undefined);
+      })
+      .catch(err => {
+        api.showErrorNotification('failed to update mod rule cache', err);
       });
   });
 
