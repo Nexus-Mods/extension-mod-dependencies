@@ -30,7 +30,7 @@ import * as _ from 'lodash';
 import { ILookupResult, IModInfo, IReference, IRule, RuleType } from 'modmeta-db';
 import * as path from 'path';
 import * as React from 'react';
-import { withTranslation, WithTranslationProps } from 'react-i18next';
+import { withTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
 import {} from 'redux-thunk';
 import shortid = require('shortid');
