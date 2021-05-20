@@ -11,6 +11,7 @@ import { enabledModKeys } from '../selectors';
 
 import I18next from 'i18next';
 import * as _ from 'lodash';
+import memoizeOne from 'memoize-one';
 import { ILookupResult, IModInfo, IReference, IRule, RuleType } from 'modmeta-db';
 import * as React from 'react';
 import { Overlay, Popover } from 'react-bootstrap';
@@ -280,6 +281,7 @@ function collectDrop(conn: DropTargetConnector,
 class DependencyIcon extends ComponentEx<IProps, IComponentState> {
   private mIsMounted: boolean;
   private mRef: JSX.Element;
+  private mRuleFulfillmentMemo = memoizeOne(this.ruleFulfillment);
 
   constructor(props: IProps) {
     super(props);
@@ -289,7 +291,7 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
       reference: undefined,
       showOverlay: false,
       modRules: props.localState.modRules.filter(
-        rule => util.testModReference(props.mod, rule.source)),
+        rule => (util.testModReference as any)(props.mod, rule.source)),
     });
 
     this.mIsMounted = false;
@@ -316,7 +318,7 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
     if ((this.props.mod !== nextProps.mod)
         || (this.props.localState.modRules !== nextProps.localState.modRules)) {
       this.nextState.modRules = nextProps.localState.modRules.filter(rule =>
-        util.testModReference(nextProps.mod, rule.source));
+        (util.testModReference as any)(nextProps.mod, rule.source));
     }
 
     if (this.props.isDragging !== nextProps.isDragging) {
@@ -374,16 +376,39 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
     ));
   }
 
+  private ruleFulfillment(staticRules: IRule[],
+                          customRules: IRule[],
+                          enabledMods: IModLookupInfo[],
+                          gameId: string,
+                          modId: string)
+                          : Map<IRule, boolean> {
+    const res = new Map<IRule, boolean>();
+
+    const source = { gameId, modId };
+
+    staticRules.forEach(rule => res.set(rule, ruleFulfilled(enabledMods, rule, source)));
+    customRules.forEach(rule => res.set(rule, ruleFulfilled(enabledMods, rule, source)));
+
+    return res;
+  }
+
   private renderConnectorIcon(mod: types.IMod) {
-    const {t, connectDragSource, enabledMods, modState, mods} = this.props;
+    const {t, connectDragSource, enabledMods, gameId, modState, mods} = this.props;
 
     const classes = ['btn-dependency'];
 
     let anyUnfulfilled: boolean = false;
 
+    const staticRules = this.state.modInfo?.rules ?? [];
+    const customRules = mod.rules ?? [];
+
+    const rulesFulfilled = (modState[mod.id].enabled === true)
+      ? this.mRuleFulfillmentMemo(staticRules, customRules, enabledMods, gameId, mod.id)
+      : null;
+
     const renderRule = (rule: IRule, onRemove: (rule: IRule) => void) => {
-      const isFulfilled = util.getSafe(modState, [mod.id, 'enabled'], false)
-        ? ruleFulfilled(enabledMods, rule)
+      const isFulfilled = (rulesFulfilled !== null)
+        ? rulesFulfilled.get(rule)
         : true;
 
       // isFulfilled could be null
@@ -409,9 +434,6 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
     };
 
     let popover: JSX.Element;
-
-    const staticRules = util.getSafe(this.state, ['modInfo', 'rules'], []);
-    const customRules = util.getSafe(mod, ['rules'], []);
 
     if ((staticRules.length > 0) || (customRules.length > 0)) {
       popover = (

@@ -257,7 +257,8 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
           ((meta.length > 0) && (meta[0].value !== undefined)) ? meta[0].value.rules || [] : [],
           util.getSafe(mods[modLookup.id], ['rules'], []),
         );
-        const rulesUnfulfilled = rules.filter(rule => ruleFulfilled(enabledMods, rule) === false);
+        const rulesUnfulfilled = rules.filter(rule =>
+          ruleFulfilled(enabledMods, rule, { gameId: gameMode, modId: mod.id }) === false);
         const res: { modId: string, rules: IRule[] } = rulesUnfulfilled.length === 0
           ? null : {
             modId: mod.id,
