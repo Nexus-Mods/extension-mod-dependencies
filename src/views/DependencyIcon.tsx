@@ -21,6 +21,7 @@ import { ConnectDragPreview, ConnectDragSource, ConnectDropTarget,
 import { getEmptyImage } from 'react-dnd-html5-backend';
 import { findDOMNode } from 'react-dom';
 import { connect } from 'react-redux';
+import * as semver from 'semver';
 import { actions, ComponentEx, log, selectors, tooltip, types, util } from 'vortex-api';
 
 interface IDescriptionProps {
@@ -118,14 +119,29 @@ class RuleDescription extends React.Component<IDescriptionProps, {}> {
       return <p className='rule-mod-name'>{util.renderModName(mod, { version: true })}</p>;
     }
 
+    let version = '*';
+    if (ref.versionMatch !== undefined) {
+      try {
+        const sv = new semver.Range(ref.versionMatch);
+        version = sv.range;
+      } catch (err) {
+        version = ref.versionMatch;
+      }
+    }
+
+    if (ref.description !== undefined) {
+      return <p className='rule-mod-name'>{ref.description} {version}</p>;
+    }
+
     if ((ref.logicalFileName === undefined)
         && (ref.fileExpression === undefined)) {
       return <p className='rule-mod-name'>{ref.fileMD5 || ref.id}</p>;
     }
+
     return (
       <p className='rule-mod-name'>
-        {ref.logicalFileName || ref.fileExpression} {ref.versionMatch}
-    </p>
+        {ref.logicalFileName || ref.fileExpression} {version}
+      </p>
     );
   }
 }
