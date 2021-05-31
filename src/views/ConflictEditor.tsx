@@ -269,7 +269,15 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
                     .find(rule => (['before', 'after', 'conflicts'].indexOf(rule.type) !== -1)
                       && util.testModReference(conflict.otherMod, rule.reference));
 
-                  res[conflict.otherMod.id] = (conflict.suggestion !== null)
+                  const reverseSuggestion = (conflict.suggestion !== null)
+                    ? conflict.suggestion === 'after' ? 'before' : 'after'
+                    : undefined;
+
+                  if (prev[conflict.otherMod.id]?.[modId]?.type === reverseSuggestion) {
+                    // This rule is already set on the other mod.
+                    res[conflict.otherMod.id] = { type: undefined, version: 'any' };
+                  } else {
+                    res[conflict.otherMod.id] = (conflict.suggestion !== null)
                     ? {
                         type: conflict.suggestion,
                         version: (existingRule !== undefined)
@@ -282,6 +290,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
                           version: importVersion(existingRule.reference.versionMatch),
                         }
                       : { type: undefined, version: 'any' };
+                  }
                 });
               prev[modId] = res;
               return prev;
