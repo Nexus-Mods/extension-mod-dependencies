@@ -376,7 +376,12 @@ function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
       return checkRulesFulfilled(api);
     })
     .catch(err => {
-      api.showErrorNotification('Failed to determine conflicts', err);
+      // 1392 means that the file/folder is corrupt/unreadable
+      // 433 means that the storage device is not connected
+      // Each are user hardware/environment issues which we can
+      //  do nothing about.
+      const allowReport = ![1392, 433].includes(err?.systemCode);
+      api.showErrorNotification('Failed to determine conflicts', err, { allowReport });
     })
     .finally(() => {
       api.store.dispatch(actions.stopActivity('mods', 'conflicts'));
@@ -618,6 +623,20 @@ function once(api: types.IExtensionApi) {
     store.dispatch(setEditCycle(gameId, cycle));
   });
 
+  api.events.on('remove-mod', (gameMode, modId) => {
+    const state = api.getState();
+    const mods: { [modId: string]: types.IMod } = state.persistent.mods[gameMode] ?? {};
+    Object.keys(mods).forEach(id => {
+      if (mods[id]?.rules !== undefined) {
+        const rule = mods[id].rules.find((iter: types.IModRule) =>
+          iter.reference?.id === modId);
+        if (rule !== undefined) {
+          api.store.dispatch(actions.removeModRule(gameMode, id, rule));
+        }
+      }
+    });
+  });
+
   api.onStateChange(['persistent', 'mods'], (oldState, newState) => {
     const gameMode = selectors.activeGameId(store.getState());
     if (oldState[gameMode] !== newState[gameMode]) {
@@ -674,6 +693,7 @@ const ManageRuleButton = withTranslation(['common'])(
   connect(mapStateToProps)(ManageRuleButtonImpl) as any);
 
 function main(context: types.IExtensionContext) {
+  context.registerReducer(['session', 'dependencies'], connectionReducer);
   context.registerTableAttribute('mods', makeLoadOrderAttribute(context.api));
   context.registerTableAttribute('mods', makeDependenciesAttribute(context.api));
   context.registerAction('mod-icons', 90, ManageRuleButton, {}, () => {
@@ -683,7 +703,6 @@ function main(context: types.IExtensionContext) {
       onClick: () => showUnsolvedConflictsDialog(context.api, dependencyState.modRules, true),
     };
   });
-  context.registerReducer(['session', 'dependencies'], connectionReducer);
   context.registerDialog('mod-dependencies-connector', Connector);
   context.registerDialog('mod-dependencies-editor', Editor);
   context.registerDialog('mod-conflict-editor', ConflictEditor);

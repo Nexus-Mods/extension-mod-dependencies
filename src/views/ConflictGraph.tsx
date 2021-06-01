@@ -227,7 +227,10 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
       .filter(rule => (rule.type === 'after') && util.testModReference(mods[modId], rule.source))
       .map(rule => editCycle.modIds.filter(refId =>
         util.testModReference(mods[refId], rule.reference)))
-      .reduce((prev, refs) => [...prev, ...refs], []);
+      .reduce((prev, refs) => {
+        const newRefs = refs.filter(refId => !prev.includes(refId));
+        return [...prev, ...newRefs];
+      }, []);
   }
 
   private updateGraph(props: IProps) {
