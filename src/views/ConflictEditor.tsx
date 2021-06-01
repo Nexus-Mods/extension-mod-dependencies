@@ -15,11 +15,11 @@ import { Button, FormControl,
 import { withTranslation, WithTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
 import * as Redux from 'redux';
+import { batch } from 'redux-act';
 import { ThunkDispatch } from 'redux-thunk';
 import * as semver from 'semver';
-import { actions as vortexActions, ComponentEx, EmptyPlaceholder, FlexLayout, FormInput, Spinner,
-         tooltip, types, util } from 'vortex-api';
-import { hashHistory } from 'react-router/lib/routerHistory';
+import { actions as vortexActions, ComponentEx, EmptyPlaceholder, FlexLayout,
+         FormInput, Spinner, tooltip, types, util } from 'vortex-api';
 
 interface IConnectedProps {
   gameId: string;
@@ -34,6 +34,7 @@ interface IActionProps {
   onAddRule: (gameId: string, modId: string, rule: any) => void;
   onRemoveRule: (gameId: string, modId: string, rule: any) => void;
   onOverrideDialog: (gameId: string, modId: string) => void;
+  onBatchDispatch: (actions: Redux.Action[]) => void;
 }
 
 type IProps = IConnectedProps & IActionProps & WithTranslation;
@@ -690,8 +691,10 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
   }
 
   private save = () => {
-    const { gameId, mods, onAddRule, onRemoveRule } = this.props;
+    const { gameId, mods, onBatchDispatch } = this.props;
     const { rules } = this.state;
+
+    const actions: Redux.Action[] = [];
 
     Object.keys(rules).forEach(modId => {
       if (mods[modId] === undefined) {
@@ -706,20 +709,21 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
                         && (util as any).testModReference(mods[otherId], rule.reference));
 
         if (origRule !== undefined) {
-          onRemoveRule(gameId, modId, origRule);
+          actions.push(vortexActions.removeModRule(gameId, modId, origRule));
         }
 
         if (rules[modId][otherId].type !== undefined) {
-          onAddRule(gameId, modId, {
+          actions.push(vortexActions.addModRule(gameId, modId, {
             reference: {
               id: otherId,
               versionMatch: this.translateModVersion(mods[otherId], rules[modId][otherId].version),
             },
             type: rules[modId][otherId].type,
-          });
+          }));
         }
       });
     });
+    onBatchDispatch(actions);
 
     this.close();
   }
@@ -748,6 +752,8 @@ function mapDispatchToProps(dispatch: ThunkDispatch<any, null, Redux.Action>): I
       dispatch(vortexActions.removeModRule(gameId, modId, rule)),
     onOverrideDialog: (gameId: string, modId: string) =>
       dispatch(setFileOverrideDialog(gameId, modId)),
+    onBatchDispatch: (actions: Redux.Action[]) =>
+      dispatch(batch(actions)),
   };
 }
 
