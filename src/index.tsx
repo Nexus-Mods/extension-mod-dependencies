@@ -623,18 +623,33 @@ function once(api: types.IExtensionApi) {
     store.dispatch(setEditCycle(gameId, cycle));
   });
 
-  api.events.on('remove-mod', (gameMode, modId) => {
+  (api as any).onAsync('will-remove-mod', (gameMode, modId) => {
     const state = api.getState();
-    const mods: { [modId: string]: types.IMod } = state.persistent.mods[gameMode] ?? {};
-    Object.keys(mods).forEach(id => {
-      if (mods[id]?.rules !== undefined) {
-        const rule = mods[id].rules.find((iter: types.IModRule) =>
-          iter.reference?.id === modId);
-        if (rule !== undefined) {
-          api.store.dispatch(actions.removeModRule(gameMode, id, rule));
+    const notifications: types.INotification[] = state.session.notifications.notifications;
+    const installNotif = Object.values(notifications).filter(notif =>
+      notif.id.startsWith('install_') && notif?.replace?.id === modId);
+    if (installNotif.length === 0) {
+      // There are no installation notifications containing the modId.
+      //  This is a clear indication that the user is not updating or
+      //  re-installing this mod, and it therefore should be safe to remove
+      //  any mod rules that reference this mod.
+      const mods: { [modId: string]: types.IMod } = state.persistent.mods[gameMode] ?? {};
+      Object.keys(mods).forEach(id => {
+        if (mods[id]?.rules !== undefined) {
+          const rule = mods[id].rules.find((iter: types.IModRule) => {
+            if (iter.reference?.id === modId || iter.reference?.['idHint'] === modId) {
+              return true;
+            }
+            return util.testModReference(mods[modId], iter.reference);
+          });
+          if (rule !== undefined) {
+            api.store.dispatch(actions.removeModRule(gameMode, id, rule));
+          }
         }
-      }
-    });
+      });
+    }
+
+    return Promise.resolve();
   });
 
   api.onStateChange(['persistent', 'mods'], (oldState, newState) => {
