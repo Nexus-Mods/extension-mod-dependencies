@@ -414,6 +414,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       return;
     }
 
+    let newRules = { ...rules };
     const hasAppliedFilters = hideResolved || !!filterValue;
     const refIds = (hasAppliedFilters)
       ? Object.keys(rules[modId]).filter(refId => {
@@ -431,8 +432,8 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     });
 
     const removeRefRule = (refId: string) => (rules[refId]?.[modId] === undefined)
-      ? this.nextState.rules = {
-          ...rules,
+      ? newRules = {
+          ...newRules,
           [refId]: {
             [modId]: {
               version: 'any',
@@ -440,7 +441,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
             },
           },
         }
-      : this.nextState.rules[refId][modId] = {
+      : newRules[refId][modId] = {
           version: 'any',
           type: undefined,
         };
@@ -456,11 +457,12 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
           removeRefRule(refId);
         }
 
-        this.nextState.rules[modId][refId] = {
-          ...rules[modId][refId],
+        newRules[modId][refId] = {
+          ...newRules[modId][refId],
           type: (action === 'before_all') ? 'before' : 'after',
         };
       });
+      this.nextState.rules = newRules;
     };
     if (unassignedRefIds.length > 0) {
       applyRule();
