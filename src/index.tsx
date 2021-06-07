@@ -623,27 +623,34 @@ function once(api: types.IExtensionApi) {
     store.dispatch(setEditCycle(gameId, cycle));
   });
 
-  api.events.on('remove-mod', (gameMode, modId, cb, options) => {
-    if (options?.willBeReplaced) {
-      // The mod is being re-installed or replaced by an update;
-      //  don't remove any rules.
-      return;
-    }
-    const state = api.getState();
-    const mods: { [modId: string]: types.IMod } = state.persistent.mods[gameMode] ?? {};
-    Object.keys(mods).forEach(id => {
-      if (mods[id]?.rules !== undefined) {
-        const rule = mods[id].rules.find((iter: types.IModRule) => {
-          if (iter.reference?.id === modId || iter.reference?.['idHint'] === modId) {
-            return true;
-          }
-          return util.testModReference(mods[modId], iter.reference);
-        });
-        if (rule !== undefined) {
-          api.store.dispatch(actions.removeModRule(gameMode, id, rule));
-        }
+  api.onAsync('did-remove-mod',
+    (gameMode: string,
+     modId: string,
+     options: { willBeReplaced?: boolean, modData?: types.IMod }) => {
+      if (options?.willBeReplaced) {
+        // The mod is being re-installed or replaced by an update;
+        //  don't remove any rules.
+        return Promise.resolve();
       }
-    });
+      const state = api.getState();
+      const mods: { [modId: string]: types.IMod } = state.persistent.mods[gameMode] ?? {};
+      Object.keys(mods).forEach(id => {
+        if (mods[id]?.rules !== undefined) {
+          const rule = mods[id].rules.find((iter: types.IModRule) => {
+            if (iter.reference?.id === modId || iter.reference?.['idHint'] === modId) {
+              return true;
+            }
+            return options?.modData !== undefined
+              ? util.testModReference(options.modData, iter.reference)
+              : false;
+          });
+          if (rule !== undefined) {
+            api.store.dispatch(actions.removeModRule(gameMode, id, rule));
+          }
+        }
+      });
+
+      return Promise.resolve();
   });
 
   api.onStateChange(['persistent', 'mods'], (oldState, newState) => {
