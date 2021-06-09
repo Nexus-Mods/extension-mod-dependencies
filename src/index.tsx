@@ -107,18 +107,22 @@ function updateMetaRules(api: types.IExtensionApi,
 
     const state = api.store.getState();
     const downloadPath = selectors.downloadPathForGame(state, downloadGame);
-    const fileName = util.getSafe(mod.attributes, ['fileName'], undefined);
+    const fileName = mod.attributes?.fileName;
     const filePath = fileName !== undefined ? path.join(downloadPath, fileName) : undefined;
 
     return api.lookupModMeta({
-      fileMD5: mod.attributes['fileMD5'],
-      fileSize: mod.attributes['fileSize'],
+      fileMD5: mod.attributes?.fileMD5,
+      fileSize: mod.attributes?.fileSize,
       filePath,
       gameId: downloadGame,
     })
       .then((meta: ILookupResult[]) => {
         if ((meta.length > 0) && (meta[0].value !== undefined)) {
           rules = rules.concat(mapRules(makeReference(meta[0].value), meta[0].value.rules));
+          if (mod.attributes?.fileMD5 === undefined) {
+            api.store.dispatch(
+              actions.setModAttribute(downloadGame, mod.id, 'fileMD5', meta[0].value.fileMD5));
+          }
         }
       })
       .catch((err: Error) => {
@@ -242,12 +246,12 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
     }
 
     const downloadPath = selectors.downloadPathForGame(state, downloadGame);
-    const fileName = util.getSafe(mod.attributes, ['fileName'], undefined);
+    const fileName = mod.attributes?.fileName;
     const filePath = fileName !== undefined ? path.join(downloadPath, fileName) : undefined;
 
     return api.lookupModMeta({
-      fileMD5: util.getSafe(mod.attributes, ['fileMD5'], undefined),
-      fileSize: util.getSafe(mod.attributes, ['fileSize'], undefined),
+      fileMD5: mod.attributes?.fileMD5,
+      fileSize: mod.attributes?.fileSize,
       filePath,
       gameId: downloadGame,
     })
@@ -259,11 +263,17 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
         );
         const rulesUnfulfilled = rules.filter(rule =>
           ruleFulfilled(enabledMods, rule, { gameId: gameMode, modId: mod.id }) === false);
-        const res: { modId: string, rules: IRule[] } = rulesUnfulfilled.length === 0
+        const res: { modId: string, rules: IRule[] } = (rulesUnfulfilled.length === 0)
           ? null : {
             modId: mod.id,
             rules: rulesUnfulfilled,
           };
+
+        if ((mod.attributes?.fileMD5 === undefined) && (meta?.[0]?.value !== undefined)) {
+          store.dispatch(
+            actions.setModAttribute(downloadGame, mod.id, 'fileMD5', meta[0].value.fileMD5));
+        }
+
         return Promise.resolve(res);
       });
   })
