@@ -639,9 +639,9 @@ function once(api: types.IExtensionApi) {
 
   api.onAsync('did-remove-mod',
     (gameMode: string,
-     modId: string,
+     removedId: string,
      options: { willBeReplaced?: boolean, modData?: types.IMod }) => {
-      if (options?.willBeReplaced) {
+      if ((options?.willBeReplaced) || (options?.modData === undefined)) {
         // The mod is being re-installed or replaced by an update;
         //  don't remove any rules.
         return Promise.resolve();
@@ -649,19 +649,14 @@ function once(api: types.IExtensionApi) {
       const state = api.getState();
       const mods: { [modId: string]: types.IMod } = state.persistent.mods[gameMode] ?? {};
       Object.keys(mods).forEach(id => {
-        if (mods[id]?.rules !== undefined) {
-          const rule = mods[id].rules.find((iter: types.IModRule) => {
-            if (iter.reference?.id === modId || iter.reference?.['idHint'] === modId) {
-              return true;
-            }
-            return options?.modData !== undefined
-              ? util.testModReference(options.modData, iter.reference)
-              : false;
-          });
-          if (rule !== undefined) {
-            api.store.dispatch(actions.removeModRule(gameMode, id, rule));
-          }
-        }
+        // remove all locally defined rules referring to that mod
+        const rulesToRemove = (mods[id].rules ?? []).filter((rule: types.IModRule) =>
+          ['before', 'after'].includes(rule.type)
+          && util.testModReference(options.modData, rule.reference));
+
+        rulesToRemove.forEach(rule => {
+          api.store.dispatch(actions.removeModRule(gameMode, id, rule));
+        });
       });
 
       return Promise.resolve();
