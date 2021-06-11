@@ -121,7 +121,7 @@ function updateMetaRules(api: types.IExtensionApi,
           rules = rules.concat(mapRules(makeReference(meta[0].value), meta[0].value.rules));
           if (mod.attributes?.fileMD5 === undefined) {
             api.store.dispatch(
-              actions.setModAttribute(downloadGame, mod.id, 'fileMD5', meta[0].value.fileMD5));
+              actions.setModAttribute(gameId, mod.id, 'fileMD5', meta[0].value.fileMD5));
           }
         }
       })
@@ -256,6 +256,10 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
       gameId: downloadGame,
     })
       .then((meta: ILookupResult[]) => {
+        if ((meta.length > 0) && (mod.attributes?.fileMD5 === undefined)) {
+          api.store.dispatch(
+            actions.setModAttribute(gameMode, mod.id, 'fileMD5', meta[0].value.fileMD5));
+        }
         // get both the rules from the meta server and the ones stored with the mod
         const rules: IRule[] = [].concat(
           ((meta.length > 0) && (meta[0].value !== undefined)) ? meta[0].value.rules || [] : [],
@@ -271,7 +275,7 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
 
         if ((mod.attributes?.fileMD5 === undefined) && (meta?.[0]?.value !== undefined)) {
           store.dispatch(
-            actions.setModAttribute(downloadGame, mod.id, 'fileMD5', meta[0].value.fileMD5));
+            actions.setModAttribute(gameMode, mod.id, 'fileMD5', meta[0].value.fileMD5));
         }
 
         return Promise.resolve(res);
