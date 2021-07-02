@@ -58,9 +58,11 @@ class RuleDescription extends React.Component<IDescriptionProps, {}> {
   }
 
   private className() {
-    const {fulfilled} = this.props;
+    const {fulfilled, rule} = this.props;
     if (fulfilled === null) {
       return undefined;
+    } else if (rule['ignored'] === true) {
+      return 'rule-ignored';
     } else if (fulfilled) {
       return 'rule-fulfilled';
     } else {
@@ -428,7 +430,7 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
         : true;
 
       // isFulfilled could be null
-      if (isFulfilled === false) {
+      if ((isFulfilled === false) && !rule['ignored']) {
         anyUnfulfilled = true;
       }
 

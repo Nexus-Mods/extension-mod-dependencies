@@ -165,6 +165,10 @@
   color: $brand-danger;
 }
 
+.rule-ignored {
+  color: $text-color-disabled;
+}
+
 .rule-fulfilled button,
 .rule-unfulfilled button {
   margin-left: 0.75em;
