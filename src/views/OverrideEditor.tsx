@@ -406,7 +406,9 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
     }
 
     const components = filePath.split(nodePath.sep);
-    if (components.length === 1) {
+    if ((cur === undefined) && (components.length === 1)) {
+      // Only add the top level "." directory if we were not able
+      //  to skip it.
       components.unshift('.');
     }
 
