@@ -357,6 +357,12 @@ function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
   if (gameMode === undefined) {
     return Promise.resolve();
   }
+
+  if ((state.session.base.activity?.installing_dependencies ?? []).length > 0) {
+    log('info', 'skipping conflict check during dependency installation');
+    return Promise.resolve();
+  }
+
   const game = util.getGame(gameMode);
   if ((game === undefined) || (game.mergeMods === false)) {
     // in the case mergeMods === false, conflicts aren't possible because
