@@ -36,7 +36,7 @@ import { withTranslation, WithTranslationProps } from 'react-i18next';
 import { connect } from 'react-redux';
 import {} from 'redux-thunk';
 import shortid = require('shortid');
-import { actions, log, PureComponentEx, selectors, ToolbarIcon, types, util } from 'vortex-api';
+import { actions, fs, log, PureComponentEx, selectors, ToolbarIcon, types, util } from 'vortex-api';
 
 const CONFLICT_NOTIFICATION_ID = 'mod-file-conflict';
 const UNFULFILLED_NOTIFICATION_ID = 'mod-rule-unfulfilled';
@@ -139,6 +139,29 @@ function updateMetaRules(api: types.IExtensionApi,
       });
   })
   .then(() => rules);
+}
+
+function removeFileOverrideRedundancies(api: types.IExtensionApi,
+                                        gameMode: string,
+                                        data: { [modId: string]: string[] }) {
+  // We expect that any of the filePaths included in the provided data object to have been
+  //  _confirmed_ to be removed before calling this function!!!
+  const state = api.store.getState();
+  const mods: { [modId: string]: types.IMod } = util.getSafe(state, ['persistent', 'mods', gameMode], {});
+  const modsWithRedundancies = Object.keys(mods)
+    .filter(id => Object.keys(data).includes(id)
+      && (mods[id]?.fileOverrides !== undefined)
+      && (mods[id].fileOverrides.find(relPath => data[id].includes(relPath)) !== undefined));
+  const batchedActions = modsWithRedundancies.reduce((accum, iter) => {
+    const currentFileOverrides = mods[iter].fileOverrides;
+    const removedFiles = data[iter];
+    const newOverrides = currentFileOverrides.filter(over => !removedFiles.includes(over));
+    accum.push(actions.setFileOverride(gameMode, iter, newOverrides));
+    return accum;
+  }, []);
+
+  // TODO: convert this to a batched dispatch
+  batchedActions.forEach(action => api.store.dispatch(action));
 }
 
 const dependencyState = util.makeReactive<ILocalState>({
@@ -360,6 +383,49 @@ function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
     });
 }
 
+function checkRedundantFileOverrides(api: types.IExtensionApi) {
+  // This test intends to remove a mod's defined fileOverrides
+  //  for file entries that no longer exist inside the mod's staging folder.
+  //  e.g. https://github.com/Nexus-Mods/Vortex/issues/9671 where the user
+  //  is manually removing files from the staging folder.
+  return () => new Promise<types.ITestResult>((resolve, reject) => {
+    const state = api.store.getState();
+    const gameId = selectors.activeGameId(state);
+    const mods: { [modId: string]: types.IMod } = util.getSafe(state, ['persistent', 'mods', gameId], {});
+    const modsWithFileOverrides = Object.keys(mods)
+      .filter(id => mods[id]?.fileOverrides && (mods[id]?.fileOverrides.length > 0))
+
+    const fileExists = (filePath: string) => fs.statAsync(filePath)
+      .then(() => Promise.resolve(true))
+      .catch(err => (err.code !== 'ENOENT') ? Promise.resolve(true) : Promise.resolve(false));
+
+    return Promise.reduce(modsWithFileOverrides, (accum, iter) => {
+      const missing: string[] = [];
+      const stagingFolder = selectors.installPathForGame(state, gameId);
+      const modInstallationPath = mods[iter].installationPath;
+      const modPath = path.join(stagingFolder, modInstallationPath);
+      const filePaths = mods[iter].fileOverrides.map(file => ({ rel: file, abs: path.join(modPath, file)}));
+      return Promise.each(filePaths, filePath => fileExists(filePath.abs)
+        .then(res => {
+          if (res === false) {
+            missing.push(filePath.rel);
+          }
+        }))
+        .then(() => {
+          if (missing.length > 0) {
+            accum[iter] = missing;
+          }
+          return Promise.resolve(accum);
+        });
+    }, {})
+    .then(redundant => {
+      removeFileOverrideRedundancies(api, gameId, redundant);
+      return Promise.resolve();
+    })
+    .finally(() => resolve(undefined));
+  });
+}
+
 function showCycles(api: types.IExtensionApi, cycles: string[][], gameId: string) {
   const state: types.IState = api.store.getState();
   const mods = state.persistent.mods[gameId];
@@ -574,6 +640,10 @@ function once(api: types.IExtensionApi) {
       });
   });
 
+  api.events.on('check-file-override-redundancies',
+    (gameMode: string, data: { [modId: string]: string[] }) =>
+      removeFileOverrideRedundancies(api, gameMode, data));
+
   api.events.on('gamemode-activated', (gameMode: string) => {
     // We just changed gamemodes - we should clear up any
     //  existing conflict information.
@@ -712,6 +782,8 @@ function main(context: types.IExtensionContext) {
                            [])
         .length > 0) ? true : 'No file conflicts';
     });
+
+  context.registerTest('redundant-file-overrides', 'gamemode-activated', checkRedundantFileOverrides(context.api));
 
   context.registerStartHook(50, 'check-unsolved-conflicts',
     (input: types.IRunParameters) => (input.options.suggestDeploy !== false)
