@@ -33,6 +33,8 @@ interface IDescriptionProps {
   mod: types.IMod;
 }
 
+const emptyArray = [];
+
 class RuleDescription extends React.Component<IDescriptionProps, {}> {
   public render(): JSX.Element {
     const {rule} = this.props;
@@ -360,7 +362,7 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
     // enabledMods changes whenever any of the mods changes - even if that change
     // is not reflected in the reference stored in enabledMods
     return this.props.conflicts !== nextProps.conflicts
-        || !_.isEqual(this.props.enabledMods, nextProps.enabledMods)
+        || this.props.enabledMods !== nextProps.enabledMods
         || this.props.gameId !== nextProps.gameId
         || this.props.mod !== nextProps.mod
         || this.props.localState.modRules !== nextProps.localState.modRules
@@ -417,8 +419,8 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
 
     let anyUnfulfilled: boolean = false;
 
-    const staticRules = this.state.modInfo?.rules ?? [];
-    const customRules = mod.rules ?? [];
+    const staticRules = this.state.modInfo?.rules ?? emptyArray;
+    const customRules = mod.rules ?? emptyArray;
 
     const rulesFulfilled = (modState[mod.id]?.enabled === true)
       ? this.mRuleFulfillmentMemo(staticRules, customRules, enabledMods, gameId, mod.id)
@@ -670,4 +672,4 @@ function mapDispatchToProps(dispatch): IActionProps {
 
 export default
   connect(mapStateToProps, mapDispatchToProps)(
-    DependencyIconDrag) as React.ComponentClass<IBaseProps>;
+    DependencyIconDrag) as React.ComponentType<IBaseProps>;
