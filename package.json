@@ -15,10 +15,10 @@
   "devDependencies": {
     "@types/immutability-helper": "^2.0.15",
     "@types/minimatch": "^2.0.29",
-    "@types/react": "16.0.34",
+    "@types/react": "^17.0.20",
     "@types/react-bootstrap": "^0.0.37",
     "@types/react-dom": "16.0.3",
-    "@types/react-redux": "4.4.35",
+    "@types/react-redux": "^7.1.18",
     "@types/react-router": "^2.0.41",
     "@types/react-sortable-tree": "^0.3.12",
     "@types/webpack": "^2.2.11",
@@ -48,7 +48,7 @@
     "redux-thunk": "^2.3.0",
     "ts-loader": "^5.3.3",
     "turbowalk": "Nexus-Mods/node-turbowalk",
-    "vortex-api": "Nexus-Mods/Vortex-api",
+    "vortex-api": "Nexus-Mods/vortex-api#mod-packs",
     "webpack": "^4.29.6"
   }
 }

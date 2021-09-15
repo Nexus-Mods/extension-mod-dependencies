@@ -16,6 +16,7 @@ import ConflictGraph from './views/ConflictGraph';
 import Connector from './views/Connector';
 import DependencyIcon, { ILocalState } from './views/DependencyIcon';
 import Editor from './views/Editor';
+import ModNameWrapper from './views/ModNameWrapper';
 import OverrideEditor from './views/OverrideEditor';
 
 import { setConflictDialog, setConflictInfo, setEditCycle,
@@ -34,7 +35,7 @@ import { withTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
 import {} from 'redux-thunk';
 import shortid = require('shortid');
-import { actions, log, PureComponentEx, selectors, ToolbarIcon, types, util } from 'vortex-api';
+import { actions, Icon, log, PureComponentEx, selectors, ToolbarIcon, tooltip, types, util } from 'vortex-api';
 
 const CONFLICT_NOTIFICATION_ID = 'mod-file-conflict';
 const UNFULFILLED_NOTIFICATION_ID = 'mod-rule-unfulfilled';
@@ -548,7 +549,7 @@ function makeLoadOrderAttribute(api: types.IExtensionApi): types.ITableAttribute
 }
 
 function makeDependenciesAttribute(api: types.IExtensionApi): types.ITableAttribute<types.IMod> {
-  return {
+  const res: types.ITableAttribute<types.IMod> = {
     id: 'dependencies',
     name: 'Dependencies',
     description: 'Relations to other mods',
@@ -573,8 +574,21 @@ function makeDependenciesAttribute(api: types.IExtensionApi): types.ITableAttrib
       dependenciesChanged = onChange;
     },
     edit: {},
-    isSortable: false,
+    isSortable: true,
     isVolatile: true,
+    sortFuncRaw: (lhs, rhs, locale) => {
+      const filter = api.getState().settings.tables['mods'].filter?.['dependencies'] ?? [];
+
+      if ((filter.length >= 2) && (filter[0] === 'depends')) {
+        if (filter[1] === lhs.id) {
+          return -1;
+        } else if (filter[1] === rhs.id) {
+          return 1;
+        }
+      }
+
+      return util.renderModName(lhs).localeCompare(util.renderModName(rhs));
+    },
     filter: new DependenciesFilter(dependencyState,
       () => {
         const state = api.store.getState();
@@ -582,6 +596,8 @@ function makeDependenciesAttribute(api: types.IExtensionApi): types.ITableAttrib
       },
       () => util.getSafe(api.store.getState(), ['session', 'dependencies', 'conflicts'], {})),
   };
+
+  return res;
 }
 
 function once(api: types.IExtensionApi) {
@@ -761,6 +777,8 @@ function main(context: types.IExtensionContext) {
                            [])
         .length > 0) ? true : 'No file conflicts';
     });
+
+  context['registerControlWrapper']('mods-name', 100, ModNameWrapper);
 
   context.registerStartHook(50, 'check-unsolved-conflicts',
     (input: types.IRunParameters) => (input.options.suggestDeploy !== false)

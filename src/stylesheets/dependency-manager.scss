@@ -373,3 +373,23 @@
   overflow-y: auto;
   overflow-x: hidden;
 }
+
+.filter-dependencies-icon {
+  @extend .btn-embed;
+}
+
+.modname-filter-wrapper {
+  display: flex;
+  align-items: center;
+
+  &.modname-filter-indented {
+    margin-left: 0.5em;
+  }
+
+  .icon {
+    min-height: 1.2em;
+    min-width: 1.2em;
+    max-height: 1.2em;
+    max-width: 1.2em;
+  }
+}
