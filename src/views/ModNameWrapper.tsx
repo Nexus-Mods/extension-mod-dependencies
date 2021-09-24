@@ -42,6 +42,7 @@ function ModNameWrapper(props: React.PropsWithChildren<IModNameWrapper>) {
     if (indent) {
       classes.push('modname-filter-indented');
       icons.push(<Icon
+        key='dependency'
         name='turn-s'
         rotate={270}
         rotateId='turn-s-270'
@@ -51,6 +52,7 @@ function ModNameWrapper(props: React.PropsWithChildren<IModNameWrapper>) {
 
     if ((mod?.rules ?? []).find(iter => ['requires', 'recommends'].includes(iter.type))) {
       icons.push(<tooltip.IconButton
+        key='filter-dependencies'
         icon='filter-dependencies'
         className='filter-dependencies-icon'
         data-modid={rowId}
