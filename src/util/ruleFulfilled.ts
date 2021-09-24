@@ -11,11 +11,21 @@ function findReference(reference: IReference, mods: IModLookupInfo[],
       return refMod;
     }
   }
+  if (reference['md5Hint'] !== undefined) {
+    const refMod = mods.find(mod => mod.fileMD5 === reference['md5Hint']);
+    if (refMod !== undefined) {
+      return refMod;
+    }
+  }
   return mods.find(mod => (util as any).testModReference(mod, reference, source));
 }
 
 function ruleFulfilled(enabledMods: IModLookupInfo[], rule: IRule,
                        source: { gameId: string, modId: string }) {
+  if (rule['ignored'] === true) {
+    return true;
+  }
+
   if (rule.type === 'conflicts') {
     if (findReference(rule.reference, enabledMods, source) !== undefined) {
       return false;
