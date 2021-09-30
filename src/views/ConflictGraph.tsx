@@ -8,7 +8,7 @@ import { NAMESPACE } from '../statics';
 import GraphView, { IGraphElement, IGraphSelection } from './GraphView';
 
 import * as _ from 'lodash';
-import { IRule } from 'modmeta-db';
+import { IReference, IRule } from 'modmeta-db';
 import * as React from 'react';
 import { Button } from 'react-bootstrap';
 import { withTranslation } from 'react-i18next';
@@ -293,7 +293,7 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
   private loadLast = () => {
     const { id } = this.state.context.selection;
 
-    const { editCycle, localState, mods, onAddRule } = this.props;
+    const { editCycle, localState, mods, onAddRule, onRemoveRule } = this.props;
 
     // all rules where the selected node is loaded before something else
     const beforeRules = localState.modRules.filter(rule =>
@@ -301,21 +301,41 @@ class ConflictGraph extends ComponentEx<IProps, IComponentState> {
         && (((rule.type === 'before') && util.testModReference(mods[id], rule.source))
             || (rule.type === 'after') && util.testModReference(mods[id], rule.reference)));
 
+    const connReferences: IReference[] = [];
+
     beforeRules.forEach(rule => {
       if (rule.type === 'before') {
         // selected mod is the original
-        onAddRule(editCycle.gameId, id, {
-          type: 'after',
-          reference: rule.reference,
-        });
+
+        const otherId = editCycle.modIds
+          .find(modId => util.testModReference(mods[modId], rule.reference));
+        if (editCycle.modIds.includes(otherId)) {
+          connReferences.push(rule.reference);
+          onRemoveRule(editCycle.gameId, id, rule);
+        }
       } else {
         const sourceId = editCycle.modIds
           .find(modId => util.testModReference(mods[modId], rule.source));
-        onAddRule(editCycle.gameId, sourceId, {
-          type: 'before',
-          reference: rule.reference,
-        });
+
+        if (editCycle.modIds.includes(sourceId)) {
+          connReferences.push(rule.source);
+          onRemoveRule(editCycle.gameId, sourceId, rule);
+        }
       }
+    });
+
+    const modIds: Set<string> = new Set();
+    connReferences.forEach(connRef => {
+        const destId = editCycle.modIds
+          .find(modId => util.testModReference(mods[modId], connRef));
+
+        if (!modIds.has(destId)) {
+          modIds.add(destId);
+          onAddRule(editCycle.gameId, id, {
+            type: 'after',
+            reference: connRef,
+          });
+        }
     });
   }
 
