@@ -38,6 +38,7 @@ class GraphView extends React.Component<IGraphViewProps, {}> {
   private mLayout: cytoscape.LayoutManipulation;
   private mMousePos: { x: number, y: number } = { x: 0, y: 0 };
   private mLastProps: IGraphViewProps;
+  private mEdgeIds: Set<string> = new Set();
 
   constructor(props: IGraphViewProps) {
     super(props);
@@ -47,10 +48,12 @@ class GraphView extends React.Component<IGraphViewProps, {}> {
 
   public UNSAFE_componentWillReceiveProps(newProps: IGraphViewProps) {
     if (newProps.elements !== this.mLastProps.elements) {
-      const changed = (util as any).objDiff(this.mLastProps.elements, newProps.elements);
+      const changed = util.objDiff(this.mLastProps.elements, newProps.elements);
       // bit of a hack because we got componentWillReceiveProps trigger twice with the same
       // props which causes an error further down the line as we try to update the graph
       this.mLastProps = newProps;
+
+      const newConnections = [];
 
       Object.keys(changed).forEach(id => {
         if (id[0] === '+') {
@@ -64,7 +67,7 @@ class GraphView extends React.Component<IGraphViewProps, {}> {
           Object.keys(connections || []).forEach(refId => {
             const from = san(id.slice(1));
             const to = san(connections[refId]);
-            this.mGraph.add({
+            newConnections.push({
               data: {
                 id: `${to}-to-${from}`,
                 source: to,
@@ -102,9 +105,10 @@ class GraphView extends React.Component<IGraphViewProps, {}> {
               const to = san(changed[id].connections[refId]);
               const connId = `${to}-to-${from}`;
               if (refId[0] === '-') {
+                this.mEdgeIds.delete(connId);
                 this.mGraph.remove('#' + connId);
               } else if (refId[0] === '+') {
-                this.mGraph.add({
+                newConnections.push({
                   data: {
                     id: connId,
                     source: to,
@@ -118,6 +122,13 @@ class GraphView extends React.Component<IGraphViewProps, {}> {
                 });
               }
             });
+        }
+      });
+
+      newConnections.forEach(conn => {
+        if (!this.mEdgeIds.has(conn.data.id)) {
+          this.mEdgeIds.add(conn.data.id);
+          this.mGraph.add(conn);
         }
       });
 
