@@ -422,7 +422,7 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
     const staticRules = this.state.modInfo?.rules ?? emptyArray;
     const customRules = mod.rules ?? emptyArray;
 
-    const rulesFulfilled = (modState[mod.id]?.enabled === true)
+    const rulesFulfilled = (modState?.[mod.id]?.enabled === true)
       ? this.mRuleFulfillmentMemo(staticRules, customRules, enabledMods, gameId, mod.id)
       : null;
 
