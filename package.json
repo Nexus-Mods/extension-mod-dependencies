@@ -49,6 +49,7 @@
     "ts-loader": "^5.3.3",
     "turbowalk": "Nexus-Mods/node-turbowalk",
     "vortex-api": "Nexus-Mods/vortex-api#mod-packs",
-    "webpack": "^4.29.6"
+    "webpack": "^4.29.6",
+    "webpack-cli": "^3.3.10"
   }
 }
