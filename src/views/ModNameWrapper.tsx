@@ -14,9 +14,9 @@ function ModNameWrapper(props: React.PropsWithChildren<IModNameWrapper>) {
 
     const gameId = useSelector(selectors.activeGameId);
     const filter = useSelector<types.IState, string[]>(state =>
-      state.settings.tables['mods'].filter?.['dependencies'] ?? emptyArray);
+      state.settings.tables['mods']?.filter?.['dependencies'] ?? emptyArray);
     const mod = useSelector<types.IState, types.IMod>(state =>
-      state.persistent.mods[gameId][rowId]);
+      state.persistent.mods[gameId]?.[rowId]);
 
     const store: Redux.Store<types.IState> = useStore();
 
