@@ -615,19 +615,21 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
       fileExpression: mod.installationPath,
       logicalFileName: attributes['logicalFileName'],
     };
-    this.context.api.lookupModMeta({
-      fileMD5: attributes['fileMD5'],
-      fileSize: attributes['fileSize'],
-      gameId: this.props.gameId,
-    })
-      .then((meta: ILookupResult[]) => {
-        if (this.mIsMounted && (meta.length > 0)) {
-          this.nextState.modInfo = meta[0].value;
-        }
+    if (attributes['fileMD5'] !== undefined) {
+      this.context.api.lookupModMeta({
+        fileMD5: attributes['fileMD5'],
+        fileSize: attributes['fileSize'],
+        gameId: this.props.gameId,
       })
-      .catch((err: Error) => {
-        log('warn', 'failed to look up mod', { err: err.message, stack: err.stack });
-      });
+        .then((meta: ILookupResult[]) => {
+          if (this.mIsMounted && (meta.length > 0)) {
+            this.nextState.modInfo = meta[0].value;
+          }
+        })
+        .catch((err: Error) => {
+          log('warn', 'failed to look up mod', { err: err.message, stack: err.stack });
+        });
+    }
   }
 }
 
