@@ -103,7 +103,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     this.initState({
       rules: {},
       filterValue: '',
-      hideResolved: false
+      hideResolved: false,
     });
   }
 
@@ -136,7 +136,8 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     }
 
     const filterInput = ((conflicts !== undefined) && (modIds?.length > 0))
-      ? <FormInput
+      ? (
+        <FormInput
           className='conflict-filter-input'
           value={filterValue}
           placeholder={t('Search for a rule...')}
@@ -144,7 +145,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
           debounceTimer={100}
           clearable
         />
-      : null;
+      ) : null;
 
     const hasConflicts = !!modIds?.length;
     const hasAppliedFilters = hideResolved || !!filterValue;
@@ -156,19 +157,26 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
         </div>
       )
       : (hasConflicts)
-        ? ( this.renderConflicts() )
-        : ( <EmptyPlaceholder icon='conflict' text={t('You have no file conflicts. Wow!')} /> );
+        ? (this.renderConflicts())
+        : (<EmptyPlaceholder icon='conflict' text={t('You have no file conflicts. Wow!')} />);
 
     const renderButton = (clickFunc: () => void, text: string) => hasAppliedFilters
-      ? (<tooltip.Button
+      ? (
+        <tooltip.Button
           disabled={true}
           onClick={clickFunc}
-          tooltip='Unavailable when filters are applied'>{t(text)}
-        </tooltip.Button>)
-      : (<Button
+          tooltip={t('Unavailable when filters are applied')}
+        >
+          {t(text)}
+        </tooltip.Button>
+      ) : (
+        <Button
           disabled={!hasConflicts}
-          onClick={clickFunc}>{t(text)}
-        </Button>);
+          onClick={clickFunc}
+        >
+          {t(text)}
+        </Button>
+      );
 
     const tips = <ConflictEditorTips/>;
     return (
@@ -191,7 +199,9 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
             {renderButton(this.useSuggested, 'Use Suggestions')}
             <Button
               disabled={!hasConflicts}
-              onClick={this.toggleHideResolved}>{hideResolved ? t('Show Resolved') : t('Hide Resolved')}
+              onClick={this.toggleHideResolved}
+            >
+              {hideResolved ? t('Show Resolved') : t('Hide Resolved')}
             </Button>
           </FlexLayout.Fixed>
           <FlexLayout.Fixed className='conflict-editor-main-actions'>
@@ -231,10 +241,10 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
                 prev[modId] = res;
                 return prev;
             }, {});
-          }
+          },
         },
     ]);
-  };
+  }
 
   private toggleHideResolved = () => {
     this.nextState.hideResolved = !this.state.hideResolved;
@@ -251,7 +261,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
               + 'that are both older than some and newer than others from a conflicting mod.[br][/br][br][/br]'
               + 'Loading mods in the incorrect order can lead to in-game errors such as:[br][/br][br][/br]'
               + '[list][*]Mods not having an effect on the game[*]Incorrect textures or models showing up '
-              + '[*]The game crashing[/list][br][/br]If you find that your mods don\'t work correctly ' 
+              + '[*]The game crashing[/list][br][/br]If you find that your mods don\'t work correctly '
               + 'you can always come here and change their order.'),
     }, [
         { label: 'Cancel', default: true },
@@ -279,27 +289,27 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
                     res[conflict.otherMod.id] = { type: undefined, version: 'any' };
                   } else {
                     res[conflict.otherMod.id] = (conflict.suggestion !== null)
-                    ? {
+                      ? {
                         type: conflict.suggestion,
                         version: (existingRule !== undefined)
                           ? importVersion(existingRule.reference.versionMatch)
                           : 'any',
                       }
-                    : (existingRule !== undefined)
-                      ? {
+                      : (existingRule !== undefined)
+                        ? {
                           type: existingRule.type as any,
                           version: importVersion(existingRule.reference.versionMatch),
                         }
-                      : { type: undefined, version: 'any' };
+                        : { type: undefined, version: 'any' };
                   }
                 });
-              prev[modId] = res;
-              return prev;
-            }, {});
-          }
+                prev[modId] = res;
+                return prev;
+              }, {});
+          },
         },
     ]);
-  };
+  }
 
   private onFilterChange = (input) => {
     this.nextState.filterValue = input;
@@ -354,11 +364,13 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
 
     let renderedConflictsCount = 0;
     const renderPlaceholder = () => ((modEntries.length > 0) && (renderedConflictsCount === 0))
-      ? (<EmptyPlaceholder
+      ? (
+        <EmptyPlaceholder
           icon='conflict'
           text={t('Filters are applied')}
           subtext={t('Please remove applied filters to view all conflicts')}
-        />)
+        />
+      )
       : null;
 
     const renderModEntry = (modId: string, name: string) => {
@@ -366,19 +378,19 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
         .filter(conflict => this.applyFilter(conflict, modId));
       renderedConflictsCount += filtered.length;
       return (filtered.length > 0) ? (
-      <div key={`mod-conflict-element-${modId}`}>
-        <div className='mod-conflict-group-header'>
-            <label>{util.renderModName(mods[modId])}</label>
-            <a data-modid={modId} data-action='before_all' onClick={this.applyGroupRule}>{t('Before All')}</a>
-            <a data-modid={modId} data-action='after_all' onClick={this.applyGroupRule}>{t('After All')}</a>
+          <div key={`mod-conflict-element-${modId}`}>
+            <div className='mod-conflict-group-header'>
+              <label>{util.renderModName(mods[modId])}</label>
+              <a data-modid={modId} data-action='before_all' onClick={this.applyGroupRule}>{t('Before All')}</a>
+              <a data-modid={modId} data-action='after_all' onClick={this.applyGroupRule}>{t('After All')}</a>
+            </div>
+            <Table className='mod-conflict-list'>
+              <tbody>
+                {filtered.map((conf: IConflict) => this.renderConflict(modId, name, conf))}
+              </tbody>
+            </Table>
           </div>
-        <Table className='mod-conflict-list'>
-          <tbody>
-            {filtered.map((conf: IConflict) => this.renderConflict(modId, name, conf))}
-          </tbody>
-        </Table>
-      </div>
-      ) : null
+        ) : null;
     };
 
     return (modEntries.length > 0)
