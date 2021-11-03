@@ -349,7 +349,8 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
         id: modId,
         name: util.renderModName(mods[modId], { version: true }),
       }))
-      .sort((lhs, rhs) => lhs.name.localeCompare(rhs.name))
+      .filter(mod => mod.name === undefined)
+      .sort((lhs, rhs) => lhs.name.localeCompare(rhs.name));
 
     let renderedConflictsCount = 0;
     const renderPlaceholder = () => ((modEntries.length > 0) && (renderedConflictsCount === 0))
