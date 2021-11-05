@@ -9,6 +9,7 @@ import ConflictEditorTips from './ConflictEditorTips';
 
 import { NAMESPACE } from '../statics';
 
+import memoizeOne from 'memoize-one';
 import * as React from 'react';
 import { Button, FormControl,
          Modal, OverlayTrigger, Popover, Table } from 'react-bootstrap';
@@ -98,6 +99,8 @@ function nop() {
  * @extends {ComponentEx<IProps, {}>}
  */
 class ConflictEditor extends ComponentEx<IProps, IComponentState> {
+  private getModEntriesMemo = memoizeOne(this.getModEntries);
+
   constructor(props: IProps) {
     super(props);
     this.initState({
@@ -352,15 +355,20 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     return testFilterMatch() && this.isUnresolved(modId, conflict.otherMod.id);
   }
 
-  private renderConflicts = (): JSX.Element => {
-    const { t, conflicts, mods, modIds } = this.props;
-    const modEntries = (modIds || [])
+  private getModEntries(mods: { [modId: string]: types.IMod }, modIds: string[]) {
+    return (modIds || [])
       .map(modId => ({
         id: modId,
         name: util.renderModName(mods[modId], { version: true }),
       }))
-      .filter(mod => mod.name === undefined)
+      .filter(mod => mod.name !== undefined)
       .sort((lhs, rhs) => lhs.name.localeCompare(rhs.name));
+  }
+
+  private renderConflicts = (): JSX.Element => {
+    const { t, conflicts, mods, modIds } = this.props;
+
+    const modEntries = this.getModEntriesMemo(mods, modIds);
 
     let renderedConflictsCount = 0;
     const renderPlaceholder = () => ((modEntries.length > 0) && (renderedConflictsCount === 0))
