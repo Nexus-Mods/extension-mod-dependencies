@@ -20,7 +20,7 @@ import { batch } from 'redux-act';
 import { ThunkDispatch } from 'redux-thunk';
 import * as semver from 'semver';
 import { actions as vortexActions, ComponentEx, EmptyPlaceholder, FlexLayout, FormInput, Spinner,
-         tooltip, types, util } from 'vortex-api';
+         tooltip, types, util, VisibilityProxy } from 'vortex-api';
 
 interface IConnectedProps {
   gameId: string;
@@ -91,6 +91,49 @@ function nop() {
   // nop
 }
 
+interface IVisibilityProxyWrapProps {
+  entry: { id: string, name: string, numConflicts: number };
+  content: (modId: string, name: string, ref: React.RefObject<HTMLDivElement>) => JSX.Element;
+  container: HTMLElement;
+}
+
+function VisibilityProxyWrap(props: IVisibilityProxyWrapProps) {
+  const { container, entry } = props;
+  const [visible, setVisibleImpl] = React.useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+  const [height, setHeight] = React.useState(undefined);
+
+  const setVisible = React.useCallback((newValue: boolean) => {
+    if (!newValue && ref.current !== null) {
+      setHeight(ref.current.clientHeight);
+    }
+    setVisibleImpl(newValue);
+  }, [setVisibleImpl, setHeight, ref.current]);
+
+  const content = React.useCallback(() =>
+    props.content(entry.id, entry.name, ref)
+  , [props.content, entry]);
+
+  // placeholder. uses the last actual size if the content was ever rendered or
+  // 3 lines of text per conflict which should be an ok estimate
+  const placeholder = React.useCallback(() => (
+    <div
+      id={`placeholder-${entry.id}`}
+      style={{ height: height ?? `${3 * entry.numConflicts}em` }}
+    />
+  ), [height]);
+
+  return (
+    <VisibilityProxy
+      container={container}
+      content={content}
+      placeholder={placeholder}
+      visible={visible}
+      setVisible={setVisible}
+    />
+  );
+}
+
 /**
  * editor displaying mods that conflict with the selected one
  * and offering a quick way to set up rules between them
@@ -100,6 +143,8 @@ function nop() {
  */
 class ConflictEditor extends ComponentEx<IProps, IComponentState> {
   private getModEntriesMemo = memoizeOne(this.getModEntries);
+  private getFilteredEntriesMemo = memoizeOne(this.getFilteredEntries);
+  private mRef = React.createRef<HTMLDivElement>();
 
   constructor(props: IProps) {
     super(props);
@@ -318,13 +363,15 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     this.nextState.filterValue = input;
   }
 
-  private isUnresolved = (modId, otherModId) => {
-    const { mods } = this.props;
-    const { rules, hideResolved } = this.state;
+  private isUnresolved = (mods: { [modId: string]: types.IMod },
+                          modId: string,
+                          otherModId: string,
+                          rules: { [modId: string]: { [refId: string]: IRuleSpec } },
+                          hideResolved: boolean) => {
     const isRuleSet: boolean = (rules[otherModId]?.[modId] === undefined)
     ? (mods[otherModId].rules || [])
-       .find(rule => (['before', 'after', 'conflicts'].indexOf(rule.type) !== -1)
-                    && (util as any).testModReference(mods[modId], rule.reference)) !== undefined
+       .find(rule => (['before', 'after', 'conflicts'].includes(rule.type))
+                    && util.testModReference(mods[modId], rule.reference)) !== undefined
     : rules[otherModId][modId].type !== undefined;
 
     return (hideResolved)
@@ -334,9 +381,13 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       : true;
   }
 
-  private applyFilter = (conflict: IConflict, modId: string): boolean => {
-    const { mods } = this.props;
-    const { filterValue, hideResolved } = this.state;
+  private applyFilter = (conflict: IConflict,
+                         mods: { [modId: string]: types.IMod },
+                         modId: string,
+                         filterValue: string,
+                         rules: { [modId: string]: { [refId: string]: IRuleSpec } },
+                         hideResolved: boolean)
+                         : boolean => {
     if (!filterValue && !hideResolved) {
       return true;
     }
@@ -352,14 +403,33 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       ? (isMatch(modName) || isMatch(otherModName))
       : true;
 
-    return testFilterMatch() && this.isUnresolved(modId, conflict.otherMod.id);
+    return testFilterMatch()
+      && this.isUnresolved(mods, modId, conflict.otherMod.id, rules, hideResolved);
   }
 
-  private getModEntries(mods: { [modId: string]: types.IMod }, modIds: string[]) {
+  private getFilteredEntries(modEntries: Array<{ id: string }>,
+                             mods: { [modId: string]: types.IMod },
+                             conflicts: { [modId: string]: IConflict[] },
+                             filterValue: string,
+                             rules: { [modId: string]: { [refId: string]: IRuleSpec } },
+                             hideResolved: boolean)
+                             : { [modId: string]: IConflict[] } {
+    return modEntries.reduce((prev, entry) => {
+      prev[entry.id] = (conflicts[entry.id] || [])
+        .filter(conflict =>
+          this.applyFilter(conflict, mods, entry.id, filterValue, rules, hideResolved));
+      return prev;
+    }, {});
+  }
+
+  private getModEntries(mods: { [modId: string]: types.IMod },
+                        conflicts: { [modId: string]: IConflict[] },
+                        modIds: string[]) {
     return (modIds || [])
       .map(modId => ({
         id: modId,
         name: util.renderModName(mods[modId], { version: true }),
+        numConflicts: (conflicts[modId] ?? []).length,
       }))
       .filter(mod => mod.name !== undefined)
       .sort((lhs, rhs) => lhs.name.localeCompare(rhs.name));
@@ -367,11 +437,16 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
 
   private renderConflicts = (): JSX.Element => {
     const { t, conflicts, mods, modIds } = this.props;
+    const { filterValue, rules, hideResolved } = this.state;
 
-    const modEntries = this.getModEntriesMemo(mods, modIds);
+    const modEntries = this.getModEntriesMemo(mods, conflicts, modIds);
+    const filteredEntries = this.getFilteredEntriesMemo(
+      modEntries, mods, conflicts, filterValue, rules, hideResolved);
 
-    let renderedConflictsCount = 0;
-    const renderPlaceholder = () => ((modEntries.length > 0) && (renderedConflictsCount === 0))
+    const filteredConflictsCount = Object.values(filteredEntries).reduce((prev: number, entry) =>
+      prev += entry.length, 0);
+
+    const renderPlaceholder = () => ((modEntries.length > 0) && (filteredConflictsCount === 0))
       ? (
         <EmptyPlaceholder
           icon='conflict'
@@ -381,12 +456,10 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       )
       : null;
 
-    const renderModEntry = (modId: string, name: string) => {
-      const filtered = (conflicts[modId] || [])
-        .filter(conflict => this.applyFilter(conflict, modId));
-      renderedConflictsCount += filtered.length;
+    const renderModEntry = (modId: string, name: string, ref: React.RefObject<HTMLDivElement>) => {
+      const filtered = filteredEntries[modId];
       return (filtered.length > 0) ? (
-          <div key={`mod-conflict-element-${modId}`}>
+          <div id={`content-${modId}`} key={`mod-conflict-element-${modId}`} ref={ref}>
             <div className='mod-conflict-group-header'>
               <label>{util.renderModName(mods[modId])}</label>
               <a data-modid={modId} data-action='before_all' onClick={this.applyGroupRule}>{t('Before All')}</a>
@@ -398,13 +471,20 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
               </tbody>
             </Table>
           </div>
-        ) : null;
+      ) : null;
     };
 
     return (modEntries.length > 0)
       ? (
-        <div>
-          {modEntries.map(entry => renderModEntry(entry.id, entry.name))}
+        <div ref={this.mRef}>
+          {modEntries.map(entry => (
+            <VisibilityProxyWrap
+              key={entry.id}
+              container={this.mRef.current}
+              entry={entry}
+              content={renderModEntry}
+            />
+          ))}
           {renderPlaceholder()}
         </div>
       )
@@ -443,7 +523,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
         const refModName = util.renderModName(mods[refId]).toLowerCase();
         const matchesFilter = refModName.includes(filterValue.toLowerCase());
         return (!!filterValue && matchesFilter)
-            || (hideResolved && this.isUnresolved(modId, refId));
+            || (hideResolved && this.isUnresolved(mods, modId, refId, rules, hideResolved));
       })
       : Object.keys(rules[modId]);
     const unassignedRefIds = refIds.filter(refId => {
