@@ -135,8 +135,6 @@ class GraphView extends React.Component<IGraphViewProps, {}> {
       this.mGraph.elements()
         .removeClass('cycle-hidden')
         .removeClass('cycle-highlight');
-
-      this.mLayout.run();
     }
   }
 
@@ -215,6 +213,7 @@ class GraphView extends React.Component<IGraphViewProps, {}> {
       style: visualStyle,
       minZoom: 0.33,
       maxZoom: 2,
+      wheelSensitivity: 0.1,
       boxSelectionEnabled: false,
     });
     this.addElements(elements || {});
