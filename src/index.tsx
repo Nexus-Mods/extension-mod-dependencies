@@ -33,6 +33,7 @@ import * as path from 'path';
 import * as React from 'react';
 import { withTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
+import * as Redux from 'redux';
 import {} from 'redux-thunk';
 import shortid = require('shortid');
 import { actions, Icon, log, PureComponentEx, selectors, ToolbarIcon, tooltip, types, util } from 'vortex-api';
@@ -600,6 +601,106 @@ function makeDependenciesAttribute(api: types.IExtensionApi): types.ITableAttrib
   return res;
 }
 
+function nothingNeeds(mod: types.IMod, among: types.IMod[], except: types.IMod) {
+  const matchesMod = rule =>
+    ['requires', 'recommends'].includes(rule.type)
+    && util.testModReference(mod, rule.reference);
+
+  return among.find(dependent => {
+    return (dependent.id !== except.id)
+        && (dependent.rules.find(matchesMod) !== undefined);
+  }) === undefined;
+}
+
+function setDependenciesEnabled(profileId: string,
+                                dependent: types.IMod,
+                                mods: { [modId: string]: types.IMod },
+                                recommendations: boolean,
+                                enabled: boolean,
+                                allDependents: types.IMod[]): Redux.Action[] {
+  const filter = recommendations ? ['requires', 'recommends'] : ['requires'];
+
+  return dependent.rules
+    .filter(rule => filter.includes(rule.type))
+    .map(rule => {
+      const mod = util.findModByRef(rule.reference, mods);
+      if ((mod !== undefined)
+          && (enabled || nothingNeeds(mod, allDependents, dependent))) {
+        return actions.setModEnabled(profileId, mod.id, enabled);
+      } else {
+        return undefined;
+      }
+    })
+    .filter(act => act !== undefined)
+    ;
+}
+
+function queryEnableDependencies(api: types.IExtensionApi,
+                                 modIds: string[],
+                                 gameMode: string,
+                                 enabled: boolean)
+                                 : Promise<void> {
+  const t = api.translate;
+  const state = api.getState();
+  const mods = state.persistent.mods[gameMode];
+
+  const profile = selectors.lastActiveProfileForGame(state, gameMode);
+
+  const dependents = modIds.filter(id => ((mods[id].rules ?? []).find(rule =>
+    ['requires', 'recommends'].includes(rule.type)) !== undefined));
+  if (dependents.length > 0) {
+    const dialogActions = [
+      { label: 'Close' },
+      { label: enabled ? 'Enable' : 'Disable' },
+    ];
+    // review option only available if it's a single mod with dependencies
+    if (dependents.length === 1) {
+      dialogActions.splice(1, 0, { label: 'Review' });
+    }
+    let text = 'The mod you {{enabled}} depends on other mods, do you want to {{enable}} those '
+      + 'as well?';
+    if (!enabled) {
+      text += '\nThis will only disable mods not required by something else but it may disable '
+        + 'ones you had already enabled manually.';
+    }
+    return api.showDialog('question', 'Mod has dependencies', {
+      text,
+      checkboxes: [
+        { id: 'recommendations', text: 'Apply to Recommended Mods', value: false },
+      ],
+      parameters: {
+        enabled: enabled ? t('enabled') : t('disabled'),
+        enable: enabled ? t('enable') : t('disable'),
+      },
+    }, dialogActions)
+      .then(result => {
+        if (result.action === 'Review') {
+          const batch = [];
+          batch.push(actions.setAttributeFilter('mods', 'dependencies',
+            ['depends', dependents[0], util.renderModName(mods[dependents[0]])]));
+          batch.push(actions.setAttributeSort('mods', 'dependencies', 'asc'));
+          util.batchDispatch(api.store, batch);
+          api.events.emit('show-main-page', 'Mods');
+        } else if (['Enable', 'Disable'].includes(result.action)) {
+          const recommendationsToo = result.input['recommendations'];
+
+          // all mods that have any dependencies
+          const allDependents = Object.values(mods)
+            .filter(mod => (mod.rules ?? [])
+              .find(rule => ['requires', 'recommends'].includes(rule.type)));
+
+          const batch: Redux.Action[] = dependents.reduce((prev, modId) => {
+            return [].concat(prev, ...setDependenciesEnabled(profile, mods[modId], mods,
+              recommendationsToo, enabled, allDependents));
+          }, []);
+          util.batchDispatch(api.store, batch);
+        }
+      });
+  } else {
+    return Promise.resolve();
+  }
+}
+
 function once(api: types.IExtensionApi) {
   const store = api.store;
 
@@ -701,7 +802,16 @@ function once(api: types.IExtensionApi) {
     }
   });
 
-  api.events.on('mods-enabled', (modIds: string[], enabled: boolean, gameMode: string) => {
+  api.events.on('mods-enabled', (modIds: string[], enabled: boolean, gameMode: string,
+                                 options?: { silent: boolean, installed: boolean }) => {
+
+    if (!options?.installed && !options?.silent) {
+      queryEnableDependencies(api, modIds, gameMode, enabled)
+        .catch(err => {
+          api.showErrorNotification('Failed to test for dependencies', err);
+        });
+    }
+
     if (gameMode === selectors.activeGameId(store.getState())) {
       updateRulesDebouncer.schedule(() => {
         updateConflictDebouncer.schedule(undefined);
@@ -778,7 +888,7 @@ function main(context: types.IExtensionContext) {
         .length > 0) ? true : 'No file conflicts';
     });
 
-  context['registerControlWrapper']('mods-name', 100, ModNameWrapper);
+  context.registerControlWrapper('mods-name', 100, ModNameWrapper);
 
   context.registerStartHook(50, 'check-unsolved-conflicts',
     (input: types.IRunParameters) => (input.options.suggestDeploy !== false)
