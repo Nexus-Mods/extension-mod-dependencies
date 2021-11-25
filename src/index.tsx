@@ -646,7 +646,7 @@ function queryEnableDependencies(api: types.IExtensionApi,
 
   const profile = selectors.lastActiveProfileForGame(state, gameMode);
 
-  const dependents = modIds.filter(id => ((mods[id].rules ?? []).find(rule =>
+  const dependents = modIds.filter(id => ((mods[id]?.rules ?? []).find(rule =>
     ['requires', 'recommends'].includes(rule.type)) !== undefined));
   if (dependents.length > 0) {
     const dialogActions = [
@@ -802,16 +802,16 @@ function once(api: types.IExtensionApi) {
     }
   });
 
+  api.onAsync('will-enable-mods', (profileId: string, modIds: string[], enabled: boolean) => {
+    const profile = selectors.profileById(api.getState(), profileId);
+    return queryEnableDependencies(api, modIds, profile.gameId, enabled)
+      .catch(err => {
+        api.showErrorNotification('Failed to test for dependencies', err);
+      });
+  });
+
   api.events.on('mods-enabled', (modIds: string[], enabled: boolean, gameMode: string,
                                  options?: { silent: boolean, installed: boolean }) => {
-
-    if (!options?.installed && !options?.silent) {
-      queryEnableDependencies(api, modIds, gameMode, enabled)
-        .catch(err => {
-          api.showErrorNotification('Failed to test for dependencies', err);
-        });
-    }
-
     if (gameMode === selectors.activeGameId(store.getState())) {
       updateRulesDebouncer.schedule(() => {
         updateConflictDebouncer.schedule(undefined);
