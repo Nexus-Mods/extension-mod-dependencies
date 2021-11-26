@@ -21,6 +21,7 @@ export class DependenciesFilterComponent extends React.Component<types.IFilterPr
     const options = [
       { value: 'has-conflict', label: t('Conflict', { ns: NAMESPACE }) },
       { value: 'has-unsolved', label: t('Unresolved', { ns: NAMESPACE }) },
+      { value: 'has-rule', label: t('LO Rule', { ns: NAMESPACE }) },
       { value: 'depends', label: filter[2] },
     ];
     return (
@@ -51,6 +52,9 @@ class DependenciesFilter implements types.ITableFilter {
 
   private getDependencyRules: (modId: string) => types.IModRule[] =
     memoizeOne(this.getDependencyRulesImpl);
+
+  private getLORules: (modId: string) => types.IModRule[] =
+    memoizeOne(this.getLORulesImpl);
 
   constructor(localState: ILocalState,
               getMods: () => { [modId: string]: types.IMod },
@@ -95,6 +99,8 @@ class DependenciesFilter implements types.ITableFilter {
       });
 
       return unsolvedConflict !== undefined;
+    } else if (filter[0] === 'has-rule') {
+      return this.getLORules(value).length > 0;
     } else if (filter[0] === 'depends') {
       if (value === filter[1]) {
         return true;
@@ -124,6 +130,11 @@ class DependenciesFilter implements types.ITableFilter {
   private getDependencyRulesImpl(modId: string) {
     const mod = this.mGetMods()[modId];
     return (mod?.rules ?? []).filter(rule => ['requires', 'recommends'].includes(rule.type));
+  }
+
+  private getLORulesImpl(modId: string) {
+    const mod = this.mGetMods()[modId];
+    return (mod?.rules ?? []).filter(rule => ['after', 'before'].includes(rule.type));
   }
 }
 
