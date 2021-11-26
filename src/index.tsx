@@ -802,7 +802,11 @@ function once(api: types.IExtensionApi) {
     }
   });
 
-  api.onAsync('will-enable-mods', (profileId: string, modIds: string[], enabled: boolean) => {
+  api.onAsync('will-enable-mods', (profileId: string, modIds: string[],
+                                   enabled: boolean, options) => {
+    if (options?.installed) {
+      return Promise.resolve();
+    }
     const profile = selectors.profileById(api.getState(), profileId);
     return queryEnableDependencies(api, modIds, profile.gameId, enabled)
       .catch(err => {
