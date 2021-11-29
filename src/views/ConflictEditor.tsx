@@ -264,7 +264,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
   private refreshRules = (props: IProps) => {
     this.nextState.rules = (props.modIds || []).reduce(
         (prev: { [modId: string]: { [refId: string]: IRuleSpec } }, modId: string) => {
-      prev[modId] = getRuleSpec(modId, props.mods, props.conflicts[modId]);
+      prev[modId] = getRuleSpec(modId, props.mods, props.conflicts?.[modId]);
       return prev;
     }, {});
   }
