@@ -588,6 +588,12 @@ function makeDependenciesAttribute(api: types.IExtensionApi): types.ITableAttrib
         }
       }
 
+      if (lhs.attributes === undefined) {
+        return -1;
+      } else if (rhs.attributes === undefined) {
+        return 1;
+      }
+
       return util.renderModName(lhs).localeCompare(util.renderModName(rhs));
     },
     filter: new DependenciesFilter(dependencyState,
