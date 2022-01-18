@@ -147,7 +147,8 @@ function removeFileOverrideRedundancies(api: types.IExtensionApi,
   // We expect that any of the filePaths included in the provided data object to have been
   //  _confirmed_ to be removed before calling this function!!!
   const state = api.store.getState();
-  const mods: { [modId: string]: types.IMod } = util.getSafe(state, ['persistent', 'mods', gameMode], {});
+  const mods: { [modId: string]: types.IMod } =
+    util.getSafe(state, ['persistent', 'mods', gameMode], {});
   const modsWithRedundancies = Object.keys(mods)
     .filter(id => Object.keys(data).includes(id)
       && (mods[id]?.fileOverrides !== undefined)
@@ -391,9 +392,10 @@ function checkRedundantFileOverrides(api: types.IExtensionApi) {
   return () => new Promise<types.ITestResult>((resolve, reject) => {
     const state = api.store.getState();
     const gameId = selectors.activeGameId(state);
-    const mods: { [modId: string]: types.IMod } = util.getSafe(state, ['persistent', 'mods', gameId], {});
+    const mods: { [modId: string]: types.IMod } =
+      util.getSafe(state, ['persistent', 'mods', gameId], {});
     const modsWithFileOverrides = Object.keys(mods)
-      .filter(id => mods[id]?.fileOverrides && (mods[id]?.fileOverrides.length > 0))
+      .filter(id => mods[id]?.fileOverrides && (mods[id]?.fileOverrides.length > 0));
 
     const fileExists = (filePath: string) => fs.statAsync(filePath)
       .then(() => Promise.resolve(true))
@@ -404,7 +406,8 @@ function checkRedundantFileOverrides(api: types.IExtensionApi) {
       const stagingFolder = selectors.installPathForGame(state, gameId);
       const modInstallationPath = mods[iter].installationPath;
       const modPath = path.join(stagingFolder, modInstallationPath);
-      const filePaths = mods[iter].fileOverrides.map(file => ({ rel: file, abs: path.join(modPath, file)}));
+      const filePaths = mods[iter].fileOverrides
+        .map(file => ({ rel: file, abs: path.join(modPath, file)}));
       return Promise.each(filePaths, filePath => fileExists(filePath.abs)
         .then(res => {
           if (res === false) {
@@ -783,7 +786,9 @@ function main(context: types.IExtensionContext) {
         .length > 0) ? true : 'No file conflicts';
     });
 
-  context.registerTest('redundant-file-overrides', 'gamemode-activated', checkRedundantFileOverrides(context.api));
+  context.registerTest('redundant-file-overrides',
+                       'gamemode-activated',
+                       checkRedundantFileOverrides(context.api));
 
   context.registerStartHook(50, 'check-unsolved-conflicts',
     (input: types.IRunParameters) => (input.options.suggestDeploy !== false)
