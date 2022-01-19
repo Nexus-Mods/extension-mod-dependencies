@@ -797,6 +797,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     const { gameId, onOverrideDialog } = this.props;
     const modId = evt.currentTarget.getAttribute('data-modid');
     onOverrideDialog(gameId, modId);
+    document.body.click();
   }
 
   private save = () => {
