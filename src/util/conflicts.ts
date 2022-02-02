@@ -5,6 +5,7 @@ import isBlacklisted from './blacklist';
 
 import Promise from 'bluebird';
 import * as path from 'path';
+import * as semver from 'semver';
 import turbowalk from 'turbowalk';
 import { log, types, util } from 'vortex-api';
 
@@ -31,7 +32,7 @@ function toLookupInfo(mod: types.IMod): IModLookupInfo {
     fileSizeBytes: attributes['fileSizeBytes'],
     logicalFileName: attributes['logicalFileName'],
     name: attributes['name'],
-    version: attributes['version'],
+    version: semver.coerce(attributes['version'])?.version ?? attributes['version'],
   };
 }
 
