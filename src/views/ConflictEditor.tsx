@@ -520,8 +520,12 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     const hasAppliedFilters = hideResolved || !!filterValue;
     const refIds = (hasAppliedFilters)
       ? Object.keys(rules[modId]).filter(refId => {
-        const refModName = util.renderModName(mods[refId]).toLowerCase();
-        const matchesFilter = refModName.includes(filterValue.toLowerCase());
+        const modName = util.renderModName(mods[refId]);
+        let matchesFilter = false;
+        if (modName !== undefined) {
+          const refModName = modName.toLowerCase();
+          matchesFilter = refModName.includes(filterValue.toLowerCase());
+        }
         return (!!filterValue && matchesFilter)
             || (hideResolved && this.isUnresolved(mods, modId, refId, rules, hideResolved));
       })
