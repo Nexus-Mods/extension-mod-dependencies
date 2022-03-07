@@ -260,6 +260,9 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
   const state = store.getState();
   const enabledMods: IModLookupInfo[] = enabledModKeys(state);
   const activeProfile = selectors.activeProfile(state);
+  if (activeProfile === undefined) {
+    return Promise.resolve();
+  }
   const gameMode = activeProfile.gameId;
   const mods = state.persistent.mods[gameMode];
 
