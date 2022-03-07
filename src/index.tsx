@@ -347,7 +347,8 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
             dialogActions.push({
               label: 'Install Dependencies',
               action: () => {
-                api.events.emit('install-dependencies', activeProfile.id, Array.from(hasRequired));
+                api.events.emit('install-dependencies',
+                  activeProfile?.id, gameMode, Array.from(hasRequired));
               },
             });
           }
