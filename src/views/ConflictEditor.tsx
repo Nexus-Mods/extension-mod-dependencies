@@ -598,7 +598,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       </Popover>
     );
 
-    const rule = rules[modId][conflict.otherMod.id];
+    const rule = rules[modId][conflict.otherMod.id] ?? { type: undefined, version: 'any' };
 
     let reverseRule: IBiDirRule;
 
@@ -611,7 +611,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
         // since the rules for the other mod might be changed, we have to use the unsaved state
         const reverseMod =
           (rules[refId]?.[modId] !== undefined)
-          && (['before', 'after'].indexOf(rules[refId]?.[modId].type) !== -1);
+          && (['before', 'after'].indexOf(rules[refId]?.[modId]?.type) !== -1);
 
         if (reverseMod) {
           reverseRule = {
@@ -644,7 +644,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
           <FormControl
             className='conflict-rule-select'
             componentClass='select'
-            value={rule.type || reverseRule?.type || 'norule'}
+            value={rule?.type || reverseRule?.type || 'norule'}
             onChange={this.setRuleType}
             data-modid={modId}
             data-refid={conflict.otherMod.id}
@@ -677,7 +677,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
         <td>
           <FormControl
             componentClass='select'
-            value={rule.version}
+            value={rule?.version ?? 'any'}
             onChange={this.setRuleVersion}
             data-modid={modId}
             data-refid={conflict.otherMod.id}
