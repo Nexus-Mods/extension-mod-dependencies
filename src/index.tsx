@@ -667,7 +667,9 @@ function makeDependenciesAttribute(api: types.IExtensionApi): types.ITableAttrib
         return 1;
       }
 
-      return util.renderModName(lhs).localeCompare(util.renderModName(rhs));
+      const lName = util.renderModName(lhs) ?? '';
+      const rName = util.renderModName(rhs) ?? '';
+      return lName.localeCompare(rName);
     },
     filter: new DependenciesFilter(dependencyState,
       () => {
