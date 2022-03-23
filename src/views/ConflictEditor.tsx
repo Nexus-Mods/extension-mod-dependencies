@@ -776,15 +776,19 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
   private setRuleType = (evt: React.MouseEvent<any>) => {
     const modId = evt.currentTarget.getAttribute('data-modid');
     const refId = evt.currentTarget.getAttribute('data-refid');
-    this.nextState.rules[modId][refId].type = (evt.currentTarget.value === 'norule')
-      ? undefined
-      : evt.currentTarget.value;
+    if (this.nextState.rules[modId][refId] !== undefined) {
+      this.nextState.rules[modId][refId].type = (evt.currentTarget.value === 'norule')
+        ? undefined
+        : evt.currentTarget.value;
+    }
   }
 
   private setRuleVersion = (evt: React.MouseEvent<any>) => {
     const modId = evt.currentTarget.getAttribute('data-modid');
     const refId = evt.currentTarget.getAttribute('data-refid');
-    this.nextState.rules[modId][refId].version = evt.currentTarget.value;
+    if (this.nextState.rules[modId][refId] !== undefined) {
+      this.nextState.rules[modId][refId].version = evt.currentTarget.value;
+    }
   }
 
   private translateModVersion(mod: types.IMod, spe: RuleVersion) {
