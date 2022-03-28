@@ -369,7 +369,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
                           rules: { [modId: string]: { [refId: string]: IRuleSpec } },
                           hideResolved: boolean) => {
     const isRuleSet: boolean = (rules[otherModId]?.[modId] === undefined)
-    ? (mods[otherModId].rules || [])
+    ? (mods[otherModId]?.rules ?? [])
        .find(rule => (['before', 'after', 'conflicts'].includes(rule.type))
                     && util.testModReference(mods[modId], rule.reference)) !== undefined
     : rules[otherModId][modId].type !== undefined;
@@ -520,6 +520,9 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     const hasAppliedFilters = hideResolved || !!filterValue;
     const refIds = (hasAppliedFilters)
       ? Object.keys(rules[modId]).filter(refId => {
+        if (mods[refId] === undefined) {
+          return false;
+        }
         const modName = util.renderModName(mods[refId]);
         let matchesFilter = false;
         if (modName !== undefined) {
