@@ -99,7 +99,10 @@ function getAllFiles(api: types.IExtensionApi,
 
   const typeRelPath = makeGetRelPath(api, game);
 
-  return Promise.map(mods.filter(mod => mod.installationPath !== undefined), (mod: types.IMod) => {
+  const consideredMods = mods
+    .filter(mod => (mod.installationPath !== undefined) && mod.state === 'installed');
+
+  return Promise.map(consideredMods, (mod: types.IMod) => {
     const modPath = path.join(stagingPath, mod.installationPath);
 
     return turbowalk(modPath, entries => {
@@ -131,7 +134,8 @@ function getAllFiles(api: types.IExtensionApi,
       if (!(['ENOENT', 'ENOTFOUND'].includes(err.code))) {
         return Promise.reject(err);
       }
-      log('error', 'Mod directory not found', { modDirectory: mod.installationPath });
+      log('error', 'Mod directory not found',
+        { modDirectory: mod.installationPath, error: err.message });
       return {};
     });
   })
