@@ -727,8 +727,15 @@ function queryEnableDependencies(api: types.IExtensionApi,
 
   const profile = selectors.lastActiveProfileForGame(state, gameMode);
 
-  const dependents = modIds.filter(id => ((mods[id]?.rules ?? []).find(rule =>
-    ['requires', 'recommends'].includes(rule.type)) !== undefined));
+  const dependents = modIds
+    .map(id => ({
+      id,
+      count: (mods[id]?.rules ?? [])
+        .filter(rule => ['requires', 'recommends'].includes(rule.type))
+        .length,
+    }))
+    .filter(ic => ic.count > 0);
+
   if (dependents.length > 0) {
     const dialogActions = [
       { label: 'Close' },
@@ -738,27 +745,39 @@ function queryEnableDependencies(api: types.IExtensionApi,
     if (dependents.length === 1) {
       dialogActions.splice(1, 0, { label: 'Review' });
     }
-    let text = 'The mod you {{enabled}} depends on other mods, do you want to {{enable}} those '
-      + 'as well?';
+
+    let md = t('The mod you {{enabled}} depends on other mods, do you want to {{enable}} those '
+      + 'as well?', {
+        replace: {
+          enabled: enabled ? t('enabled') : t('disabled'),
+          enable: enabled ? t('enable') : t('disable'),
+        },
+        count: dependents.length,
+    }) + '\n';
+
     if (!enabled) {
-      text += '\nThis will only disable mods not required by something else but it may disable '
-        + 'ones you had already enabled manually.';
+      md += t('This will only disable mods not required by something else but it may disable '
+        + 'ones you had already enabled manually.') + '\n';
     }
-    return api.showDialog('question', 'Mod has dependencies', {
-      text,
+
+    md += '\n' + dependents.map(ic =>
+      `* ${util.renderModName(mods[ic.id])}: ${t('{{count}} dependencies', { count: ic.count })}`)
+      .join('\n');
+
+    return api.showDialog('question', t('Mod has dependencies', { count: dependents.length }), {
+      md,
       checkboxes: [
         { id: 'recommendations', text: 'Apply to Recommended Mods', value: false },
       ],
-      parameters: {
-        enabled: enabled ? t('enabled') : t('disabled'),
-        enable: enabled ? t('enable') : t('disable'),
+      options: {
+        translated: true,
       },
     }, dialogActions)
       .then(result => {
         if (result.action === 'Review') {
           const batch = [];
           batch.push(actions.setAttributeFilter('mods', 'dependencies',
-            ['depends', dependents[0], util.renderModName(mods[dependents[0]])]));
+            ['depends', dependents[0], util.renderModName(mods[dependents[0].id])]));
           batch.push(actions.setAttributeSort('mods', 'dependencies', 'asc'));
           util.batchDispatch(api.store, batch);
           api.events.emit('show-main-page', 'Mods');
@@ -770,8 +789,8 @@ function queryEnableDependencies(api: types.IExtensionApi,
             .filter(mod => (mod.rules ?? [])
               .find(rule => ['requires', 'recommends'].includes(rule.type)));
 
-          const batch: Redux.Action[] = dependents.reduce((prev, modId) => {
-            return [].concat(prev, ...setDependenciesEnabled(profile, mods[modId], mods,
+          const batch: Redux.Action[] = dependents.reduce((prev, ic) => {
+            return [].concat(prev, ...setDependenciesEnabled(profile, mods[ic.id], mods,
               recommendationsToo, enabled, allDependents));
           }, []);
           util.batchDispatch(api.store, batch);
