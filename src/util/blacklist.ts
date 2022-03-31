@@ -23,7 +23,8 @@ const getBlacklist = (() => {
       const customBlacklist = ((game.details?.ignoreConflicts !== undefined)
         && Array.isArray(game.details.ignoreConflicts));
       lastBlacklist = customBlacklist
-        ? [].concat(blacklist, game.details.ignoreConflicts)
+        ? [].concat(blacklist, game.details.ignoreConflicts
+                                .map(inst => inst.toLowerCase()))
         : blacklist;
     }
 
