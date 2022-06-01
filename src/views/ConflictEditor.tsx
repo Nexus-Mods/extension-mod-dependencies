@@ -713,8 +713,8 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       <div>
         {t('{{ otherMod }} has a rule referencing {{ thisMod }}',
           { replace: {
-              otherMod: (util as any).renderModReference(rule.reference, mods[rule.reference.id]),
-              thisMod: (util as any).renderModReference(rule.source, mods[rule.source.id]) } })}
+              otherMod: util.renderModReference(rule.reference, mods[rule.reference.id]),
+              thisMod: util.renderModReference(rule.source, mods[rule.source.id]) } })}
       </div>);
 
     return (
@@ -726,7 +726,6 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
         data-modid={modId}
         data-rule={JSON.stringify(rule)}
         onClick={this.unlock}
-        disabled={rule.source.id === undefined}
       />
     );
   }
