@@ -32,6 +32,7 @@ function toLookupInfo(mod: types.IMod): IModLookupInfo {
     fileSizeBytes: attributes['fileSizeBytes'],
     logicalFileName: attributes['logicalFileName'],
     name: attributes['name'],
+    referenceTag: attributes['referenceTag'],
     version: semver.coerce(attributes['version'])?.version ?? attributes['version'],
   };
 }

@@ -10,4 +10,5 @@ export interface IModLookupInfo {
   source?: string;
   modId?: string;
   fileId?: string;
+  referenceTag?: string;
 }
