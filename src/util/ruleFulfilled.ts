@@ -27,6 +27,7 @@ function ruleFulfilled(enabledMods: IModLookupInfo[], rule: IRule,
   }
 
   if (rule.type === 'conflicts') {
+    enabledMods = enabledMods.filter(mod => mod.id !== source.modId);
     if (findReference(rule.reference, enabledMods, source) !== undefined) {
       return false;
     } else {
