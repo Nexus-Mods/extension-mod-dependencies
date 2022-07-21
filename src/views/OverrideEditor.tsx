@@ -1,23 +1,21 @@
-import { IBiDirRule } from '../types/IBiDirRule';
-import { IConflict } from '../types/IConflict';
-import { IModLookupInfo } from '../types/IModLookupInfo';
+import type { IBiDirRule } from '../types/IBiDirRule';
+import type { IConflict } from '../types/IConflict';
+import type { IModLookupInfo } from '../types/IModLookupInfo';
 
 import { setConflictDialog, setFileOverrideDialog } from '../actions';
+import { NAMESPACE } from '../statics';
 
-import { ILocalState } from './DependencyIcon';
+import type { ILocalState } from './DependencyIcon';
 import SearchBox, { ISearchMatch } from './SearchBox';
 
-import * as nodePath from 'path';
 import * as React from 'react';
 import { Button, Dropdown, MenuItem, Modal } from 'react-bootstrap';
 import { Trans, withTranslation, WithTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
 import * as TreeT from 'react-sortable-tree';
 import { } from 'react-sortable-tree-theme-file-explorer';
-import * as Redux from 'redux';
 import { actions, ComponentEx, DNDContainer, Icon, selectors,
          Spinner, types, Usage, util } from 'vortex-api';
-import { NAMESPACE } from '../statics';
 
 interface IFileTree {
   title: string;
@@ -29,8 +27,16 @@ interface IFileTree {
   expanded: boolean;
 }
 
+export interface IPathTools {
+  sep: string;
+  join: (...segment: string[]) => string;
+  basename(path: string, ext?: string): string;
+  dirname(path: string): string;
+}
+
 export interface IOverrideEditorProps {
   localState: ILocalState;
+  pathTool: IPathTools;
 }
 
 interface IConnectedProps {
@@ -71,7 +77,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
     super(props);
 
     const modRules = props.localState.modRules.filter(
-        rule => util.testModReference(props.mods[props.modId], rule.source));
+      rule => util.testModReference(props.mods[props.modId], rule.source));
 
     this.initState({
       treeState: [],
@@ -125,7 +131,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
   public render(): JSX.Element {
     const { t, modId, mods } = this.props;
     const { hasUnsolved, searchString, searchIndex, searchMatches,
-            sorting, sortError, treeState } = this.state;
+      sorting, sortError, treeState } = this.state;
 
     const modName = mods[modId] !== undefined
       ? util.renderModName(mods[modId])
@@ -235,7 +241,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
   }
 
   private apply = () => {
-    const { onClose, onSetFileOverride, gameId, mods } = this.props;
+    const { onClose, onSetFileOverride, pathTool, gameId, mods } = this.props;
     const { treeState } = this.state;
 
     const files: { [provider: string]: string[] } = {};
@@ -248,7 +254,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
 
     const walkState = (children: IFileTree[], parentPath: string) => {
       children.forEach(iter => {
-        const filePath = nodePath.join(parentPath, iter.title);
+        const filePath = pathTool.join(parentPath, iter.title);
         if (iter.isDirectory) {
           walkState(iter.children, filePath);
         } else {
@@ -326,12 +332,14 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
       return name;
     };
 
+    const key = `provider-select-${rowInfo.path.join('_')}`;
     return {
       buttons: rowInfo.node.isDirectory ? [] : [(
-        <a data-row={rowInfo.path} onClick={this.preview}>{t('Preview')}</a>
+        <a key='preview' data-row={rowInfo.path} onClick={this.preview}>{t('Preview')}</a>
       ), (
         <Dropdown
-          id={`provider-select-${rowInfo.path.join('_')}`}
+          id={key}
+          key={key}
           data-filepath={rowInfo.node.path}
           onSelect={this.changeProvider as any}
           title={renderName(rowInfo.node.selected)}
@@ -362,7 +370,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
   }
 
   private preview = (evt: React.MouseEvent<any>) => {
-    const { installPath, mods } = this.props;
+    const { installPath, mods, pathTool } = this.props;
     const { treeState } = this.state;
     const pathStr = evt.currentTarget.getAttribute('data-row');
     const path = pathStr.split(',');
@@ -381,7 +389,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
           const mod = mods[modId];
           return {
             label: util.renderModName(mod),
-            filePath: nodePath.join(installPath, mod.installationPath, filePath),
+            filePath: pathTool.join(installPath, mod.installationPath, filePath),
           };
         });
       this.context.api.events.emit('preview-files', options);
@@ -393,6 +401,8 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
   }
 
   private changeProvider = (eventKey: any, evt: any) => {
+    const { pathTool } = this.props;
+
     // why exactly is the target of the event the <a> of the menu item? This handler
     // was attached to the Dropdown not to the menu item.
     const filePath =
@@ -405,7 +415,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
       cur = searchPos[0];
     }
 
-    const components = filePath.split(nodePath.sep);
+    const components = filePath.split(pathTool.sep);
     if ((cur === undefined) && (components.length === 1)) {
       // Only add the top level "." directory if we were not able
       //  to skip it.
@@ -424,7 +434,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
   }
 
   private toTree(props: IProps): IFileTree[] {
-    const { conflicts, modId } = props;
+    const { conflicts, modId, pathTool } = props;
 
     const makeEmpty = (title: string, filePath: string, prov?: string) => ({
       title,
@@ -449,10 +459,10 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
       input.files.forEach(file => {
         let cur = tree;
 
-        nodePath.dirname(file).split(nodePath.sep).forEach((comp, idx, segments) => {
-          cur = ensure(cur, comp, segments.slice(0, idx + 1).join(nodePath.sep)).children;
+        pathTool.dirname(file).split(pathTool.sep).forEach((comp, idx, segments) => {
+          cur = ensure(cur, comp, segments.slice(0, idx + 1).join(pathTool.sep)).children;
         });
-        const fileName = nodePath.basename(file);
+        const fileName = pathTool.basename(file);
         ensure(cur, fileName, file, modId).providers.push(input.otherMod.id);
       });
       return tree;
@@ -464,19 +474,19 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
   }
 
   private sortProviders(files: IFileTree[], props: IProps, dirPath: string = ''): void {
-    const { mods } = props;
+    const { mods, pathTool } = props;
     const { sortedMods } = this.nextState;
-    const sortFunc = (lhs: string, rhs: string, filePath: string) => {
+    const sortFunc = (lhs: string, rhs: string) => {
       if ((mods[lhs] === undefined) || (mods[rhs] === undefined)) {
         return 0;
       }
       return sortedMods.indexOf(rhs) - sortedMods.indexOf(lhs);
     };
     files.forEach(file => {
-      const filePath = nodePath.join(dirPath, file.title);
+      const filePath = pathTool.join(dirPath, file.title);
       file.providers = file.providers
         .filter(modId => mods[modId] !== undefined)
-        .sort((lhs, rhs) => sortFunc(lhs, rhs, filePath));
+        .sort(sortFunc);
       file.selected = file.providers[0];
       const overrider = file.providers.find(
         modId => ((mods[modId] as any).fileOverrides || []).indexOf(filePath) !== -1);
@@ -535,4 +545,4 @@ function mapDispatchToProps(dispatch: any): IActionProps {
 
 export default withTranslation(['common', NAMESPACE])(
   connect(mapStateToProps, mapDispatchToProps)(
-  OverrideEditor) as any) as React.ComponentClass<{}>;
+    OverrideEditor) as any) as React.ComponentClass<IOverrideEditorProps>;

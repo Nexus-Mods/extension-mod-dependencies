@@ -17,7 +17,7 @@ import Connector from './views/Connector';
 import DependencyIcon, { ILocalState } from './views/DependencyIcon';
 import Editor from './views/Editor';
 import ModNameWrapper from './views/ModNameWrapper';
-import OverrideEditor from './views/OverrideEditor';
+import OverrideEditor, { IPathTools } from './views/OverrideEditor';
 
 import { setConflictDialog, setConflictInfo, setEditCycle,
          setFileOverrideDialog } from './actions';
@@ -26,7 +26,7 @@ import { enabledModKeys } from './selectors';
 import unsolvedConflictsCheck from './unsolvedConflictsCheck';
 
 import Promise from 'bluebird';
-import I18next, { TFunction, WithT } from 'i18next';
+import I18next, { WithT } from 'i18next';
 import * as _ from 'lodash';
 import { ILookupResult, IModInfo, IReference, IRule, RuleType } from 'modmeta-db';
 import * as path from 'path';
@@ -958,6 +958,13 @@ function mapStateToProps(state: types.IState) {
 const ManageRuleButton = withTranslation(['common'])(
   connect(mapStateToProps)(ManageRuleButtonImpl) as any);
 
+const pathTool: IPathTools = {
+  basename: path.basename,
+  dirname: path.dirname,
+  join: path.join,
+  sep: path.sep,
+};
+
 function main(context: types.IExtensionContext) {
   context.registerReducer(['session', 'dependencies'], connectionReducer);
   context.registerTableAttribute('mods', makeLoadOrderAttribute(context.api));
@@ -981,8 +988,10 @@ function main(context: types.IExtensionContext) {
       localState={dependencyState}
     />
   ));
+
   context.registerDialog('mod-fileoverride-editor', OverrideEditor, () => ({
     localState: dependencyState,
+    pathTool,
   }));
   context.registerAction('mods-action-icons', 100, 'groups', {}, 'Manage File Conflicts',
     instanceIds => {
