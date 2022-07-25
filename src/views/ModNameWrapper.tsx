@@ -24,7 +24,7 @@ function ModNameWrapper(props: React.PropsWithChildren<IModNameWrapper>) {
       const batch = [];
       batch.push(actions.setAttributeFilter('mods', 'dependencies',
         ['depends', rowId, util.renderModName(mod)]));
-      const { attributes } =  store.getState().settings.tables['mods'];
+      const { attributes } =  store.getState().settings.tables['mods'] ?? {};
       Object.keys(attributes)
         .forEach(key => {
           if ((key !== 'dependencies') && (attributes[key].sortDirection !== 'none')) {
