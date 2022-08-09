@@ -9,7 +9,7 @@ import determineConflicts from './util/conflicts';
 import DependenciesFilter from './util/DependenciesFilter';
 import findRule from './util/findRule';
 import renderModLookup from './util/renderModLookup';
-import ruleFulfilled from './util/ruleFulfilled';
+import ruleFulfilled, { ruleInstallerChoicesFulfilled } from './util/ruleFulfilled';
 import showUnsolvedConflictsDialog from './util/showUnsolvedConflicts';
 import ConflictEditor from './views/ConflictEditor';
 import ConflictGraph from './views/ConflictGraph';
@@ -294,8 +294,14 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
           ((meta.length > 0) && (meta[0].value !== undefined)) ? meta[0].value.rules || [] : [],
           util.getSafe(mods[modLookup.id], ['rules'], []),
         );
-        const rulesUnfulfilled = rules.filter(rule =>
-          ruleFulfilled(enabledMods, rule, { gameId: gameMode, modId: mod.id }) === false);
+        const rulesUnfulfilled = rules.filter(rule => {
+          const ruleFul = ruleFulfilled(enabledMods, rule, { gameId: gameMode, modId: mod.id });
+          if (ruleFul) {
+            const mismatch = ruleInstallerChoicesFulfilled(mods, enabledMods, rule, { gameId: gameMode, modId: mod.id });
+            return mismatch === false;
+          }
+          return ruleFul === false;
+        });
         const res: { modId: string, rules: IRule[] } = (rulesUnfulfilled.length === 0)
           ? null : {
             modId: mod.id,
