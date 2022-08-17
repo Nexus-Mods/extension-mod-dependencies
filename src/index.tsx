@@ -684,7 +684,7 @@ function makeDependenciesAttribute(api: types.IExtensionApi): types.ITableAttrib
 
 function nothingNeeds(profile: types.IProfile, mod: types.IMod, among: types.IMod[], except: types.IMod) {
   const isEnabled = (modId) =>
-    util.getSafe(profile.modState, [modId, 'enabled'], false);
+    util.getSafe(profile, ['modState', modId, 'enabled'], false);
 
   const matchesMod = rule =>
     ['requires', 'recommends'].includes(rule.type)
