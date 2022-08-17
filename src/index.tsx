@@ -682,18 +682,22 @@ function makeDependenciesAttribute(api: types.IExtensionApi): types.ITableAttrib
   return res;
 }
 
-function nothingNeeds(mod: types.IMod, among: types.IMod[], except: types.IMod) {
+function nothingNeeds(profile: types.IProfile, mod: types.IMod, among: types.IMod[], except: types.IMod) {
+  const isEnabled = (modId) =>
+    util.getSafe(profile.modState, [modId, 'enabled'], false);
+
   const matchesMod = rule =>
     ['requires', 'recommends'].includes(rule.type)
     && util.testModReference(mod, rule.reference);
 
   return among.find(dependent => {
     return (dependent.id !== except.id)
+        && (isEnabled(dependent.id))
         && (dependent.rules.find(matchesMod) !== undefined);
   }) === undefined;
 }
 
-function setDependenciesEnabled(profileId: string,
+function setDependenciesEnabled(profile: types.IProfile,
                                 dependent: types.IMod,
                                 mods: { [modId: string]: types.IMod },
                                 recommendations: boolean,
@@ -706,8 +710,8 @@ function setDependenciesEnabled(profileId: string,
     .map(rule => {
       const mod = util.findModByRef(rule.reference, mods);
       if ((mod !== undefined)
-          && (enabled || nothingNeeds(mod, allDependents, dependent))) {
-        return actions.setModEnabled(profileId, mod.id, enabled);
+          && (enabled || nothingNeeds(profile, mod, allDependents, dependent))) {
+        return actions.setModEnabled(profile.id, mod.id, enabled);
       } else {
         return undefined;
       }
@@ -725,8 +729,8 @@ function queryEnableDependencies(api: types.IExtensionApi,
   const state = api.getState();
   const mods = state.persistent.mods[gameMode];
 
-  const profile = selectors.lastActiveProfileForGame(state, gameMode);
-
+  const profileId = selectors.lastActiveProfileForGame(state, gameMode);
+  const profile = selectors.profileById(state, profileId);
   const dependents = modIds
     .map(id => ({
       id,
