@@ -315,7 +315,7 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
       // based on mod type
       return Promise.map(unfulfilled.filter(iter => iter !== null), iter =>
         api.emitAndAwait('unfulfilled-rules', activeProfile.id, iter.modId, iter.rules)
-          .then((result: boolean) => Promise.resolve(result
+          .then((result: boolean[]) => Promise.resolve(result[0]
             ? undefined
             : iter)))
         .filter(iter => iter !== undefined);
