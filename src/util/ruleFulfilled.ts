@@ -33,9 +33,9 @@ function ruleFulfilled(enabledMods: IModLookupInfo[], rule: IRule,
     } else {
       return true;
     }
-  } else if (rule.type === 'requires') {
+  } else if (['requires', 'recommends'].includes(rule.type)) {
     if (findReference(rule.reference, enabledMods, source) === undefined) {
-      return false;
+      return (rule.type === 'requires') ? false : null;
     } else {
       return true;
     }
