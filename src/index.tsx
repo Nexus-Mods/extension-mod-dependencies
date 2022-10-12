@@ -913,7 +913,16 @@ function once(api: types.IExtensionApi) {
 
   api.onAsync('will-enable-mods', (profileId: string, modIds: string[],
                                    enabled: boolean, options) => {
-    if (options?.installed) {
+    // don't query to enable dependencies right after installing the mod
+    // (the dependencies will be getting installed/enabled as part of that
+    //  installation process automatically)
+    // Also don't query if the mod is being reinstalled or upgraded because
+    // the assumption is that the replacement will have the same dependencies
+    // anyway.
+    // This is not a valid assumption but if the dependencies change, we'd
+    // only be able to identify the changes after the new version is installed.
+    // TODO: currently we're not doing that though
+    if (options?.installed || options?.willBeReplaced) {
       return Promise.resolve();
     }
     const profile = selectors.profileById(api.getState(), profileId);
