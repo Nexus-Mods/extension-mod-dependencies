@@ -595,11 +595,15 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
   }
 
   private key = (rule: types.IModRule) => {
-    return rule.type + '_' +
-      (rule.reference.logicalFileName
-      || rule.reference.fileExpression
-      || rule.reference.fileMD5
-      || rule.reference.id);
+    return [
+      rule.type, (
+        rule.reference.logicalFileName
+        || rule.reference.fileExpression
+        || rule.reference.fileMD5
+        || rule.reference.id
+      ),
+      rule.reference.versionMatch ?? '*'
+    ].join('_');
   }
 
   private removeRule = (rule: IRule) => {
