@@ -735,7 +735,8 @@ function queryEnableDependencies(api: types.IExtensionApi,
     .map(id => ({
       id,
       count: (mods[id]?.rules ?? [])
-        .filter(rule => ['requires', 'recommends'].includes(rule.type))
+        .filter(rule => ['requires', 'recommends'].includes(rule.type)
+                     && (util.findModByRef(rule.reference, mods) !== undefined))
         .length,
     }))
     .filter(ic => ic.count > 0);
