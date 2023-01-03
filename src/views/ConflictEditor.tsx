@@ -585,6 +585,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     const {rules} = this.state;
 
     if ((mods[modId] === undefined)
+        || (rules[modId] === undefined)
         || (mods[conflict.otherMod.id] === undefined)) {
       return null;
     }
