@@ -732,13 +732,35 @@ function queryEnableDependencies(api: types.IExtensionApi,
   const profileId = selectors.lastActiveProfileForGame(state, gameMode);
   const profile = selectors.profileById(state, profileId);
   const dependents = modIds
-    .map(id => ({
-      id,
-      count: (mods[id]?.rules ?? [])
-        .filter(rule => ['requires', 'recommends'].includes(rule.type)
-                     && (util.findModByRef(rule.reference, mods) !== undefined))
-        .length,
-    }))
+    .map(id => {
+      const applicableRules = (mods[id]?.rules ?? [])
+        .filter(rule => {
+          if (!['requires', 'recommends'].includes(rule.type)) {
+            return false;
+          }
+
+          const refMod = util.findModByRef(rule.reference, mods);
+          if (refMod === undefined) {
+            return false;
+          }
+
+          if (modIds.includes(refMod.id)) {
+            return false;
+          }
+
+          const isEnabled = (profile.modState[refMod.id]?.enabled ?? false);
+          if (isEnabled === enabled) {
+            return false;
+          }
+
+          return true;
+        });
+      return {
+        id,
+        rules: applicableRules,
+        count: applicableRules.length,
+      }
+    })
     .filter(ic => ic.count > 0);
 
   if (dependents.length > 0) {
