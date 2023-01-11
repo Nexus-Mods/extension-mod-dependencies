@@ -33,7 +33,7 @@
     "i18next": "^19.0.3",
     "immutability-helper": "^2.6.6",
     "json-loader": "^0.5.7",
-    "minimatch": "^3.0.4",
+    "minimatch": "^3.0.5",
     "modmeta-db": "Nexus-Mods/modmeta-db",
     "react": "^16.14.0",
     "react-bootstrap": "^0.32.1",
