@@ -358,7 +358,7 @@ function checkRulesFulfilled(api: types.IExtensionApi): Promise<void> {
 
           store.dispatch(actions.showDialog(
             'info',
-            t('Unresolved file conflicts'), {
+            t('Unresolved mod conflicts or requirements'), {
               bbcode: message.join('<br/>'),
               options: { translated: true, wrap: true },
             }, dialogActions));
