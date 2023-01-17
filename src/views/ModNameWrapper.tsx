@@ -15,6 +15,8 @@ function ModNameWrapper(props: React.PropsWithChildren<IModNameWrapper>) {
     const gameId = useSelector(selectors.activeGameId);
     const filter = useSelector<types.IState, string[]>(state =>
       state.settings.tables['mods']?.filter?.['dependencies'] ?? emptyArray);
+    const columnEnabled = useSelector<types.IState, any>(state =>
+      state.settings.tables['mods']?.attributes?.['dependencies']?.enabled ?? false);
     const mod = useSelector<types.IState, types.IMod>(state =>
       state.persistent.mods[gameId]?.[rowId]);
 
@@ -31,6 +33,8 @@ function ModNameWrapper(props: React.PropsWithChildren<IModNameWrapper>) {
             batch.push(actions.setAttributeSort('mods', key, 'none'));
           }
         });
+
+      batch.push(actions.setAttributeVisible('mods', 'dependencies', true));
       batch.push(actions.setAttributeSort('mods', 'dependencies', 'asc'));
       util.batchDispatch(store, batch);
     }, [store, rowId]);
@@ -39,8 +43,9 @@ function ModNameWrapper(props: React.PropsWithChildren<IModNameWrapper>) {
     const icons = [];
 
     const classes = ['modname-filter-wrapper'];
-    if (indent) {
+    if (indent && columnEnabled) {
       classes.push('modname-filter-indented');
+
       icons.push(<Icon
         key='dependency'
         name='turn-s'
