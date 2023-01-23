@@ -5,7 +5,7 @@ import { types } from 'vortex-api';
 const blacklist = [
   path.join('**', 'fomod', '*'),
   path.join('**', 'readme*'),
-  path.join('**', '.git'),
+  path.join('**', '.git', '**'),
   path.join('**', '.hgignore'),
   path.join('**', '.gitignore'),
   path.join('**', '.gitattributes'),
