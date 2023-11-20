@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { ConflictSuggestion, IConflict } from '../types/IConflict';
 import { IModLookupInfo } from '../types/IModLookupInfo';
 
@@ -16,10 +17,16 @@ import { log, types, util } from 'vortex-api';
 //   solve them. Currently mod types are still deployed one after the other so
 //   setting install order rules between mods of different types doesn't have
 //   the expected effect until the deployment system is overhauled.
-const ABSOLUTE_PATHS: boolean = false;
+const ABSOLUTE_PATHS: boolean = true;
+
+interface IConflictInfo {
+  mod: types.IMod;
+  relPath: string;
+  time: number;
+}
 
 interface IFileMap {
-  [filePath: string]: Array<{ mod: types.IMod, relPath: string, time: number }>;
+  [filePath: string]: IConflictInfo[];
 }
 
 function toLookupInfo(mod: types.IMod): IModLookupInfo {

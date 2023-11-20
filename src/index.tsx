@@ -1,4 +1,5 @@
-/**
+/* eslint-disable */
+/* 
  * Extension for editing and visualising mod dependencies
  */
 
@@ -11,6 +12,7 @@ import findRule from './util/findRule';
 import renderModLookup from './util/renderModLookup';
 import ruleFulfilled from './util/ruleFulfilled';
 import showUnsolvedConflictsDialog from './util/showUnsolvedConflicts';
+import topologicalSort from './util/topologicalSort';
 import ConflictEditor from './views/ConflictEditor';
 import ConflictGraph from './views/ConflictGraph';
 import Connector from './views/Connector';
@@ -186,6 +188,14 @@ function updateConflictInfo(api: types.IExtensionApi, gameId: string,
 
   const encountered = new Set<string>();
 
+  const hasOverrides = (mod: types.IMod) => (mod.fileOverrides?.length > 0);
+  const batchedActions = [];
+  const addOverrides = (modId: string, conflict: IConflict) => {
+    if (mods[modId].type !== mods[conflict.otherMod.id].type) {
+      batchedActions.push(actions.setFileOverride(gameId, modId, conflict.files));
+      batchedActions.push(actions.setFileOverride(gameId, conflict.otherMod.id, conflict.files));
+    }
+  }
   const mapEnc = (lhs: string, rhs: string) => [lhs, rhs].sort().join(':');
 
   // see if there is a mod that has conflicts for which there are no rules
@@ -194,17 +204,70 @@ function updateConflictInfo(api: types.IExtensionApi, gameId: string,
       (findRule(dependencyState.modRules, mods[modId], conflict.otherMod) === undefined)
       && !encountered.has(mapEnc(modId, conflict.otherMod.id)));
 
+    const solved = conflicts[modId].filter(conflict => (findRule(dependencyState.modRules, mods[modId], conflict.otherMod) !== undefined));
+    solved.forEach(conflict => {
+      // Users may have defined rules before the modType conflict detection was added.
+      if (!hasOverrides(mods[modId]) && !hasOverrides(mods[conflict.otherMod.id])) {
+        addOverrides(modId, conflict);
+      }
+    });
+
     if (filtered.length !== 0) {
       unsolved[modId] = filtered;
       filtered.forEach(conflict => {
+        addOverrides(modId, conflict);
         encountered.add(mapEnc(modId, conflict.otherMod.id));
       });
     }
   });
 
+  util.batchDispatch(store, batchedActions);
+
+  interface FlattenedConflict {
+    fileName: string;
+    modIds: string[];
+  }
+  
+  // Easier to work with file overrides when the file name itself is the key to the dictionary.
+  const flattenedConflicts: { [fileName: string]: FlattenedConflict } = {};
+  Object.keys(conflicts).forEach((modId) => {
+    conflicts[modId].forEach((conflict) => {
+      conflict.files.forEach((fileName) => {
+        if (!flattenedConflicts[fileName]) {
+          flattenedConflicts[fileName] = {
+            fileName,
+            modIds: [],
+          };
+        }
+        flattenedConflicts[fileName].modIds.push(modId);
+      });
+    });
+  });
+
+  // We ran a bunch of actions - get the updated mod list.
+  const updatedMods = store.getState().persistent.mods[gameId];
+
+
+  for (const fileName of Object.keys(flattenedConflicts)) {
+    const conflict = flattenedConflicts[fileName];
+    const overrides = [];
+    for (const modId of conflict.modIds) {
+      if (hasOverrides(updatedMods[modId])) {
+        overrides.push(modId);
+      }
+    }
+    if (overrides.length === conflict.modIds.length) {
+      // This means we're not deploying any of the mods that are in conflict.
+      //  find the mod that deploys last and remove the override.
+      const result = topologicalSort(conflict.modIds.map(id => updatedMods[id]));
+      api.store.dispatch(actions.setFileOverride(gameId, result[0], []));
+    }
+  }
+
   if (Object.keys(unsolved).length === 0) {
     store.dispatch(actions.dismissNotification(CONFLICT_NOTIFICATION_ID));
   } else {
+    util.batchDispatch(store, batchedActions);
     const message: string[] = [
       t('There are unresolved file conflicts. This just means that two or more mods contain the '
         + 'same files and you need to decide which of them loads last and thus provides '
