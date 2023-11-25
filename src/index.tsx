@@ -156,8 +156,7 @@ function removeFileOverrideRedundancies(api: types.IExtensionApi,
     return accum;
   }, []);
 
-  // TODO: convert this to a batched dispatch
-  batchedActions.forEach(action => api.store.dispatch(action));
+  util.batchDispatch(api.store, batchedActions);
 }
 
 const dependencyState = util.makeReactive<ILocalState>({
@@ -655,6 +654,12 @@ function changeMayAffectRules(before: types.IMod, after: types.IMod): boolean {
 
   if (after.attributes === undefined) {
     return false;
+  }
+
+  // Given the modType conflict detection, we need to check for a change in file
+  //  overrides as well!
+  if (JSON.stringify(before.fileOverrides) !== JSON.stringify(after.fileOverrides)) {
+    return true;
   }
 
   return (before.rules !== after.rules)
