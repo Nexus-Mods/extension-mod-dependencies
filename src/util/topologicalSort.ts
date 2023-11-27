@@ -4,8 +4,10 @@ import { types } from 'vortex-api';
 export default function topologicalSort(graph: types.IMod[]): string[] {
   const visited = new Set();
   const result: string[] = [];
+  const allRules: types.IModRule[] = graph
+    .reduce((accum, mod) => accum.concat(mod.rules?.filter(rule => ['before', 'after'].includes(rule.type)) ?? []), []);
 
-  function visit(modId: string) {
+  function visit(modId: string, ruleType?: string) {
     if (visited.has(modId)) {
       return;
     }
@@ -13,19 +15,21 @@ export default function topologicalSort(graph: types.IMod[]): string[] {
     visited.add(modId);
 
     const mod = graph.find(iter => iter.id === modId)!;
-    const rules = mod.rules?.filter(rule => ['before'].includes(rule.type)
+    const rules = mod.rules?.filter(rule => ['before', 'after'].includes(rule.type)
       && graph.find(mod => mod.id === rule.reference.id)) ?? [];
 
     rules.forEach((rule: types.IModRule) => {
-      visit(rule.reference.id as string);
+      if (rule.type === 'after') {
+        visit(rule.reference.id as string, rule.type);
+      }
     });
 
-    result.push(mod.id);
+    result.push(modId);
   }
 
   graph.forEach((mod) => {
     visit(mod.id);
   });
 
-  return result.reverse();
+  return result;
 }
