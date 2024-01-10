@@ -31,5 +31,5 @@ export default function topologicalSort(graph: types.IMod[]): string[] {
     visit(mod.id);
   });
 
-  return result;
+  return result.reverse();
 }
