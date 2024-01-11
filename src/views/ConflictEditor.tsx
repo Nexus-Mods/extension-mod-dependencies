@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { IBiDirRule } from '../types/IBiDirRule';
 import { IConflict } from '../types/IConflict';
 
@@ -880,4 +881,4 @@ function mapDispatchToProps(dispatch: ThunkDispatch<any, null, Redux.Action>): I
 
 export default withTranslation(['common', NAMESPACE])(
   connect(mapStateToProps, mapDispatchToProps)(
-  ConflictEditor) as any) as React.ComponentClass<{}>;
+    ConflictEditor) as any) as React.ComponentClass<{}>;
