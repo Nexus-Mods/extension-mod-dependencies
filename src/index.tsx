@@ -187,6 +187,9 @@ function updateOverrides(api: types.IExtensionApi, gameMode: string): void {
     }
     return accum;
   }, {});
+  Object.entries(modsWithOverrides).forEach(([modId, overrides]) => {
+    api.emitAndAwait('deploy-single-mod', gameMode, modId, false);
+  });
   const overrideActions = [];
   for (const [modId, overrides] of Object.entries(modsWithOverrides)) {
     overrideActions.push(actions.setFileOverride(gameMode, modId, overrides));

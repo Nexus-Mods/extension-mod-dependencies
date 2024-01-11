@@ -368,8 +368,7 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
         || this.props.localState.modRules !== nextProps.localState.modRules
         || this.props.source !== nextProps.source
         || this.props.highlightConflict !== nextProps.highlightConflict
-        || this.state !== nextState
-      ;
+        || this.state !== nextState;
   }
 
   public render(): JSX.Element {
@@ -469,7 +468,7 @@ class DependencyIcon extends ComponentEx<IProps, IComponentState> {
         <Popover id={`popover-${mod.id}`}>
           {t('No rules')}
         </Popover>
-        );
+      );
     }
 
     return connectDragSource((
