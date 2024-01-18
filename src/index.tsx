@@ -961,6 +961,13 @@ function once(api: types.IExtensionApi) {
       });
   });
 
+  api.events.on('recalculate-modtype-conflicts', (modIds: string[]) => {
+    const gameMode = selectors.activeGameId(store.getState());
+    updateRulesDebouncer.schedule(() => {
+      updateConflictDebouncer.schedule(undefined);
+    }, gameMode);
+  });
+
   api.events.on('check-file-override-redundancies',
     (gameMode: string, data: { [modId: string]: string[] }) =>
       removeFileOverrideRedundancies(api, gameMode, data));
