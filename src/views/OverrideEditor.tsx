@@ -32,6 +32,7 @@ export interface IPathTools {
   join: (...segment: string[]) => string;
   basename(path: string, ext?: string): string;
   dirname(path: string): string;
+  relative(lhs: string, rhs: string): string;
 }
 
 export interface IOverrideEditorProps {
@@ -46,6 +47,7 @@ interface IConnectedProps {
   mods: { [modId: string]: types.IMod };
   profile: types.IProfile;
   installPath: string;
+  discovery: types.IDiscoveryResult;
 }
 
 interface IActionProps {
@@ -434,7 +436,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
   }
 
   private toTree(props: IProps): IFileTree[] {
-    const { conflicts, modId, pathTool } = props;
+    const { conflicts, modId, pathTool, discovery } = props;
 
     const makeEmpty = (title: string, filePath: string, prov?: string) => ({
       title,
@@ -459,7 +461,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
       input.files.forEach(file => {
         let cur = tree;
 
-        pathTool.dirname(file).split(pathTool.sep).forEach((comp, idx, segments) => {
+        pathTool.dirname(pathTool.relative(discovery.path, file)).split(pathTool.sep).forEach((comp, idx, segments) => {
           cur = ensure(cur, comp, segments.slice(0, idx + 1).join(pathTool.sep)).children;
         });
         const fileName = pathTool.basename(file);
@@ -528,6 +530,7 @@ function mapStateToProps(state: types.IState): IConnectedProps {
     profile: selectors.activeProfile(state),
     installPath:
       dialog.gameId !== undefined ? selectors.installPathForGame(state, dialog.gameId) : undefined,
+    discovery: selectors.discoveryByGame(state, dialog.gameId),
     conflicts:
       util.getSafe(state, ['session', 'dependencies', 'conflicts', dialog.modId], emptyArr),
   };
