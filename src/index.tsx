@@ -144,11 +144,11 @@ function findOverridenByFile(mods: { [modId: string]: types.IMod }, fileName: st
     .reduce((accum, mod) => accum.concat(mod.rules?.filter(overrideFilter) ?? []), []);
 
   for (const [modId, mod] of Object.entries(mods)) {
-    if (mod.fileOverrides !== undefined) {
+    if (mod.fileOverrides !== undefined && mod.fileOverrides.includes(fileName)) {
       res.push(mod);
       continue;
     }
-    const rules = mod.rules?.filter(rule => ['before', 'after'].includes(rule.type)
+    const rules = mod.rules?.filter(rule => overrideFilter(rule)
       && Object.values(mods).find(mod => mod.id === rule.reference.id)) ?? [];
     if ((rules.length > 0) || allRules.some(rule => rule.reference.id === modId)) {
       res.push(mod);
@@ -171,9 +171,19 @@ function updateOverrides(api: types.IExtensionApi, gameMode: string): void {
       .filter(([modId]) => isEnabled(modId))
       .reduce((accum, [modId, mod]) => { accum[modId] = mod; return accum; }, {});
   const enabled = getEnabledMap(mods);
+  const knownConflicts = state?.session?.['dependencies']?.conflicts;
+  if (knownConflicts === undefined) {
+    // The conflicts didn't get a chance to calculate yet. No point in
+    //  proceeding.
+    return;
+  }
   const modsWithOverrides: OverrideByMod = Object.entries(enabled).reduce((accum, [modId, mod]) => {
     if (mod.fileOverrides !== undefined) {
       for (const fileName of mod.fileOverrides) {
+        const knownConflict = knownConflicts[modId].find(c => c.files.includes(fileName));
+        if (knownConflict !== undefined && !mods[knownConflict.otherMod.id].fileOverrides.includes(fileName)) {
+          continue;
+        }
         const conflict = findOverridenByFile(enabled, fileName);
         const sorted = topologicalSort(conflict);
         const top = sorted[0];
@@ -1091,6 +1101,7 @@ const ManageRuleButton = withTranslation(['common'])(
   connect(mapStateToProps)(ManageRuleButtonImpl) as any);
 
 const pathTool: IPathTools = {
+  isAbsolute: path.isAbsolute,
   relative: path.relative,
   basename: path.basename,
   dirname: path.dirname,

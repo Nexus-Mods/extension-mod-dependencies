@@ -12,6 +12,7 @@ import * as React from 'react';
 import { Button, Dropdown, MenuItem, Modal } from 'react-bootstrap';
 import { Trans, withTranslation, WithTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
+import { Action } from 'redux-act';
 import * as TreeT from 'react-sortable-tree';
 import { } from 'react-sortable-tree-theme-file-explorer';
 import { actions, ComponentEx, DNDContainer, Icon, selectors,
@@ -33,6 +34,7 @@ export interface IPathTools {
   basename(path: string, ext?: string): string;
   dirname(path: string): string;
   relative(lhs: string, rhs: string): string;
+  isAbsolute(path: string): boolean;
 }
 
 export interface IOverrideEditorProps {
@@ -51,6 +53,7 @@ interface IConnectedProps {
 }
 
 interface IActionProps {
+  onSetFileOverrides: (batchedActions: Action<any>[]) => void;
   onSetFileOverride: (gameId: string, modId: string, files: string[]) => void;
   onClose: () => void;
   onConflictDialog: (gameId: string, modIds: string[], modRules: IBiDirRule[]) => void;
@@ -243,7 +246,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
   }
 
   private apply = () => {
-    const { onClose, onSetFileOverride, pathTool, gameId, mods } = this.props;
+    const { onClose, onSetFileOverrides, pathTool, gameId, mods, discovery } = this.props;
     const { treeState } = this.state;
 
     const files: { [provider: string]: string[] } = {};
@@ -261,13 +264,11 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
           walkState(iter.children, filePath);
         } else {
           iter.providers.forEach(initProvider);
-          if (iter.selected !== iter.providers[0]) {
-            files[iter.selected] = util.addUniqueSafe(files[iter.selected], [], filePath);
-          }
           iter.providers.forEach(provider => {
-            if ((provider !== iter.selected)
-                || (iter.selected === iter.providers[0])) {
-              files[provider] = util.removeValue(files[provider], [], filePath);
+            const fullPath = pathTool.join(discovery.path, filePath);
+            files[provider] = util.addUniqueSafe(files[provider], [], fullPath);
+            if ((provider === iter.selected)) {
+              files[provider] = util.removeValue(files[provider], [], fullPath);
             }
           });
         }
@@ -275,12 +276,13 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
     };
 
     walkState(treeState, '');
-
-    Object.keys(files).forEach(provId => {
+    const batched = Object.keys(files).reduce((accum, provId) => {
       if (files[provId] !== (mods[provId] as any).fileOverrides) {
-        onSetFileOverride(gameId, provId, files[provId]);
+        accum.push(actions.setFileOverride(gameId, provId, files[provId]));
       }
-    });
+      return accum;
+    }, []);
+    onSetFileOverrides(batched);
     onClose();
   }
 
@@ -476,7 +478,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
   }
 
   private sortProviders(files: IFileTree[], props: IProps, dirPath: string = ''): void {
-    const { mods, pathTool } = props;
+    const { mods, pathTool, discovery } = props;
     const { sortedMods } = this.nextState;
     const sortFunc = (lhs: string, rhs: string) => {
       if ((mods[lhs] === undefined) || (mods[rhs] === undefined)) {
@@ -490,10 +492,12 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
         .filter(modId => mods[modId] !== undefined)
         .sort(sortFunc);
       file.selected = file.providers[0];
-      const overrider = file.providers.find(
-        modId => ((mods[modId] as any).fileOverrides || []).indexOf(filePath) !== -1);
-      if (overrider !== undefined) {
-        file.selected = overrider;
+      if (pathTool.isAbsolute(file.path)) {
+        const overrider = file.providers.find(
+          modId => ((mods[modId] as any).fileOverrides || []).indexOf(file.path) === -1);
+        if (overrider !== undefined) {
+          file.selected = overrider;
+        }
       }
       this.sortProviders(file.children, props, filePath);
     });
@@ -538,6 +542,8 @@ function mapStateToProps(state: types.IState): IConnectedProps {
 
 function mapDispatchToProps(dispatch: any): IActionProps {
   return {
+    onSetFileOverrides: (batchedActions: Action<any>[]) =>
+      util.batchDispatch(dispatch, batchedActions),
     onSetFileOverride: (gameId: string, modId: string, files: string[]) =>
       dispatch((actions as any).setFileOverride(gameId, modId, files)),
     onClose: () => dispatch(setFileOverrideDialog(undefined, undefined)),
