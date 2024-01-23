@@ -1091,6 +1091,7 @@ const ManageRuleButton = withTranslation(['common'])(
   connect(mapStateToProps)(ManageRuleButtonImpl) as any);
 
 const pathTool: IPathTools = {
+  relative: path.relative,
   basename: path.basename,
   dirname: path.dirname,
   join: path.join,
@@ -1110,7 +1111,9 @@ function main(context: types.IExtensionContext) {
   });
   context.registerDialog('mod-dependencies-connector', Connector);
   context.registerDialog('mod-dependencies-editor', Editor);
-  context.registerDialog('mod-conflict-editor', ConflictEditor);
+  context.registerDialog('mod-conflict-editor', ConflictEditor, () => ({
+    pathTool,
+  }));
   context.registerDialog('mod-cycle-graph', () => (
     <ConflictGraph
       width={500}

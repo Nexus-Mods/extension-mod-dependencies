@@ -20,8 +20,14 @@ import * as Redux from 'redux';
 import { batch } from 'redux-act';
 import { ThunkDispatch } from 'redux-thunk';
 import * as semver from 'semver';
-import { actions as vortexActions, ComponentEx, EmptyPlaceholder, FlexLayout, FormInput, Spinner,
-         tooltip, types, util, VisibilityProxy } from 'vortex-api';
+import { actions as vortexActions, ComponentEx, EmptyPlaceholder,
+  FlexLayout, FormInput, selectors, Spinner, tooltip, types,
+  util, VisibilityProxy } from 'vortex-api';
+import { IPathTools } from './OverrideEditor';
+
+interface IBaseProps {
+  pathTool: IPathTools;
+}
 
 interface IConnectedProps {
   gameId: string;
@@ -29,6 +35,7 @@ interface IConnectedProps {
   conflicts: { [modId: string]: IConflict[] };
   modRules: IBiDirRule[];
   mods: { [modId: string]: types.IMod };
+  discovery: types.IDiscoveryResult;
 }
 
 interface IActionProps {
@@ -39,7 +46,7 @@ interface IActionProps {
   onBatchDispatch: (actions: Redux.Action[]) => void;
 }
 
-type IProps = IConnectedProps & IActionProps & WithTranslation;
+type IProps = IBaseProps & IConnectedProps & IActionProps & WithTranslation;
 
 type RuleVersion = 'any' | 'compatible' | 'exact';
 
@@ -582,7 +589,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
   }
 
   private renderConflict = (modId: string, name: string, conflict: IConflict) => {
-    const {t, modRules, mods} = this.props;
+    const { t, modRules, mods, pathTool, discovery } = this.props;
     const {rules} = this.state;
 
     if ((mods[modId] === undefined)
@@ -591,12 +598,13 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
       return null;
     }
 
+    const toRelPath = (lhs: string, rhs: string) => pathTool.relative(lhs, rhs);
     const popover = (
       <Popover
         className='conflict-popover'
         id={`conflict-popover-${conflict.otherMod.id}`}
       >
-        {conflict.files.slice(0).sort().map(fileName => <p key={fileName}>{fileName}</p>)}
+        {conflict.files.slice(0).sort().map(fileName => <p key={fileName}>{toRelPath(discovery.path, fileName)}</p>)}
         <Button data-modid={modId} onClick={this.openOverrideDialog}>
           {t('Edit individual files')}
         </Button>
@@ -862,6 +870,7 @@ function mapStateToProps(state): IConnectedProps {
       util.getSafe(state, ['session', 'dependencies', 'conflicts'], undefined),
     mods: dialog.gameId !== undefined ? state.persistent.mods[dialog.gameId] : emptyObj,
     modRules: dialog.modRules,
+    discovery: selectors.discoveryByGame(state, dialog.gameId),
   };
 }
 
