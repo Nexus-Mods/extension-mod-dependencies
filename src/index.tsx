@@ -215,6 +215,12 @@ function removeFileOverrideRedundancies(api: types.IExtensionApi,
   // We expect that any of the filePaths included in the provided data object to have been
   //  _confirmed_ to be removed before calling this function!!!
   const state = api.store.getState();
+  const knownConflicts = state?.session?.['dependencies']?.conflicts;
+  if (knownConflicts === undefined) {
+    // The conflicts didn't get a chance to calculate yet. No point in
+    //  proceeding.
+    return;
+  }
   const mods: { [modId: string]: types.IMod } =
     util.getSafe(state, ['persistent', 'mods', gameMode], {});
   const modsWithRedundancies = Object.keys(mods)
