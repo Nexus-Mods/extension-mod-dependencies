@@ -470,7 +470,7 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
           <div id={`content-${modId}`} key={`mod-conflict-element-${modId}`} ref={ref}>
             <div className='mod-conflict-group-header'>
               <label>{util.renderModName(mods[modId])}</label>
-              <a data-modid={modId} data-action='before_all' onClick={this.applyGroupRule}>{t('Before All')}</a>&nbsp; | &nbsp;<a data-modid={modId} data-action='after_all' onClick={this.applyGroupRule}>{t('After All')}</a>
+              <a data-modid={modId} data-action='before_all' onClick={this.applyGroupRule}>{t('Before All')}</a><span className='link-action-seperator'>&nbsp; | &nbsp;</span><a data-modid={modId} data-action='after_all' onClick={this.applyGroupRule}>{t('After All')}</a>
             </div>
             <Table className='mod-conflict-list'>
               <tbody>
