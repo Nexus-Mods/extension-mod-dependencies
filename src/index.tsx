@@ -163,6 +163,12 @@ type ModsTable = { [modId: string]: types.IMod }
 function updateOverrides(api: types.IExtensionApi, gameMode: string): void {
   const state = api.store.getState();
   const mods: ModsTable = state.persistent.mods[gameMode];
+  const knownConflicts = state?.session?.['dependencies']?.conflicts;
+  if (knownConflicts === undefined) {
+    // The conflicts didn't get a chance to calculate yet. No point in
+    //  proceeding.
+    return;
+  }
   const enabledMods = enabledModKeys(state);
   const isEnabled = (modId) => enabledMods.some(m => m.id === modId);
   const ensureUnique = (arr: string[]) => Array.from(new Set(arr));
@@ -171,12 +177,6 @@ function updateOverrides(api: types.IExtensionApi, gameMode: string): void {
       .filter(([modId]) => isEnabled(modId))
       .reduce((accum, [modId, mod]) => { accum[modId] = mod; return accum; }, {});
   const enabled = getEnabledMap(mods);
-  const knownConflicts = state?.session?.['dependencies']?.conflicts;
-  if (knownConflicts === undefined) {
-    // The conflicts didn't get a chance to calculate yet. No point in
-    //  proceeding.
-    return;
-  }
   const modsWithOverrides: OverrideByMod = Object.entries(enabled).reduce((accum, [modId, mod]) => {
     if (mod.fileOverrides !== undefined) {
       for (const fileName of mod.fileOverrides) {
