@@ -144,11 +144,11 @@ function findOverridenByFile(mods: { [modId: string]: types.IMod }, fileName: st
     .reduce((accum, mod) => accum.concat(mod.rules?.filter(overrideFilter) ?? []), []);
 
   for (const [modId, mod] of Object.entries(mods)) {
-    if (mod.fileOverrides !== undefined) {
+    if (mod.fileOverrides !== undefined && mod.fileOverrides.includes(fileName)) {
       res.push(mod);
       continue;
     }
-    const rules = mod.rules?.filter(rule => ['before', 'after'].includes(rule.type)
+    const rules = mod.rules?.filter(rule => overrideFilter(rule)
       && Object.values(mods).find(mod => mod.id === rule.reference.id)) ?? [];
     if ((rules.length > 0) || allRules.some(rule => rule.reference.id === modId)) {
       res.push(mod);
@@ -163,6 +163,12 @@ type ModsTable = { [modId: string]: types.IMod }
 function updateOverrides(api: types.IExtensionApi, gameMode: string): void {
   const state = api.store.getState();
   const mods: ModsTable = state.persistent.mods[gameMode];
+  const knownConflicts = state?.session?.['dependencies']?.conflicts;
+  if (knownConflicts === undefined) {
+    // The conflicts didn't get a chance to calculate yet. No point in
+    //  proceeding.
+    return;
+  }
   const enabledMods = enabledModKeys(state);
   const isEnabled = (modId) => enabledMods.some(m => m.id === modId);
   const ensureUnique = (arr: string[]) => Array.from(new Set(arr));
@@ -174,6 +180,10 @@ function updateOverrides(api: types.IExtensionApi, gameMode: string): void {
   const modsWithOverrides: OverrideByMod = Object.entries(enabled).reduce((accum, [modId, mod]) => {
     if (mod.fileOverrides !== undefined) {
       for (const fileName of mod.fileOverrides) {
+        const knownConflict = knownConflicts[modId].find(c => c.files.includes(fileName));
+        if (knownConflict !== undefined && !mods[knownConflict.otherMod.id].fileOverrides.includes(fileName)) {
+          continue;
+        }
         const conflict = findOverridenByFile(enabled, fileName);
         const sorted = topologicalSort(conflict);
         const top = sorted[0];
@@ -205,6 +215,12 @@ function removeFileOverrideRedundancies(api: types.IExtensionApi,
   // We expect that any of the filePaths included in the provided data object to have been
   //  _confirmed_ to be removed before calling this function!!!
   const state = api.store.getState();
+  const knownConflicts = state?.session?.['dependencies']?.conflicts;
+  if (knownConflicts === undefined) {
+    // The conflicts didn't get a chance to calculate yet. No point in
+    //  proceeding.
+    return;
+  }
   const mods: { [modId: string]: types.IMod } =
     util.getSafe(state, ['persistent', 'mods', gameMode], {});
   const modsWithRedundancies = Object.keys(mods)
@@ -1091,6 +1107,7 @@ const ManageRuleButton = withTranslation(['common'])(
   connect(mapStateToProps)(ManageRuleButtonImpl) as any);
 
 const pathTool: IPathTools = {
+  isAbsolute: path.isAbsolute,
   relative: path.relative,
   basename: path.basename,
   dirname: path.dirname,
