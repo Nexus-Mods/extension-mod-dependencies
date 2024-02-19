@@ -591,7 +591,8 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     const { t, modRules, mods, pathTool, discovery } = this.props;
     const {rules} = this.state;
 
-    if ((mods[modId] === undefined)
+    if ((discovery?.path === undefined)
+        || (mods[modId] === undefined)
         || (rules[modId] === undefined)
         || (mods[conflict.otherMod.id] === undefined)) {
       return null;
@@ -862,6 +863,9 @@ const emptyObj = {};
 
 function mapStateToProps(state): IConnectedProps {
   const dialog = state.session.dependencies.conflictDialog || emptyObj;
+  const discovery = (dialog?.gameId !== undefined)
+    ? selectors.discoveryByGame(state, dialog.gameId)
+    : emptyObj;
   return {
     gameId: dialog.gameId,
     modIds: dialog.modIds,
@@ -869,7 +873,7 @@ function mapStateToProps(state): IConnectedProps {
       util.getSafe(state, ['session', 'dependencies', 'conflicts'], undefined),
     mods: dialog.gameId !== undefined ? state.persistent.mods[dialog.gameId] : emptyObj,
     modRules: dialog.modRules,
-    discovery: selectors.discoveryByGame(state, dialog.gameId),
+    discovery,
   };
 }
 
