@@ -180,7 +180,12 @@ function updateOverrides(api: types.IExtensionApi, gameMode: string): void {
   const modsWithOverrides: OverrideByMod = Object.entries(enabled).reduce((accum, [modId, mod]) => {
     if (mod.fileOverrides !== undefined) {
       for (const fileName of mod.fileOverrides) {
-        const knownConflict = knownConflicts[modId].find(c => c.files.includes(fileName));
+        const conflictsForModId = knownConflicts[modId];
+        if (conflictsForModId === undefined) {
+          // No conflicts for this modId? This is a manual override, leave it be.
+          continue;
+        }
+        const knownConflict = conflictsForModId.find(c => c.files.includes(fileName));
         if (knownConflict !== undefined && !mods[knownConflict.otherMod.id].fileOverrides.includes(fileName)) {
           continue;
         }
