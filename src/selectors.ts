@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { IModLookupInfo } from './types/IModLookupInfo';
 
 import * as _ from 'lodash';
@@ -36,4 +37,20 @@ export const enabledModKeys = createSelector(currentGameMods, modState, (mods, m
   }
 
   return lastLookupInfo;
+});
+
+let lastOverrideLookup: types.IMod[];
+export const modsWithOverrides = createSelector(currentGameMods, modState, (mods, modStateIn) => {
+  const res: types.IMod[] = [];
+
+  Object.keys(mods || {}).forEach(modId => {
+    if (util.getSafe(modStateIn, [modId, 'enabled'], false) && (mods?.[modId].fileOverrides ?? []).length > 0) {
+      res.push(mods[modId]);
+    }
+  });
+  if (!_.isEqual(res, lastLookupInfo)) {
+    lastOverrideLookup = res;
+  }
+
+  return lastOverrideLookup;
 });
