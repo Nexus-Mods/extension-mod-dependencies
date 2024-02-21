@@ -267,12 +267,12 @@ function updateOverrides(api: types.IExtensionApi, startTime: number): Promise<v
   //  5% may seem like a small percentage, but 0.05 * 800 = 40, which is a lot of single mods
   //  to purge in a reasonable amount of time ('deploy-single-mod' is slow as heck for some dumb reason)
   const ratio = Object.keys(overriden).length / enabledMods.length;
-  log('error', 'starting purge activity to update overrides');
+  log('info', 'starting purge activity to update overrides');
   return ((ratio > 0.05) ? purgeAllMods() : purgeModList(Object.keys(overriden)))
     .then(() => {
       const purgeEndTime = new Date().getTime();
       const elapsedPurgeTime = (purgeEndTime - startTime) / 1000;
-      log('error', `finished purge activity in ${elapsedPurgeTime} seconds`);
+      log('info', `finished purge activity in ${elapsedPurgeTime} seconds`);
       const overrideActions = [];
       for (const [modId, overrides] of Object.entries(overriden)) {
         overrideActions.push(actions.setFileOverride(gameMode, modId, overrides));
@@ -1021,14 +1021,14 @@ function once(api: types.IExtensionApi) {
           return Promise.resolve();
         }
 
-        log('error', 'starting overrides update');
+        log('info', 'starting overrides update');
         const startTime = new Date().getTime();
         addFileOverrides(api);
         return updateOverrides(api, startTime)
           .finally(() => {
             const endTime = new Date().getTime();
             const elapsedTime = (endTime - startTime) / 1000;
-            log('error', 'Updated file overrides in ' + elapsedTime + ' seconds');
+            log('info', 'Updated file overrides in ' + elapsedTime + ' seconds');
           });
       })
       .catch(err => {
