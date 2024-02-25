@@ -40,6 +40,7 @@ export interface IPathTools {
 export interface IOverrideEditorProps {
   localState: ILocalState;
   pathTool: IPathTools;
+  onSetFileOverrides: (batchedActions: Action<any>[]) => void;
 }
 
 interface IConnectedProps {
@@ -53,8 +54,6 @@ interface IConnectedProps {
 }
 
 interface IActionProps {
-  onSetFileOverrides: (batchedActions: Action<any>[]) => void;
-  onSetFileOverride: (gameId: string, modId: string, files: string[]) => void;
   onClose: () => void;
   onConflictDialog: (gameId: string, modIds: string[], modRules: IBiDirRule[]) => void;
 }
@@ -547,10 +546,6 @@ function mapStateToProps(state: types.IState): IConnectedProps {
 
 function mapDispatchToProps(dispatch: any): IActionProps {
   return {
-    onSetFileOverrides: (batchedActions: Action<any>[]) =>
-      util.batchDispatch(dispatch, batchedActions),
-    onSetFileOverride: (gameId: string, modId: string, files: string[]) =>
-      dispatch((actions as any).setFileOverride(gameId, modId, files)),
     onClose: () => dispatch(setFileOverrideDialog(undefined, undefined)),
     onConflictDialog: (gameId, modIds, modRules) =>
       dispatch(setConflictDialog(gameId, modIds, modRules)),

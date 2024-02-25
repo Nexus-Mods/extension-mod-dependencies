@@ -1,7 +1,8 @@
 /* eslint-disable */
+import memoize from 'memoize-one';
 import { types } from 'vortex-api';
 
-export default function topologicalSort(graph: types.IMod[]): string[] {
+export const topologicalSort = memoize((graph: types.IMod[]): string[] => {
   const visited = new Set();
   const result: string[] = [];
 
@@ -29,4 +30,4 @@ export default function topologicalSort(graph: types.IMod[]): string[] {
   });
 
   return result.reverse();
-}
+});
