@@ -772,12 +772,18 @@ function changeMayAffectRules(before: types.IMod, after: types.IMod): boolean {
   // if the mod is new or if it previously had no attributes and now has them,
   // this could affect the rules, if it had no rules before and now has them,
   // that most definitively affects rules
-  const overrideSort = (mod: types.IMod) => (mod.fileOverrides !== undefined) ? [...mod.fileOverrides].sort() : [];
+
+  // Ideally we would schedule a conflict refresh upon change in fileOverrides - BUT - this will kick off a
+  //  cascade of state changes, forcing the state to update and purge the mods perpetually until all mods
+  //  have at least an empty array of file overrides - this will take too long, which is why we're commenting that piece of
+  //  functionality out for now.
+  // const overrideSort = (mod: types.IMod) => (mod.fileOverrides !== undefined) ? [...mod.fileOverrides].sort() : [];
+  // || (_.isEqual(overrideSort(before), overrideSort(after)))
+
   if ((before === undefined)
     || ((before?.type !== after?.type))
     || ((before.attributes !== undefined) !== (after.attributes !== undefined))
-    || ((before.rules !== undefined) !== (after.rules !== undefined))
-    || (_.isEqual(overrideSort(before), overrideSort(after)))) {
+    || ((before.rules !== undefined) !== (after.rules !== undefined))) {
     return true;
   }
 
