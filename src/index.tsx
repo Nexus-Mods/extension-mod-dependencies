@@ -222,7 +222,7 @@ async function updateOverrides(api: types.IExtensionApi, startTime: number, batc
 
   const ensureUnique = (arr: string[]) => Array.from(new Set(arr));
   const modState = currentModState(state);
-  const overrideMods = modsWithOverrides(state);
+  const overrideMods = modsWithOverrides(state) ?? [];
   const enabled = overrideMods.filter(mod => util.getSafe(modState, [mod.id, 'enabled'], false));
   const disabled = overrideMods.filter(mod => !util.getSafe(modState, [mod.id, 'enabled'], false));
 
@@ -330,7 +330,7 @@ function removeFileOverrideRedundancies(api: types.IExtensionApi,
   }
   const mods: { [modId: string]: types.IMod } =
     util.getSafe(state, ['persistent', 'mods', gameMode], {});
-  const modsWithRedundancies = modsWithOverrides(state)
+  const modsWithRedundancies = (modsWithOverrides(state) ?? [])
     .filter(mod => mod.fileOverrides.find(relPath => data[mod.id].includes(relPath)) !== undefined);
   const batchedActions = modsWithRedundancies.reduce((accum, iter) => {
     const currentFileOverrides = mods[iter.id].fileOverrides;
