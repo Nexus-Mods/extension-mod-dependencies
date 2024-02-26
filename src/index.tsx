@@ -331,7 +331,7 @@ function removeFileOverrideRedundancies(api: types.IExtensionApi,
   const mods: { [modId: string]: types.IMod } =
     util.getSafe(state, ['persistent', 'mods', gameMode], {});
   const modsWithRedundancies = (modsWithOverrides(state) ?? [])
-    .filter(mod => mod.fileOverrides.find(relPath => data[mod.id].includes(relPath)) !== undefined);
+    .filter(mod => (mod?.fileOverrides ?? []).find(relPath => (data?.[mod.id] ?? []).includes(relPath)) !== undefined);
   const batchedActions = modsWithRedundancies.reduce((accum, iter) => {
     const currentFileOverrides = mods[iter.id]?.fileOverrides || [];
     const removedFiles = data[iter.id] ?? [];
