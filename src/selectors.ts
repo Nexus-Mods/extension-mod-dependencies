@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { IModLookupInfo } from './types/IModLookupInfo';
 
 import * as _ from 'lodash';
@@ -9,12 +10,11 @@ const allMods = (state: types.IState) => state.persistent.mods;
 const currentGameMods = createSelector(allMods, selectors.activeGameId, (inMods, gameId) =>
   inMods[gameId]);
 
-const modState = createSelector(selectors.activeProfile, (profile) =>
+export const currentModState = createSelector(selectors.activeProfile, (profile) =>
   profile ? profile.modState : {});
 
 let lastLookupInfo: IModLookupInfo[];
-
-export const enabledModKeys = createSelector(currentGameMods, modState, (mods, modStateIn) => {
+export const enabledModKeys = createSelector(currentGameMods, currentModState, (mods, modStateIn) => {
   const res: IModLookupInfo[] = [];
 
   Object.keys(mods || {}).forEach(modId => {
@@ -36,4 +36,20 @@ export const enabledModKeys = createSelector(currentGameMods, modState, (mods, m
   }
 
   return lastLookupInfo;
+});
+
+let lastOverrideLookup: types.IMod[];
+export const modsWithOverrides = createSelector(currentGameMods, (mods) => {
+  const res: types.IMod[] = [];
+
+  Object.keys(mods || {}).forEach(modId => {
+    if ((mods?.[modId].fileOverrides ?? []).length > 0) {
+      res.push(mods[modId]);
+    }
+  });
+  if (!_.isEqual(res, lastLookupInfo)) {
+    lastOverrideLookup = res;
+  }
+
+  return lastOverrideLookup;
 });

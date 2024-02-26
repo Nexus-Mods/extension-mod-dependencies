@@ -40,6 +40,7 @@ export interface IPathTools {
 export interface IOverrideEditorProps {
   localState: ILocalState;
   pathTool: IPathTools;
+  onSetFileOverrides: (batchedActions: Action<any>[]) => void;
 }
 
 interface IConnectedProps {
@@ -53,8 +54,6 @@ interface IConnectedProps {
 }
 
 interface IActionProps {
-  onSetFileOverrides: (batchedActions: Action<any>[]) => void;
-  onSetFileOverride: (gameId: string, modId: string, files: string[]) => void;
   onClose: () => void;
   onConflictDialog: (gameId: string, modIds: string[], modRules: IBiDirRule[]) => void;
 }
@@ -439,6 +438,10 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
 
   private toTree(props: IProps): IFileTree[] {
     const { conflicts, modId, pathTool, discovery } = props;
+    if (discovery?.path === undefined) {
+      // Game undiscovered? bye.
+      return [];
+    }
 
     const makeEmpty = (title: string, filePath: string, prov?: string) => ({
       title,
@@ -478,7 +481,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
   }
 
   private sortProviders(files: IFileTree[], props: IProps, dirPath: string = ''): void {
-    const { mods, pathTool, discovery } = props;
+    const { mods, pathTool } = props;
     const { sortedMods } = this.nextState;
     const sortFunc = (lhs: string, rhs: string) => {
       if ((mods[lhs] === undefined) || (mods[rhs] === undefined)) {
@@ -527,6 +530,7 @@ const emptyObj = {};
 
 function mapStateToProps(state: types.IState): IConnectedProps {
   const dialog = (state.session as any).dependencies.overrideDialog || emptyObj;
+  const discovery = (!!dialog?.gameId) ? selectors.discoveryByGame(state, dialog.gameId) : emptyObj;
   return {
     gameId: dialog.gameId,
     modId: dialog.modId,
@@ -534,7 +538,7 @@ function mapStateToProps(state: types.IState): IConnectedProps {
     profile: selectors.activeProfile(state),
     installPath:
       dialog.gameId !== undefined ? selectors.installPathForGame(state, dialog.gameId) : undefined,
-    discovery: selectors.discoveryByGame(state, dialog.gameId),
+    discovery,
     conflicts:
       util.getSafe(state, ['session', 'dependencies', 'conflicts', dialog.modId], emptyArr),
   };
@@ -542,10 +546,6 @@ function mapStateToProps(state: types.IState): IConnectedProps {
 
 function mapDispatchToProps(dispatch: any): IActionProps {
   return {
-    onSetFileOverrides: (batchedActions: Action<any>[]) =>
-      util.batchDispatch(dispatch, batchedActions),
-    onSetFileOverride: (gameId: string, modId: string, files: string[]) =>
-      dispatch((actions as any).setFileOverride(gameId, modId, files)),
     onClose: () => dispatch(setFileOverrideDialog(undefined, undefined)),
     onConflictDialog: (gameId, modIds, modRules) =>
       dispatch(setConflictDialog(gameId, modIds, modRules)),

@@ -3,8 +3,6 @@ import { ConflictSuggestion, IConflict } from '../types/IConflict';
 import { IModLookupInfo } from '../types/IModLookupInfo';
 
 import isBlacklisted from './blacklist';
-
-import Promise from 'bluebird';
 import * as path from 'path';
 import * as semver from 'semver';
 import turbowalk from 'turbowalk';
@@ -110,7 +108,7 @@ function getAllFiles(api: types.IExtensionApi,
   const consideredMods = mods
     .filter(mod => (mod.installationPath !== undefined) && mod.state === 'installed');
 
-  return Promise.map(consideredMods, (mod: types.IMod) => {
+  return Promise.all(consideredMods.map((mod: types.IMod) => {
     const modPath = path.join(stagingPath, mod.installationPath);
 
     return turbowalk(modPath, entries => {
@@ -146,7 +144,7 @@ function getAllFiles(api: types.IExtensionApi,
         { modDirectory: mod.installationPath, error: err.message });
       return {};
     });
-  })
+  }))
     .then(() => files);
 }
 
