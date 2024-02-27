@@ -188,7 +188,12 @@ function addFileOverrides(api: types.IExtensionApi) {
   }, {});
   const batchedActions = [];
   const addOverrides = (modId: string, conflict: IConflict) => {
-    if (!hasSameModType(enabled[modId], enabled[conflict.otherMod.id])) {
+    const lhs = enabled[modId];
+    const rhs = enabled[conflict.otherMod.id];
+    if (lhs === undefined || rhs === undefined) {
+      return;
+    }
+    if (!hasSameModType(lhs, rhs)) {
       batchedActions.push(actions.setFileOverride(gameId, modId, conflict.files));
       batchedActions.push(actions.setFileOverride(gameId, conflict.otherMod.id, conflict.files));
     }
