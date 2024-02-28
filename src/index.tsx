@@ -200,7 +200,7 @@ function addFileOverrides(api: types.IExtensionApi) {
   }
 
   for (const modId of Object.keys(enabled)) {
-    const conflicts = knownConflicts[modId];
+    const conflicts = knownConflicts?.[modId];
     if (conflicts === undefined) {
       continue;
     }
@@ -211,7 +211,9 @@ function addFileOverrides(api: types.IExtensionApi) {
     }
   }
 
-  util.batchDispatch(api.store, batchedActions);
+  if (batchedActions.length > 0) {
+    util.batchDispatch(api.store, batchedActions);
+  }
 }
 
 async function updateOverrides(api: types.IExtensionApi, startTime: number, batched: Redux.Action[]): Promise<void> {
