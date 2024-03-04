@@ -1077,6 +1077,13 @@ function once(api: types.IExtensionApi) {
             const endTime = new Date().getTime();
             const elapsedTime = (endTime - startTime) / 1000;
             log('info', 'Updated file overrides in ' + elapsedTime + ' seconds');
+          })
+          .catch(err => {
+            // If the user canceled the update (probably during the purge), we don't want to
+            //  throw this error as it will be reportable. Reporting this error instead of the
+            //  error that led to the user canceling the update obfuscates the actual issue.
+            log('warn', 'Failed to update file overrides', err);
+            return (err instanceof util.UserCanceled) ? Promise.resolve() : Promise.reject(err);
           });
       })
       .catch(err => {
