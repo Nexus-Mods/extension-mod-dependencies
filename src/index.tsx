@@ -651,6 +651,11 @@ function checkRedundantFileOverrides(api: types.IExtensionApi) {
       .catch(err => (err.code !== 'ENOENT') ? Bluebird.resolve(true) : Bluebird.resolve(false));
 
     return Bluebird.reduce(modsWithFileOverrides, (accum, iter) => {
+      if (mods?.[iter]?.installationPath === undefined) {
+        // The state has changed since this test executed (yes it can happen); if the mod is no longer
+        //  installed, we can just jump to the next mod id.
+        return accum;
+      }
       const missing: string[] = [];
       const stagingFolder = selectors.installPathForGame(state, gameId);
       const modInstallationPath = mods[iter].installationPath;
