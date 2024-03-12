@@ -233,13 +233,15 @@ async function updateOverrides(api: types.IExtensionApi, startTime: number, batc
   const enabled = overrideMods.filter(mod => util.getSafe(modState, [mod.id, 'enabled'], false));
   const disabled = overrideMods.filter(mod => !util.getSafe(modState, [mod.id, 'enabled'], false));
 
-  const overrideActions = batched ?? [];
+  const overrideActions = [];
   for (const mod of disabled) {
     overrideActions.push(actions.setFileOverride(gameMode, mod.id, []));
   }
 
   const solved = new Set<string>();
+  const types = new Set<string>();
   const overrideChanges: OverrideByMod = enabled.reduce((accum, mod) => {
+    types.add(mod.type);
     const modId = mod.id;
     const conflicts = knownConflicts[modId] ?? [];
     if (conflicts.length === 0) {
@@ -297,7 +299,7 @@ async function updateOverrides(api: types.IExtensionApi, startTime: number, batc
       overrideActions.push(actions.setFileOverride(gameMode, modId, overrides));
     }
   }
-  if (overrideActions.length === 0) {
+  if (overrideActions.length === 0 && !batched) {
     return;
   }
 
@@ -311,9 +313,14 @@ async function updateOverrides(api: types.IExtensionApi, startTime: number, batc
   //  just purge everything.
   // const ratio = enabled.length / Object.keys(enabledModKeys(state)).length;
   // return (ratio > 0.05 ? purgeAllMods(api) : purgeModList(api, enabled.map(mod => mod.id), gameMode))
-  return purgeAllMods(api)
+  return (types.size > 1 ? purgeAllMods(api) : Promise.resolve())
     .then(() => {
+      if (!!batched && batched.length > 0) {
+        overrideActions.push(...batched);
+      }
+
       if (overrideActions.length > 0) {
+        overrideActions.push(actions.setDeploymentNecessary(gameMode, true));
         util.batchDispatch(api.store, overrideActions);
       }
       const purgeEndTime = new Date().getTime();
@@ -338,7 +345,7 @@ function removeFileOverrideRedundancies(api: types.IExtensionApi,
   const mods: { [modId: string]: types.IMod } =
     util.getSafe(state, ['persistent', 'mods', gameMode], {});
   const modsWithRedundancies = (modsWithOverrides(state) ?? [])
-    .filter(mod => (mod?.fileOverrides ?? []).find(relPath => (data?.[mod.id] ?? []).includes(relPath)) !== undefined);
+    .filter(mod => (mod?.fileOverrides ?? []).find(filePath => (data?.[mod.id] ?? []).includes(filePath)) !== undefined);
   const batchedActions = modsWithRedundancies.reduce((accum, iter) => {
     const currentFileOverrides = mods[iter.id]?.fileOverrides || [];
     const removedFiles = data[iter.id] ?? [];
@@ -641,36 +648,46 @@ function checkRedundantFileOverrides(api: types.IExtensionApi) {
   return () => new Bluebird<types.ITestResult>((resolve, reject) => {
     const state = api.store.getState();
     const gameId = selectors.activeGameId(state);
-    const mods: { [modId: string]: types.IMod } =
-      util.getSafe(state, ['persistent', 'mods', gameId], {});
-    const modsWithFileOverrides = Object.keys(mods)
-      .filter(id => mods[id]?.fileOverrides && (mods[id]?.fileOverrides.length > 0));
+    const discovery = selectors.discoveryByGame(state, gameId);
+    if (discovery?.path === undefined) {
+      return resolve(undefined);
+    }
+    const modsWithFileOverrides = (modsWithOverrides(state) ?? []);
 
     const fileExists = (filePath: string) => fs.statAsync(filePath)
       .then(() => Bluebird.resolve(true))
       .catch(err => (err.code !== 'ENOENT') ? Bluebird.resolve(true) : Bluebird.resolve(false));
 
+    const game: types.IGame = util.getGame(gameId);
+    const modPaths = game.getModPaths(discovery.path);
     return Bluebird.reduce(modsWithFileOverrides, (accum, iter) => {
-      if (mods?.[iter]?.installationPath === undefined) {
+      if (iter?.installationPath === undefined) {
         // The state has changed since this test executed (yes it can happen); if the mod is no longer
         //  installed, we can just jump to the next mod id.
         return accum;
       }
+      const deployPath = modPaths[iter.type];
+      if (deployPath === undefined) {
+        return accum;
+      }
       const missing: string[] = [];
       const stagingFolder = selectors.installPathForGame(state, gameId);
-      const modInstallationPath = mods[iter].installationPath;
+      const modInstallationPath = iter.installationPath;
       const modPath = path.join(stagingFolder, modInstallationPath);
-      const filePaths = mods[iter].fileOverrides
-        .map(file => ({ rel: file, abs: path.join(modPath, file)}));
+      const filePaths = iter.fileOverrides
+        .map(file => {
+          const relPath = path.join(deployPath, file);
+          return { rel: relPath, abs: path.join(modPath, relPath) };
+        });
       return Bluebird.each(filePaths, filePath => fileExists(filePath.abs)
         .then(res => {
           if (res === false) {
-            missing.push(filePath.rel);
+            missing.push(filePath.abs);
           }
         }))
         .then(() => {
           if (missing.length > 0) {
-            accum[iter] = missing;
+            accum[iter.id] = missing;
           }
           return Promise.resolve(accum);
         });
@@ -790,12 +807,12 @@ function changeMayAffectRules(before: types.IMod, after: types.IMod): boolean {
   //  have at least an empty array of file overrides - this will take too long, which is why we're commenting that piece of
   //  functionality out for now.
   // const overrideSort = (mod: types.IMod) => (mod.fileOverrides !== undefined) ? [...mod.fileOverrides].sort() : [];
-  // || (_.isEqual(overrideSort(before), overrideSort(after)))
 
   if ((before === undefined)
     || ((before?.type !== after?.type))
     || ((before.attributes !== undefined) !== (after.attributes !== undefined))
     || ((before.rules !== undefined) !== (after.rules !== undefined))) {
+    // || (!_.isEqual(overrideSort(before), overrideSort(after)))) {
     return true;
   }
 
