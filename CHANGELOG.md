@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [0.2.12] - 2024-03-12
 
-- Fixed redundant file override test removing entries incorrectly
-- Fixed manually created file overrides not saved upon restart
-- Fixed purge event executed needlessly when no mod type conflicts are detected
+- Fixed redundant file override test removing entries incorrectly.
+- Fixed pointless redundant file override state changes when nothing changed.
+- Fixed manually created file overrides not saved upon restart.
+- Fixed purge event executed needlessly when no mod type conflicts are detected.

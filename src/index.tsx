@@ -337,9 +337,7 @@ function removeFileOverrideRedundancies(api: types.IExtensionApi,
   //  _confirmed_ to be removed before calling this function!!!
   const state = api.store.getState();
   const knownConflicts = state?.session?.['dependencies']?.conflicts;
-  if (knownConflicts === undefined) {
-    // The conflicts didn't get a chance to calculate yet. No point in
-    //  proceeding.
+  if (knownConflicts === undefined || !data || Object.keys(data).length === 0) {
     return;
   }
   const mods: { [modId: string]: types.IMod } =
@@ -676,7 +674,7 @@ function checkRedundantFileOverrides(api: types.IExtensionApi) {
       const modPath = path.join(stagingFolder, modInstallationPath);
       const filePaths = iter.fileOverrides
         .map(file => {
-          const relPath = path.join(deployPath, file);
+          const relPath = path.relative(deployPath, file);
           return { rel: relPath, abs: path.join(modPath, relPath) };
         });
       return Bluebird.each(filePaths, filePath => fileExists(filePath.abs)
