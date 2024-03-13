@@ -1297,6 +1297,18 @@ function main(context: types.IExtensionContext) {
     onSetFileOverrides: async (batchedActions) => {
       updateConflictDebouncer.schedule(undefined, true, batchedActions);
     },
+    toRelPath: (mod: types.IMod, filePath: string) => {
+      const state = context.api.getState();
+      const gameId = selectors.activeGameId(state);
+      const discovery = selectors.discoveryByGame(state, gameId);
+      if (discovery?.path === undefined) {
+        return null;
+      }
+      const game: types.IGame = util.getGame(gameId);
+      const modPaths = game.getModPaths(discovery.path);
+      const modPath = modPaths[mod.type];
+      return pathTool.relative(modPath, filePath);
+    }
   }));
   context.registerAction('mods-action-icons', 100, 'groups', {}, 'Manage File Conflicts',
     instanceIds => {

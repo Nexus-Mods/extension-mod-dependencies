@@ -41,6 +41,7 @@ export interface IOverrideEditorProps {
   localState: ILocalState;
   pathTool: IPathTools;
   onSetFileOverrides: (batchedActions: Action<any>[]) => void;
+  toRelPath: (mod: types.IMod, filePath: string) => string;
 }
 
 interface IConnectedProps {
@@ -373,7 +374,7 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
   }
 
   private preview = (evt: React.MouseEvent<any>) => {
-    const { installPath, mods, pathTool } = this.props;
+    const { installPath, mods, pathTool, toRelPath } = this.props;
     const { treeState } = this.state;
     const pathStr = evt.currentTarget.getAttribute('data-row');
     const path = pathStr.split(',');
@@ -388,13 +389,20 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
 
       const filePath = path[path.length - 1];
       const options = node.providers.sort((lhs, rhs) => sortIdx(lhs) - sortIdx(rhs))
-        .map(modId => {
+        .reduce((accum, modId) => {
           const mod = mods[modId];
-          return {
+          if (mod === undefined) {
+            return accum;
+          }
+          const relPath = (pathTool.isAbsolute(filePath))
+            ? toRelPath(mod, filePath)
+            : filePath;
+          accum.push({
             label: util.renderModName(mod),
-            filePath: pathTool.join(installPath, mod.installationPath, filePath),
-          };
-        });
+            filePath: pathTool.join(installPath, mod.installationPath, relPath)
+          });
+          return accum;
+        }, []);
       this.context.api.events.emit('preview-files', options);
     }
   }
