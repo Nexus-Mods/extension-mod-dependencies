@@ -336,8 +336,7 @@ function removeFileOverrideRedundancies(api: types.IExtensionApi,
   // We expect that any of the filePaths included in the provided data object to have been
   //  _confirmed_ to be removed before calling this function!!!
   const state = api.store.getState();
-  const knownConflicts = state?.session?.['dependencies']?.conflicts;
-  if (knownConflicts === undefined || !data || Object.keys(data).length === 0) {
+  if (!data || Object.keys(data).length === 0) {
     return;
   }
   const mods: { [modId: string]: types.IMod } =
