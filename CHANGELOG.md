@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.2.13] - 2024-03-13
+
+- Fixed error when accessing conflicts before conflict calculation completed
+- Fixed another instance where redundant file overrides were *not* being removed
+- Fixed preview not working in override editor
+
 ## [0.2.12] - 2024-03-12
 
 - Fixed redundant file override test removing entries incorrectly.
