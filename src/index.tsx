@@ -243,7 +243,7 @@ async function updateOverrides(api: types.IExtensionApi, startTime: number, batc
   const overrideChanges: OverrideByMod = enabled.reduce((accum, mod) => {
     types.add(mod.type);
     const modId = mod.id;
-    const conflicts = knownConflicts[modId] ?? [];
+    const conflicts = knownConflicts?.[modId] ?? [];
     if (conflicts.length === 0) {
       // This mod doesn't have any known conflicts, make sure it has no overrides either.
       accum[modId] = [];
