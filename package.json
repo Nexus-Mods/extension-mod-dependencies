@@ -1,6 +1,6 @@
 {
   "name": "mod-dependency-manager",
-  "version": "0.2.13",
+  "version": "0.2.14",
   "description": "Control mod dependencies through drag&drop",
   "main": "./out/index.js",
   "repository": "",

@@ -24,7 +24,7 @@ import OverrideEditor, { IPathTools } from './views/OverrideEditor';
 import { setConflictDialog, setConflictInfo, setEditCycle,
          setFileOverrideDialog } from './actions';
 import connectionReducer from './reducers';
-import { enabledModKeys, modsWithOverrides, currentModState } from './selectors';
+import { enabledModKeys, enabledModsWithOverrides, modsWithOverrides, currentModState } from './selectors';
 import unsolvedConflictsCheck from './unsolvedConflictsCheck';
 
 import Bluebird from 'bluebird';
@@ -138,7 +138,7 @@ function updateMetaRules(api: types.IExtensionApi,
 
 const overrideFilter = (rule: types.IModRule) => ['before', 'after'].includes(rule.type);
 function findOverridenByFile(mods: types.IMod[], fileName: string): types.IMod[] {
-  // The redundancy check should ensure that the file exists in the staging folder.
+  // The redundancy check would have ensured that the file exists in the staging folder.
   const res: types.IMod[] = [];
   const allRules: types.IModRule[] = Object.values(mods)
     .reduce((accum, mod) => accum.concat(mod.rules?.filter(overrideFilter) ?? []), []);
@@ -228,37 +228,35 @@ async function updateOverrides(api: types.IExtensionApi, startTime: number, batc
   }
 
   const ensureUnique = (arr: string[]) => Array.from(new Set(arr));
-  const modState = currentModState(state);
-  const overrideMods = modsWithOverrides(state) ?? [];
-  const enabled = overrideMods.filter(mod => util.getSafe(modState, [mod.id, 'enabled'], false));
-  const disabled = overrideMods.filter(mod => !util.getSafe(modState, [mod.id, 'enabled'], false));
-
+  const enabledKeys = enabledModKeys(state).map((m) => m.id);
+  const enabled = enabledModsWithOverrides(state) ?? [];
   const overrideActions = [];
-  for (const mod of disabled) {
-    overrideActions.push(actions.setFileOverride(gameMode, mod.id, []));
-  }
-
   const solved = new Set<string>();
   const types = new Set<string>();
   const overrideChanges: OverrideByMod = enabled.reduce((accum, mod) => {
     types.add(mod.type);
     const modId = mod.id;
-    const conflicts = knownConflicts?.[modId] ?? [];
+    const conflicts = (knownConflicts?.[modId] ?? []).filter(c => enabledKeys.includes(c.otherMod.id));
     if (conflicts.length === 0) {
       // This mod doesn't have any known conflicts, make sure it has no overrides either.
       accum[modId] = [];
       return accum;
     }
-    const relevantConflicts = conflicts.filter(c => c.files.some(f => (mod.fileOverrides ?? []).includes(f)));
-    for (const conflict of relevantConflicts) {
+
+    for (const conflict of conflicts) {
       for (const fileName of conflict.files) {
         if (solved.has(fileName)) {
           continue;
         }
-        const conflicting = findOverridenByFile(Object.values(enabled), fileName);
-        if (conflicting.length === 1 || conflicting.every(c => hasSameModType(mod, c))) {
-          // None of the conflicting mods are of a different modType and/or they don't have this file override.
-          //  no point in keeping the override for this file!
+        const conflicting = findOverridenByFile(Object.values(enabled), fileName)
+          .filter((m) => (m.fileOverrides ?? []).includes(fileName));
+
+        // Check if the file is being deployed by any of the other mods in the conflict.
+        const isDeploying = (conflicting.length > 1)
+          ? conflicting.find(c => (c.fileOverrides ?? []).includes(fileName)) === undefined : true;
+
+        if (conflicting.length === 1 || !isDeploying) {
+          // None of the conflicting mods have this file override. no point in keeping the override for this file!
           const overrides = (mod.fileOverrides || []).filter(over => over !== fileName);
           accum[modId] = ensureUnique(overrides);
           solved.add(fileName);
@@ -268,7 +266,7 @@ async function updateOverrides(api: types.IExtensionApi, startTime: number, batc
           //  this modType conflict is resolved (at least for the current fileName),
           //  and there's no point in proceeding forward.
           if (conflicting.find(c => {
-            const hasFileOverride = (c.fileOverrides ?? []).includes(fileName);
+            const hasFileOverride = (c.id !== mod.id) && (c.fileOverrides ?? []).includes(fileName);
             return !hasFileOverride;
           }) !== undefined) {
             solved.add(fileName);
@@ -649,7 +647,10 @@ function checkRedundantFileOverrides(api: types.IExtensionApi) {
     if (discovery?.path === undefined) {
       return resolve(undefined);
     }
-    const modsWithFileOverrides = (modsWithOverrides(state) ?? []);
+    const modsWithFileOverrides = (enabledModsWithOverrides(state) ?? []);
+    if (modsWithFileOverrides.length === 0) {
+      return resolve(undefined);
+    }
 
     const fileExists = (filePath: string) => fs.statAsync(filePath)
       .then(() => Bluebird.resolve(true))
@@ -794,34 +795,31 @@ function generateLoadOrder(api: types.IExtensionApi): Bluebird<void> {
     });
 }
 
+function changeMayAffectOverrides(before: types.IMod, after: types.IMod): boolean {
+  const overrideSort = (mod: types.IMod) => (mod.fileOverrides !== undefined) ? [...mod.fileOverrides].sort() : [];
+  if ((before === undefined)
+    || (!_.isEqual(overrideSort(before), overrideSort(after)))) {
+    return true;
+  }
+  return false;
+}
+
 function changeMayAffectRules(before: types.IMod, after: types.IMod): boolean {
   // if the mod is new or if it previously had no attributes and now has them,
   // this could affect the rules, if it had no rules before and now has them,
   // that most definitively affects rules
 
-  // Ideally we would schedule a conflict refresh upon change in fileOverrides - BUT - this will kick off a
-  //  cascade of state changes, forcing the state to update and purge the mods perpetually until all mods
-  //  have at least an empty array of file overrides - this will take too long, which is why we're commenting that piece of
-  //  functionality out for now.
-  // const overrideSort = (mod: types.IMod) => (mod.fileOverrides !== undefined) ? [...mod.fileOverrides].sort() : [];
-
   if ((before === undefined)
     || ((before?.type !== after?.type))
     || ((before.attributes !== undefined) !== (after.attributes !== undefined))
-    || ((before.rules !== undefined) !== (after.rules !== undefined))) {
-    // || (!_.isEqual(overrideSort(before), overrideSort(after)))) {
+    || ((before.rules !== undefined) !== (after.rules !== undefined))
+    || changeMayAffectOverrides(before, after)) {
     return true;
   }
 
   if (after.attributes === undefined) {
     return false;
   }
-
-  // Given the modType conflict detection, we need to check for a change in file
-  //  overrides as well!
-  // if (JSON.stringify(before.fileOverrides) !== JSON.stringify(after.fileOverrides)) {
-  //   return true;
-  // }
 
   return (before.rules !== after.rules)
       || (before.attributes['version'] !== after.attributes['version']);
@@ -1084,7 +1082,7 @@ function once(api: types.IExtensionApi) {
   updateConflictDebouncer = new util.Debouncer(async (calculateOverrides: boolean, batched?: Redux.Action[]) =>
     checkConflictsAndRules(api)
       .then(() => {
-        if (!calculateOverrides) {
+        if (calculateOverrides === false) {
           return Promise.resolve();
         }
 
