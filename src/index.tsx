@@ -136,24 +136,14 @@ function updateMetaRules(api: types.IExtensionApi,
   .then(() => rules);
 }
 
-const overrideFilter = (rule: types.IModRule) => ['before', 'after'].includes(rule.type);
-function findOverridenByFile(mods: types.IMod[], fileName: string): types.IMod[] {
+function findOverridenByFile(conflicts: IConflict[], mods: types.IMod[], fileName: string): types.IMod[] {
   // The redundancy check would have ensured that the file exists in the staging folder.
   const res: types.IMod[] = [];
-  const allRules: types.IModRule[] = Object.values(mods)
-    .reduce((accum, mod) => accum.concat(mod.rules?.filter(overrideFilter) ?? []), []);
-
-  for (const mod of mods) {
-    if (mod.fileOverrides !== undefined && mod.fileOverrides.includes(fileName)) {
-      res.push(mod);
-      continue;
-    }
-    const rules = mod.rules?.filter(rule => overrideFilter(rule)
-      && Object.values(mods).find(mod => mod.id === rule.reference.id)) ?? [];
-    if ((rules.length > 0) || allRules.some(rule => rule.reference.id === mod.id)) {
-      res.push(mod);
-    }
-  }
+  const relevantConflicts = conflicts.filter(c => c.files.includes(fileName));
+  const relevantMods = mods.filter(m =>
+    (m.fileOverrides !== undefined && m.fileOverrides.includes(fileName))
+    || relevantConflicts.some(c => c.otherMod.id === m.id));
+  res.push(...relevantMods);
   return res;
 }
 
@@ -229,10 +219,12 @@ async function updateOverrides(api: types.IExtensionApi, startTime: number, batc
 
   const ensureUnique = (arr: string[]) => Array.from(new Set(arr));
   const enabledKeys = enabledModKeys(state).map((m) => m.id);
+  const toAction = (modId: string, fileOverrides: string[]) => actions.setFileOverride(gameMode, modId, fileOverrides);
   const enabled = enabledModsWithOverrides(state) ?? [];
   const overrideActions = [];
   const solved = new Set<string>();
   const types = new Set<string>();
+  let batchedActions: Redux.Action[] = batched || [];
   const overrideChanges: OverrideByMod = enabled.reduce((accum, mod) => {
     types.add(mod.type);
     const modId = mod.id;
@@ -243,35 +235,35 @@ async function updateOverrides(api: types.IExtensionApi, startTime: number, batc
       return accum;
     }
 
+    const modOverrides = mod.fileOverrides || [];
+    const invalidOverrides: string[] = modOverrides.reduce((accum, o) => { 
+      const hasConflict = conflicts.some(c => c.files.includes(o));
+      if (!hasConflict) {
+        accum.push(o);
+      }
+      return accum;
+    }, []);
+    const invalidBatched = toAction(modId, modOverrides.filter(o => !invalidOverrides.includes(o)));
+    batchedActions = !!batchedActions
+      ? [].concat([invalidBatched], batchedActions)
+      : [invalidBatched];
     for (const conflict of conflicts) {
       for (const fileName of conflict.files) {
         if (solved.has(fileName)) {
           continue;
         }
-        const conflicting = findOverridenByFile(Object.values(enabled), fileName)
-          .filter((m) => (m.fileOverrides ?? []).includes(fileName));
+        const conflicting = findOverridenByFile(conflicts, Object.values(enabled), fileName);
 
         // Check if the file is being deployed by any of the other mods in the conflict.
         const isDeploying = (conflicting.length > 1)
           ? conflicting.find(c => (c.fileOverrides ?? []).includes(fileName)) === undefined : true;
 
-        if (conflicting.length === 1 || !isDeploying) {
+        if (conflicting.length === 1 && !isDeploying) {
           // None of the conflicting mods have this file override. no point in keeping the override for this file!
           const overrides = (mod.fileOverrides || []).filter(over => over !== fileName);
           accum[modId] = ensureUnique(overrides);
           solved.add(fileName);
           continue;
-        } else if (conflicting.length > 1) {
-          // Check if any of the conflicting mods don't have this file override; that highlights
-          //  this modType conflict is resolved (at least for the current fileName),
-          //  and there's no point in proceeding forward.
-          if (conflicting.find(c => {
-            const hasFileOverride = (c.id !== mod.id) && (c.fileOverrides ?? []).includes(fileName);
-            return !hasFileOverride;
-          }) !== undefined) {
-            solved.add(fileName);
-            continue;
-          }
         }
   
         // This file conflict is not resolved, we're going to use the mod rules
@@ -297,7 +289,7 @@ async function updateOverrides(api: types.IExtensionApi, startTime: number, batc
       overrideActions.push(actions.setFileOverride(gameMode, modId, overrides));
     }
   }
-  if (overrideActions.length === 0 && !batched) {
+  if (overrideActions.length === 0 && !batchedActions) {
     return;
   }
 
@@ -313,12 +305,11 @@ async function updateOverrides(api: types.IExtensionApi, startTime: number, batc
   // return (ratio > 0.05 ? purgeAllMods(api) : purgeModList(api, enabled.map(mod => mod.id), gameMode))
   return (types.size > 1 ? purgeAllMods(api) : Promise.resolve())
     .then(() => {
-      if (!!batched && batched.length > 0) {
-        overrideActions.push(...batched);
+      if (!!batchedActions && batchedActions.length > 0) {
+        overrideActions.push(...batchedActions);
       }
 
       if (overrideActions.length > 0) {
-        overrideActions.push(actions.setDeploymentNecessary(gameMode, true));
         util.batchDispatch(api.store, overrideActions);
       }
       const purgeEndTime = new Date().getTime();
@@ -798,6 +789,8 @@ function generateLoadOrder(api: types.IExtensionApi): Bluebird<void> {
 function changeMayAffectOverrides(before: types.IMod, after: types.IMod): boolean {
   const overrideSort = (mod: types.IMod) => (mod.fileOverrides !== undefined) ? [...mod.fileOverrides].sort() : [];
   if ((before === undefined)
+    || ((before?.type !== after?.type))
+    || ((before.rules !== undefined) !== (after.rules !== undefined))
     || (!_.isEqual(overrideSort(before), overrideSort(after)))) {
     return true;
   }
@@ -812,8 +805,7 @@ function changeMayAffectRules(before: types.IMod, after: types.IMod): boolean {
   if ((before === undefined)
     || ((before?.type !== after?.type))
     || ((before.attributes !== undefined) !== (after.attributes !== undefined))
-    || ((before.rules !== undefined) !== (after.rules !== undefined))
-    || changeMayAffectOverrides(before, after)) {
+    || ((before.rules !== undefined) !== (after.rules !== undefined))) {
     return true;
   }
 
@@ -1162,6 +1154,7 @@ function once(api: types.IExtensionApi) {
       }
       const state = api.getState();
       const mods: { [modId: string]: types.IMod } = state.persistent.mods[gameMode] ?? {};
+      const batched = [];
       Object.keys(mods).forEach(id => {
         // remove all locally defined rules referring to that mod
         const rulesToRemove = (mods[id].rules ?? []).filter((rule: types.IModRule) =>
@@ -1169,10 +1162,13 @@ function once(api: types.IExtensionApi) {
           && util.testModReference(options.modData, rule.reference));
 
         rulesToRemove.forEach(rule => {
-          api.store.dispatch(actions.removeModRule(gameMode, id, rule));
+          batched.push(actions.removeModRule(gameMode, id, rule));
         });
       });
 
+      if (batched.length > 0) {
+        util.batchDispatch(api.store, batched);
+      }
       return Promise.resolve();
   });
 
