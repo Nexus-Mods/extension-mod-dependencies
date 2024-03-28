@@ -55,9 +55,9 @@ export const modsWithOverrides = createSelector(currentGameMods, (mods) => {
 });
 
 export const enabledModsWithOverrides = createSelector(modsWithOverrides, enabledModKeys, (mods, enabled) => {
-  return mods.filter(mod => enabled.some(lookup => lookup.id === mod.id));
+  return Object.values(mods || {}).filter(mod => enabled.some(lookup => lookup.id === mod.id));
 });
 
 export const disabledModsWithOverrides = createSelector(modsWithOverrides, enabledModKeys, (mods, enabled) => {
-  return mods.filter(mod => !enabled.some(lookup => lookup.id === mod.id));
+  return Object.values(mods || {}).filter(mod => !enabled.some(lookup => lookup.id === mod.id));
 });
