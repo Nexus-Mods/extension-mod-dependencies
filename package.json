@@ -1,6 +1,6 @@
 {
   "name": "mod-dependency-manager",
-  "version": "0.2.15",
+  "version": "0.2.16",
   "description": "Control mod dependencies through drag&drop",
   "main": "./out/index.js",
   "repository": "",
@@ -49,7 +49,7 @@
     "ts-loader": "^9.2.6",
     "turbowalk": "Nexus-Mods/node-turbowalk",
     "vortex-api": "Nexus-Mods/Vortex-api",
-    "webpack": "^5.66.0",
+    "webpack": "^5.76.0",
     "webpack-cli": "^4.9.1"
   }
 }
