@@ -22,7 +22,7 @@ const getBlacklist = (() => {
       lastGameId = game.id;
       const customBlacklist = ((game.details?.ignoreConflicts !== undefined)
         && Array.isArray(game.details.ignoreConflicts));
-      const filterList = item => typeof item === 'string';
+      const filterList = (item) => typeof item === 'string';
       lastBlacklist = customBlacklist
         ? [].concat(blacklist, (game?.details?.ignoreConflicts || [])
             .filter(filterList)
