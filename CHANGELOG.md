@@ -4,10 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [0.2.16] - 2024-04-22
+## [0.2.16] - 2024-05-23
 
 - Added some protective coding to block 3rd party extensions from setting invalid ignore lists
 - Updated Webpack
+- Fixed inability to assign different file providers
 
 ## [0.2.14] - 2024-03-21
 
