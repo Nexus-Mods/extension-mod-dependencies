@@ -15,7 +15,7 @@ import { connect } from 'react-redux';
 import { Action } from 'redux-act';
 import * as TreeT from 'react-sortable-tree';
 import { } from 'react-sortable-tree-theme-file-explorer';
-import { actions, ComponentEx, DNDContainer, Icon, selectors,
+import { actions, ComponentEx, DNDContainer, Icon, log, selectors,
          Spinner, types, Usage, util } from 'vortex-api';
 
 interface IFileTree {
@@ -433,14 +433,19 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
       components.unshift('.');
     }
 
-    components.forEach(comp => {
-      const findFunc = iter => iter.title === comp;
-      cur = (cur === undefined)
-        ? this.nextState.treeState.find(findFunc)
-        : cur.children.find(findFunc);
-    });
+    const fileName = pathTool.basename(filePath);
+    const sanitizedFileName = util.sanitizeFilename(fileName);
+    const findFunc = (child) => {
+      const sanitizedTitle = util.sanitizeFilename(child.title);
+      return sanitizedFileName === sanitizedTitle;
+    };
+    cur = (cur === undefined)
+      ? this.nextState.treeState.find(findFunc)
+      : cur.children.find(findFunc);
     if (cur !== undefined) {
       cur.selected = eventKey;
+    } else {
+      log('error', 'failed to set provider', { filePath, eventKey });
     }
   }
 
