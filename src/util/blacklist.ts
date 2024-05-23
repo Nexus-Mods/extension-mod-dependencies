@@ -36,7 +36,7 @@ const getBlacklist = (() => {
 
 function isBlacklisted(filePath: string, game: types.IGame): boolean {
   // TODO: this could become reaaaaly slow as the blacklist gets larger...
-  return getBlacklist(game).find(pattern => minimatch(filePath, pattern)) !== undefined;
+  return getBlacklist(game).find(pattern => minimatch(filePath.toLowerCase(), pattern)) !== undefined;
 }
 
 export default isBlacklisted;
