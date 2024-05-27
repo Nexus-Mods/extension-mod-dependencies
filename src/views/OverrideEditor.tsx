@@ -1,6 +1,7 @@
 import type { IBiDirRule } from '../types/IBiDirRule';
 import type { IConflict } from '../types/IConflict';
 import type { IModLookupInfo } from '../types/IModLookupInfo';
+import type { IPathTools } from '../types/IPathTools';
 
 import { setConflictDialog, setFileOverrideDialog } from '../actions';
 import { NAMESPACE } from '../statics';
@@ -26,15 +27,6 @@ interface IFileTree {
   children: IFileTree[];
   isDirectory: boolean;
   expanded: boolean;
-}
-
-export interface IPathTools {
-  sep: string;
-  join: (...segment: string[]) => string;
-  basename(path: string, ext?: string): string;
-  dirname(path: string): string;
-  relative(lhs: string, rhs: string): string;
-  isAbsolute(path: string): boolean;
 }
 
 export interface IOverrideEditorProps {

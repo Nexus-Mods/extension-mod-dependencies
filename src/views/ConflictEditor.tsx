@@ -1,6 +1,7 @@
 /* eslint-disable */
 import { IBiDirRule } from '../types/IBiDirRule';
 import { IConflict } from '../types/IConflict';
+import { IPathTools } from '../types/IPathTools';
 
 import { setConflictDialog, setFileOverrideDialog } from '../actions';
 
@@ -23,7 +24,6 @@ import * as semver from 'semver';
 import { actions as vortexActions, ComponentEx, EmptyPlaceholder,
   FlexLayout, FormInput, selectors, Spinner, tooltip, types,
   util, VisibilityProxy } from 'vortex-api';
-import { IPathTools } from './OverrideEditor';
 
 interface IBaseProps {
   pathTool: IPathTools;

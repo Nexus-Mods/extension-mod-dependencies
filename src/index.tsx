@@ -6,6 +6,7 @@
 import { IBiDirRule } from './types/IBiDirRule';
 import { IConflict } from './types/IConflict';
 import { IModLookupInfo } from './types/IModLookupInfo';
+import { IPathTools, IPathToolsExt } from './types/IPathTools';
 import determineConflicts from './util/conflicts';
 import DependenciesFilter from './util/DependenciesFilter';
 import findRule from './util/findRule';
@@ -19,13 +20,16 @@ import Connector from './views/Connector';
 import DependencyIcon, { ILocalState } from './views/DependencyIcon';
 import Editor from './views/Editor';
 import ModNameWrapper from './views/ModNameWrapper';
-import OverrideEditor, { IPathTools } from './views/OverrideEditor';
+import OverrideEditor from './views/OverrideEditor';
+import FileOverridesWidget from './views/FileOverridesWidget';
 
 import { setConflictDialog, setConflictInfo, setEditCycle,
          setFileOverrideDialog } from './actions';
 import connectionReducer from './reducers';
 import { enabledModKeys, enabledModsWithOverrides, modsWithOverrides, currentModState } from './selectors';
 import unsolvedConflictsCheck from './unsolvedConflictsCheck';
+
+import toRelPath from './util/toRelPath';
 
 import Bluebird from 'bluebird';
 import I18next, { WithT } from 'i18next';
@@ -38,7 +42,7 @@ import { connect } from 'react-redux';
 import * as Redux from 'redux';
 import {} from 'redux-thunk';
 import shortid = require('shortid');
-import { actions, fs, log, PureComponentEx, selectors, ToolbarIcon, types, util } from 'vortex-api';
+import { actions, fs, log, PureComponentEx, OptionsFilter, selectors, ToolbarIcon, types, util } from 'vortex-api';
 
 const CONFLICT_NOTIFICATION_ID = 'mod-file-conflict';
 const UNFULFILLED_NOTIFICATION_ID = 'mod-rule-unfulfilled';
@@ -841,6 +845,71 @@ function makeLoadOrderAttribute(api: types.IExtensionApi): types.ITableAttribute
   };
 }
 
+function makeOverridesAttribute(api: types.IExtensionApi, pathTool: IPathTools): types.ITableAttribute<types.IMod> {
+  const modFileOverridesCalc = (mod: types.IMod) => {
+    const fileOverrides = (mod as any).fileOverrides || [];
+    return fileOverrides;
+  };
+
+  const allMods = () : { [modId: string]: types.IMod } => {
+    const gameMode = selectors.activeGameId(api.getState());
+    return util.getSafe(api.getState(), ['persistent', 'mods', gameMode], {});
+  }
+
+  const allFileOverrides = () => {
+    const mods = allMods();
+    return Array.from(new Set(Object.values(mods).reduce((accum, mod: types.IMod) => {
+      return accum.concat((mod as any).fileOverrides || []);
+    }, [])));
+  };
+
+  const getActivities = () => {
+    const state = api.getState();
+    return state.session.base.activity;
+  }
+
+  return {
+    id: 'fileOverrides',
+    name: 'File Overrides',
+    description: 'The file overrides assigned to this mod',
+    placement: 'both',
+    calc: modFileOverridesCalc,
+    customRenderer: (mods, detailCell) => {
+      if (Array.isArray(mods) && mods.length > 1) {
+        return null;
+      } else {
+        const mod = Array.isArray(mods) ? mods[0] : mods;
+        const pathToolExt = { ...pathTool, toRelPath: (mod: types.IMod, fileOverride: string) => toRelPath(api, mod, fileOverride) };
+        return detailCell
+          ? React.createElement(FileOverridesWidget, {
+              mod,
+              pathTool: pathToolExt,
+              allowApply: () => shouldSuppressUpdate(api),
+              activities: getActivities(),
+            })
+          : React.createElement('span', {}, [modFileOverridesCalc(mod).map(f => pathToolExt.toRelPath(mod, f)).join(', ')]);
+      }
+    },
+    help: 'These files are overriden and will not be deployed.',
+    supportsMultiple: true,
+    isSortable: true,
+    isDefaultVisible: false,
+    isToggleable: true,
+    isGroupable: true,
+    filter: new OptionsFilter(() => allFileOverrides().map((f: string) => ({ value: f, label: f })), true, true),
+    edit: {
+      placeholder: () => api.translate('None'),
+      onChangeValue: (mods, newValue) => {
+        if (Array.isArray(mods)) {
+          api.events.emit('recalculate-modtype-conflicts', mods.map(mod => mod.id));
+        } else {
+          api.events.emit('recalculate-modtype-conflicts', [mods.id]);
+        }
+      },
+    },
+  };
+}
+
 function makeDependenciesAttribute(api: types.IExtensionApi): types.ITableAttribute<types.IMod> {
   const res: types.ITableAttribute<types.IMod> = {
     id: 'dependencies',
@@ -1262,6 +1331,7 @@ function main(context: types.IExtensionContext) {
   context.registerReducer(['session', 'dependencies'], connectionReducer);
   context.registerTableAttribute('mods', makeLoadOrderAttribute(context.api));
   context.registerTableAttribute('mods', makeDependenciesAttribute(context.api));
+  context.registerTableAttribute('mods', makeOverridesAttribute(context.api, pathTool));
   context.registerAction('mod-icons', 90, ManageRuleButton, {}, () => {
     const state: types.IState = context.api.store.getState();
     return {
@@ -1290,18 +1360,7 @@ function main(context: types.IExtensionContext) {
     onSetFileOverrides: async (batchedActions) => {
       updateConflictDebouncer.schedule(undefined, true, batchedActions);
     },
-    toRelPath: (mod: types.IMod, filePath: string) => {
-      const state = context.api.getState();
-      const gameId = selectors.activeGameId(state);
-      const discovery = selectors.discoveryByGame(state, gameId);
-      if (discovery?.path === undefined) {
-        return null;
-      }
-      const game: types.IGame = util.getGame(gameId);
-      const modPaths = game.getModPaths(discovery.path);
-      const modPath = modPaths[mod.type];
-      return pathTool.relative(modPath, filePath);
-    }
+    toRelPath: (mod: types.IMod, filePath: string) => toRelPath(context.api, mod, filePath),
   }));
   context.registerAction('mods-action-icons', 100, 'groups', {}, 'Manage File Conflicts',
     instanceIds => {
