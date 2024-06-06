@@ -20,12 +20,16 @@ import DependencyIcon, { ILocalState } from './views/DependencyIcon';
 import Editor from './views/Editor';
 import ModNameWrapper from './views/ModNameWrapper';
 import OverrideEditor, { IPathTools } from './views/OverrideEditor';
+import Settings from './views/Settings';
 
 import { setConflictDialog, setConflictInfo, setEditCycle,
-         setFileOverrideDialog } from './actions';
-import connectionReducer from './reducers';
-import { enabledModKeys, enabledModsWithOverrides, modsWithOverrides, currentModState } from './selectors';
+         setFileOverrideDialog, 
+         setModTypeConflictsSetting} from './actions';
+import { sessionReducer as connectionReducer, settingsReducer } from './reducers';
+import { enabledModKeys, enabledModsWithOverrides, modsWithOverrides } from './selectors';
 import unsolvedConflictsCheck from './unsolvedConflictsCheck';
+
+import { disableModTypeConflictsDialog } from './util/disableModTypeConflicts';
 
 import Bluebird from 'bluebird';
 import I18next, { WithT } from 'i18next';
@@ -1074,7 +1078,8 @@ function once(api: types.IExtensionApi) {
   updateConflictDebouncer = new util.Debouncer(async (calculateOverrides: boolean, batched?: Redux.Action[]) =>
     checkConflictsAndRules(api)
       .then(() => {
-        if (calculateOverrides === false) {
+        const modTypeConflictsEnabled: boolean = util.getSafe(api.getState(), ['settings', 'workarounds', 'modTypeConflictsEnabled'], true);
+        if (!modTypeConflictsEnabled || calculateOverrides === false) {
           return Promise.resolve();
         }
 
@@ -1259,6 +1264,7 @@ const pathTool: IPathTools = {
 };
 
 function main(context: types.IExtensionContext) {
+  context.registerReducer(['settings', 'workarounds'], settingsReducer);
   context.registerReducer(['session', 'dependencies'], connectionReducer);
   context.registerTableAttribute('mods', makeLoadOrderAttribute(context.api));
   context.registerTableAttribute('mods', makeDependenciesAttribute(context.api));
@@ -1288,7 +1294,13 @@ function main(context: types.IExtensionContext) {
     localState: dependencyState,
     pathTool,
     onSetFileOverrides: async (batchedActions) => {
-      updateConflictDebouncer.schedule(undefined, true, batchedActions);
+      const state = context.api.getState();
+      const modTypeConflictsEnabled: boolean = util.getSafe(state, ['settings', 'workarounds', 'modTypeConflictsEnabled'], true);
+      if (!modTypeConflictsEnabled) {
+        util.batchDispatch(context.api.store.dispatch, batchedActions);
+      } else {
+        updateConflictDebouncer.schedule(undefined, true, batchedActions);
+      }
     },
     toRelPath: (mod: types.IMod, filePath: string) => {
       const state = context.api.getState();
@@ -1321,6 +1333,22 @@ function main(context: types.IExtensionContext) {
                        'gamemode-activated',
                        checkRedundantFileOverrides(context.api));
 
+  context.registerSettings('Workarounds', Settings, () => ({
+    onSetModTypeConflicts: async (enable: boolean) => {
+      if (enable) {
+        context.api.store.dispatch(setModTypeConflictsSetting(enable));
+        updateConflictDebouncer.schedule(undefined, true);
+      } else {
+        try {
+          await disableModTypeConflictsDialog(context.api);
+          return;
+        } catch (err) {
+          context.api.showErrorNotification('Failed to disable mod type conflicts', err);
+          return;
+        }
+      }
+    }
+  }));
   context.registerStartHook(50, 'check-unsolved-conflicts',
     (input: types.IRunParameters) => (input.options.suggestDeploy !== false)
         ? unsolvedConflictsCheck(context.api, dependencyState.modRules, input)

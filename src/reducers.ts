@@ -3,10 +3,22 @@ import { types, util } from 'vortex-api';
 
 import * as actions from './actions';
 
+export const settingsReducer: types.IReducerSpec = {
+  reducers: {
+    [actions.setModTypeConflictsSetting as any]: (state, payload) => {
+      const { enabled } = payload;
+      return util.setSafe(state, ['modTypeConflictsEnabled'], enabled);
+    }
+  },
+  defaults: {
+    modTypeConflictsEnabled: true,
+  }
+}
+
 /**
  * reducer for changes to ephemeral session state
  */
-const sessionReducer: types.IReducerSpec = {
+export const sessionReducer: types.IReducerSpec = {
   reducers: {
     [actions.setSource as any]: (state, payload) => {
       if (_.isEqual(payload, util.getSafe(state, ['connection', 'source'], undefined))) {
@@ -64,4 +76,3 @@ const sessionReducer: types.IReducerSpec = {
   },
 };
 
-export default sessionReducer;
