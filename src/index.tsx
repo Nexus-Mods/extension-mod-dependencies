@@ -1335,18 +1335,21 @@ function main(context: types.IExtensionContext) {
 
   context.registerSettings('Workarounds', Settings, () => ({
     onSetModTypeConflicts: async (enable: boolean) => {
+      await util.toPromise(cb => context.api.events.emit('purge-mods', true, cb));
       if (enable) {
         context.api.store.dispatch(setModTypeConflictsSetting(enable));
-        updateConflictDebouncer.schedule(undefined, true);
       } else {
         try {
           await disableModTypeConflictsDialog(context.api);
-          return;
         } catch (err) {
-          context.api.showErrorNotification('Failed to disable mod type conflicts', err);
+          if (!(err instanceof util.UserCanceled)) {
+            context.api.showErrorNotification('Failed to disable mod type conflicts', err); 
+          }
           return;
         }
       }
+
+      updateConflictDebouncer.schedule(undefined, true);
     }
   }));
   context.registerStartHook(50, 'check-unsolved-conflicts',

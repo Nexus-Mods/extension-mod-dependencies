@@ -39,7 +39,7 @@ async function findAffectedMods(api: types.IExtensionApi, gameId: string) {
         if ((mod.fileOverrides ?? []).length > 0) {
           accum[mod.id] = util.renderModName(mod);
         }
-        if ((mods[sourceId]?.fileOverrides ?? []).length > 0) {
+        if (sourceId !== mod.id && (mods[sourceId]?.fileOverrides ?? []).length > 0) {
           accum[sourceId] = util.renderModName(mod);
         }
       }
@@ -75,7 +75,7 @@ export async function disableModTypeConflictsDialog(api: types.IExtensionApi) {
   ],
     'dependency-manager-disable-modtype-conflicts-dialog');
   if (res === undefined || res?.action === 'Cancel') {
-    return;
+    throw new util.UserCanceled();
   }
 
   let batchedActions = [setModTypeConflictsSetting(false)];

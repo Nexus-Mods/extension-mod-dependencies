@@ -48,7 +48,7 @@ export default function Settings(props: IBaseProps): JSX.Element {
           checked={modTypeConflicts}
           onToggle={onToggle}
         >
-          {t('Enable/Disable Cross-ModType conflict detection')}
+          {t('Enable/Disable Cross-ModType conflict detection (A purge will execute upon change)')}
         </Toggle>
       </FormGroup>
     </form>
