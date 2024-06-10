@@ -436,15 +436,16 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
     const fileName = pathTool.basename(filePath);
     const sanitizedFileName = util.sanitizeFilename(fileName);
     const findFunc = (child) => {
+      cur = child;
       const sanitizedTitle = util.sanitizeFilename(child.title);
-      return sanitizedFileName === sanitizedTitle;
+      if (sanitizedFileName === sanitizedTitle) {
+        cur.selected = eventKey;
+        return true;
+      }
+      return (child.children ?? []).find(findFunc);
     };
-    cur = (cur === undefined)
-      ? this.nextState.treeState.find(findFunc)
-      : cur.children.find(findFunc);
-    if (cur !== undefined) {
-      cur.selected = eventKey;
-    } else {
+    this.nextState.treeState.find(findFunc)
+    if (cur === undefined) {
       log('error', 'failed to set provider', { filePath, eventKey });
     }
   }
