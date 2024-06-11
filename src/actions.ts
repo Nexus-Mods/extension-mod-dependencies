@@ -29,3 +29,6 @@ export const setFileOverrideDialog = createAction('SET_FILE_OVERRIDE_DIALOG',
 
 export const setEditCycle = createAction('SET_EDIT_MOD_CYCLE',
   (gameId: string, modIds: string[]) => (gameId !== undefined) ? ({ gameId, modIds }) : undefined);
+
+export const setModTypeConflictsSetting = createAction('SET_MOD_TYPE_CONFLICTS_SETTING',
+  (enabled: boolean) => ({ enabled }));
