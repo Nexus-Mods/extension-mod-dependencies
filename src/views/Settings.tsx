@@ -33,15 +33,15 @@ export default function Settings(props: IBaseProps): JSX.Element {
         <ControlLabel>{t('Cross-ModType Conflicts Detection')}</ControlLabel>
         {(modTypeConflicts) ? (
           <Alert bsStyle='warning'>
-            {t('Disabling this feature while having ModType conflicts present in your mods setup '
-              + 'will result in the External Changes Dialog being raised before any deployment/purge event, '
-              + 'or certain files not being deployed/purged correctly.'
-              + 'until you manually resolve the conflict. (Outside of Vortex)')}
+            {t('Disabling this feature is not recommended. If you have ModType conflicts present in your mods setup, disabling this '
+              + 'will result in the External Changes Dialog being raised before any deployment/purge event and '
+              + 'certain files not being deployed/purged correctly '
+              + 'until you manually resolve the conflict. Please proceed with caution.')}
           </Alert>
         ) : (
           <Alert bsStyle='warning'>
-            {t('You have disabled Cross-ModType conflict detection on your system. Any Cross-ModType conflicts '
-              + 'have to be resolved manually, outside of Vortex.')}
+            {t('You have disabled Cross-ModType conflict detection on your system. Any conflicts across modtypes will '
+              + 'have to be resolved manually outside of Vortex.')}
           </Alert>
         )}
         <Toggle

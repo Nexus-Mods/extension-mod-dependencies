@@ -58,18 +58,18 @@ export async function disableModTypeConflictsDialog(api: types.IExtensionApi) {
     ? [{ id: 'remove_file_overrides', text: t('Remove file overrides'), value: true }]
     : undefined;
   const message = Object.keys(relevant).length > 0
-    ? t('You have {{total}} mod\\s with file overrides that is\\are involved in a modType conflict:\n',
+    ? t('You have {{total}} mod(s) with file overrides that are involved in a modtype conflict:\n',
       { replace: { total: Object.keys(relevant).length } }) + Object.values(relevant).join('\n')
     : undefined;
   const res: types.IDialogResult | undefined = await api?.showDialog?.('question', 'Disabling Cross-ModType Conflicts', {
-    bbcode: t('You are about to disable mod type conflicts - this is not recommended as Cross-ModType conflicts '
-      + 'do not adhere to regular deployment rules, and are guaranteed to break your modding environment when present.[br][/br][br][/br]'
-      + 'Please note that if you proceed, and you have such conflicts, the external changes dialog '
-      + 'will be raised constantly after each deployment/purge event until you have manually removed the conflicting files (or disabled '
-      + 'the mod/s that is/are causing the conflict).[br][/br][br][/br]'
-      + 'Vortex will remove any file overrides that had been created to mitigate Cross-ModType Conflicts by default, but please be aware '
-      + 'that ALL file overrides will be removed from the mods mentioned below (including those you may have added manually). '
-      + 'Uncheck the box if you would rather do this manually.'),
+    bbcode: t('You are about to disable cross-modtype conflicts - this is not recommended as conflicts across mod types '
+      + 'do not adhere to regular deployment rules and are guaranteed to break your modding environment when present.[br][/br][br][/br]'
+      + 'If you proceed, and you have such conflicts, the external changes dialog will be raised '
+      + 'after each deployment/purge event until you manually remove the conflicting files or disable '
+      + 'the mods that are causing the conflict.[br][/br][br][/br]'
+      + 'By default, Vortex will now clear any file overrides that were created to resolve cross-modtype conflicts. Please be aware '
+      + 'that ALL file overrides will be removed from the mods mentioned below. '
+      + 'Uncheck the box if you would rather keep these file overrides and manage them manually.'),
     message,
     checkboxes,
     options: { order: ['bbcode', 'checkboxes', 'message'] },
