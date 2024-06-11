@@ -55,7 +55,7 @@ export async function disableModTypeConflictsDialog(api: types.IExtensionApi) {
   const gameId = selectors.activeGameId(api.getState());
   const relevant = await findAffectedMods(api, gameId);
   const checkboxes = Object.keys(relevant).length > 0
-    ? [{ id: 'remove_file_overrides', text: t('Remove file overrides'), value: false }]
+    ? [{ id: 'remove_file_overrides', text: t('Remove file overrides'), value: true }]
     : undefined;
   const message = Object.keys(relevant).length > 0
     ? t('You have {{total}} mod\\s with file overrides that is\\are involved in a modType conflict:\n',
@@ -66,9 +66,13 @@ export async function disableModTypeConflictsDialog(api: types.IExtensionApi) {
       + 'do not adhere to regular deployment rules, and are guaranteed to break your modding environment when present.[br][/br][br][/br]'
       + 'Please note that if you proceed, and you have such conflicts, the external changes dialog '
       + 'will be raised constantly after each deployment/purge event until you have manually removed the conflicting files (or disabled '
-      + 'the mod/s that is/are causing the conflict).[br][/br]'),
+      + 'the mod/s that is/are causing the conflict).[br][/br][br][/br]'
+      + 'Vortex will remove any file overrides that had been created to mitigate Cross-ModType Conflicts by default, but please be aware '
+      + 'that ALL file overrides will be removed from the mods mentioned below (including those you may have added manually). '
+      + 'Uncheck the box if you would rather do this manually.'),
     message,
     checkboxes,
+    options: { order: ['bbcode', 'checkboxes', 'message'] },
   }, [
     { label: 'Cancel' },
     { label: 'Proceed' },
