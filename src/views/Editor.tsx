@@ -132,7 +132,7 @@ class Editor extends ComponentEx<IProps, IComponentState> {
 
     let expressionInvalid = null;
     if (logicalFileName === undefined) {
-      expressionInvalid = minimatch(dialog.reference.fileExpression, fileExpression)
+      expressionInvalid = util.tryGlobMatch({ pattern: dialog.reference.fileExpression, expression: fileExpression})
         ? null : t('Doesn\'t match the file name');
     }
 

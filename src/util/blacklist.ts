@@ -1,6 +1,5 @@
-import minimatch = require('minimatch');
 import * as path from 'path';
-import { types } from 'vortex-api';
+import { types, util } from 'vortex-api';
 
 const blacklist = [
   path.join('**', 'fomod', '*'),
@@ -35,7 +34,7 @@ const getBlacklist = (() => {
 
 function isBlacklisted(filePath: string, game: types.IGame): boolean {
   // TODO: this could become reaaaaly slow as the blacklist gets larger...
-  return getBlacklist(game).some(pattern => minimatch(filePath, pattern, { nocase: true }));
+  return getBlacklist(game).some(pattern => util.tryGlobMatch({ pattern, expression: filePath }));
 }
 
 export default isBlacklisted;

@@ -14,7 +14,7 @@
   "license": "GPL-3.0",
   "devDependencies": {
     "@types/immutability-helper": "^2.0.15",
-    "@types/minimatch": "^2.0.29",
+    "@types/minimatch": "^5.1.2",
     "@types/react": "^17.0.20",
     "@types/react-bootstrap": "^0.0.37",
     "@types/react-dom": "16.0.3",
@@ -33,7 +33,7 @@
     "i18next": "^19.0.3",
     "immutability-helper": "^2.6.6",
     "json-loader": "^0.5.7",
-    "minimatch": "^3.0.5",
+    "minimatch": "^9.0.4",
     "modmeta-db": "Nexus-Mods/modmeta-db",
     "react": "^16.14.0",
     "react-bootstrap": "^0.32.1",
