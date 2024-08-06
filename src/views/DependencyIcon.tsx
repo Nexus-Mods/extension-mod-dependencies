@@ -262,7 +262,7 @@ const dependencySource: DragSourceSpec<IProps, any> = {
     const reference: IReference = (monitor.getDropResult() as any).reference;
 
     if (sourceId !== destId) {
-      props.onEditDialog(props.gameId, sourceId, reference, 'before');
+      props.onEditDialog(props.gameId, sourceId, reference, 'after');
     }
   },
 };
