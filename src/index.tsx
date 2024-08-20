@@ -576,6 +576,7 @@ const shouldSuppressUpdate = (api: types.IExtensionApi) => {
     log('info', 'skipping conflict/override checks - previous conflict check is still running');
     return true;
   }
+  if (state.session.base.activity?.purging)
   return false;
 }
 // determine all conflicts and check if they are fulfilled or not
