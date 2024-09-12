@@ -1,7 +1,6 @@
 /* eslint-disable */
 import { ConflictSuggestion, IConflict } from '../types/IConflict';
 import { IModLookupInfo } from '../types/IModLookupInfo';
-
 import isBlacklisted from './blacklist';
 import * as path from 'path';
 import * as semver from 'semver';
@@ -38,7 +37,7 @@ function toLookupInfo(mod: types.IMod): IModLookupInfo {
     logicalFileName: attributes['logicalFileName'],
     name: attributes['name'],
     referenceTag: attributes['referenceTag'],
-    version: semver.coerce(attributes['version'])?.version ?? attributes['version'],
+    version: util.coerceToSemver(attributes['version']) ?? attributes['version'],
   };
 }
 

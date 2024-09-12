@@ -126,7 +126,7 @@ class RuleDescription extends React.Component<IDescriptionProps, {}> {
     let version = '*';
     if (ref.versionMatch !== undefined) {
       try {
-        const sv = new semver.Range(ref.versionMatch);
+        const sv = new semver.Range(ref.versionMatch, { loose: true, includePrerelease: true });
         version = sv.range;
       } catch (err) {
         version = ref.versionMatch;
