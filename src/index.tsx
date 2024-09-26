@@ -568,24 +568,25 @@ function checkRulesFulfilled(api: types.IExtensionApi): Bluebird<void> {
 
 const shouldSuppressUpdate = (api: types.IExtensionApi) => {
   const state = api.getState();
-  if ((state.session.base.activity?.installing_dependencies ?? []).length > 0) {
-    log('info', 'skipping conflict/override checks during dependency installation');
-    return true;
+  const suppressOnActivities = ['conflicts', 'installing_dependencies', 'deployment', 'purging'];
+  const isActivityRunning = (activity: string) =>
+    util.getSafe(state, ['session', 'base', 'activity', 'mods'], []).includes(activity) // purge/deploy
+    || util.getSafe(state, ['session', 'base', 'activity', activity], []).length > 0; // installing_dependencies
+  const suppressingActivities = suppressOnActivities.filter(activity => isActivityRunning(activity));
+  const suppressing = suppressingActivities.length > 0;
+  if (suppressing) {
+    log('info', 'skipping conflict/override checks during activities', { activities: suppressingActivities });
   }
-  if ((state.session.base.activity?.mods ?? []).includes('conflicts')) {
-    log('info', 'skipping conflict/override checks - previous conflict check is still running');
-    return true;
-  }
-  if (state.session.base.activity?.purging)
-  return false;
+  return suppressing;
 }
+
 // determine all conflicts and check if they are fulfilled or not
 function checkConflictsAndRules(api: types.IExtensionApi): Promise<void> {
   const state = api.getState();
   const stagingPath = selectors.installPath(state);
   const gameMode = selectors.activeGameId(state);
   log('debug', 'check conflicts and rules', { gameMode });
-  if (gameMode === undefined || shouldSuppressUpdate(api)) {
+  if (gameMode === undefined) {
     return Promise.resolve();
   }
 
@@ -1076,8 +1077,9 @@ function once(api: types.IExtensionApi) {
       });
   }, 200);
 
-  updateConflictDebouncer = new util.Debouncer(async (calculateOverrides: boolean, batched?: Redux.Action[]) =>
-    checkConflictsAndRules(api)
+  updateConflictDebouncer = new util.Debouncer(async (calculateOverrides: boolean, batched?: Redux.Action[]) => (shouldSuppressUpdate(api)
+    ? Promise.reject(new util.ProcessCanceled('suppressed'))
+    : checkConflictsAndRules(api))
       .then(() => {
         const modTypeConflictsEnabled: boolean = util.getSafe(api.getState(), ['settings', 'workarounds', 'modTypeConflictsEnabled'], true);
         if (!modTypeConflictsEnabled || calculateOverrides === false) {
@@ -1102,6 +1104,9 @@ function once(api: types.IExtensionApi) {
           });
       })
       .catch(err => {
+        if (err instanceof util.ProcessCanceled && err.message === 'suppressed') {
+          return Promise.resolve();
+        }
         api.showErrorNotification('Failed to determine mod conflicts', err);
       })
       .finally(() => api.store.dispatch(actions.stopActivity('mods', 'conflicts'))), 2000, false, true);
