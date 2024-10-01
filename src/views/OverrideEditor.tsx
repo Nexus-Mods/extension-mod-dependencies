@@ -435,10 +435,11 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
 
     const fileName = pathTool.basename(filePath);
     const sanitizedFileName = util.sanitizeFilename(fileName);
+
     const findFunc = (child) => {
       cur = child;
       const sanitizedTitle = util.sanitizeFilename(child.title);
-      if (sanitizedFileName === sanitizedTitle) {
+      if (sanitizedFileName === sanitizedTitle && child.path.toLowerCase() === filePath.toLowerCase()) {
         cur.selected = eventKey;
         return true;
       }
