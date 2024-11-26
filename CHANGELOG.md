@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.2.20] - 2024-11-26
+
+- Fixed attempts to render file override editor entries of mods that are being uninstalled in the background.
+
+## [0.2.19] - 2024-08-20
+
+- Improved rules/override suppression checks
+- fixed inability to assign overrides in the override editor
+
 ## [0.2.18] - 2024-08-20
 
 - Improved mod version coersion functionality to include pre-release information in generated rules.

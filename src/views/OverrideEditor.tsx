@@ -391,7 +391,9 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
       const options = node.providers.sort((lhs, rhs) => sortIdx(lhs) - sortIdx(rhs))
         .reduce((accum, modId) => {
           const mod = mods[modId];
-          if (mod === undefined) {
+          if (!mod || mod?.type === undefined) {
+            // Can only happen if the mod gets uninstalled in the background while the override
+            //  editor is in view.
             return accum;
           }
           const relPath = (pathTool.isAbsolute(filePath))
