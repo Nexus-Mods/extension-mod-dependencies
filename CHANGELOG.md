@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.2.21] - 2025-03-10
+
+- Fixed exception when unable to ascertain inverse rule type
+
 ## [0.2.20] - 2024-11-26
 
 - Fixed attempts to render file override editor entries of mods that are being uninstalled in the background.
