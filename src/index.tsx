@@ -73,7 +73,8 @@ function mapRules(source: IReference, rules: IRule[]): IBiDirRule[] {
     return res;
   }
   rules.forEach(rule => {
-    if (['requires', 'recommends', 'provides'].indexOf(rule.type) !== -1) {
+    if (!rule.type || ['requires', 'recommends', 'provides'].indexOf(rule.type) !== -1) {
+      log('warn', 'unsupported rule type', rule);
       return;
     }
     res.push({
@@ -82,12 +83,17 @@ function mapRules(source: IReference, rules: IRule[]): IBiDirRule[] {
       reference: rule.reference,
       original: true,
     });
-    res.push({
-      source: rule.reference,
-      type: inverseRule(rule.type),
-      reference: source,
-      original: false,
-    });
+    try {
+      const inverseRuleType = inverseRule(rule.type);
+      res.push({
+        source: rule.reference,
+        type: inverseRuleType,
+        reference: source,
+        original: false,
+      });
+    } catch(err) {
+      log('warn', 'failed to create reverse rule', err);
+    }
   });
   return res;
 }
@@ -1318,6 +1324,9 @@ function main(context: types.IExtensionContext) {
       const game: types.IGame = util.getGame(gameId);
       const modPaths = game.getModPaths(discovery.path);
       const modPath = modPaths[mod.type];
+      if (modPath === undefined) {
+        return null;
+      }
       return pathTool.relative(modPath, filePath);
     }
   }));
