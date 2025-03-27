@@ -73,7 +73,7 @@ function mapRules(source: IReference, rules: IRule[]): IBiDirRule[] {
     return res;
   }
   rules.forEach(rule => {
-    if (!validRuleTypes.includes(rule.type)) {
+    if (!validRuleTypes.includes(rule?.type)) {
       log('warn', 'unsupported rule type', rule);
       return;
     }
