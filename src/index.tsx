@@ -66,15 +66,18 @@ function inverseRule(ruleType: RuleType): RuleType {
     default: throw new Error('unsupported rule ' + ruleType);
   }
 }
-
+const validRuleTypes: RuleType[] = ['before', 'after', 'conflicts', 'requires', 'recommends', 'provides'];
 function mapRules(source: IReference, rules: IRule[]): IBiDirRule[] {
   const res: IBiDirRule[] = [];
   if (rules === undefined) {
     return res;
   }
   rules.forEach(rule => {
-    if (!rule.type || ['requires', 'recommends', 'provides'].indexOf(rule.type) !== -1) {
+    if (!validRuleTypes.includes(rule?.type)) {
       log('warn', 'unsupported rule type', rule);
+      return;
+    }
+    if (['requires', 'recommends', 'provides'].indexOf(rule.type) !== -1) {
       return;
     }
     res.push({
