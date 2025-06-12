@@ -3,7 +3,6 @@ import { ConflictSuggestion, IConflict } from '../types/IConflict';
 import { IModLookupInfo } from '../types/IModLookupInfo';
 import isBlacklisted from './blacklist';
 import * as path from 'path';
-import * as semver from 'semver';
 import turbowalk from 'turbowalk';
 import { log, types, util } from 'vortex-api';
 

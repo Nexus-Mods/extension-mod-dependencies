@@ -251,7 +251,13 @@ async function updateOverrides(api: types.IExtensionApi, startTime: number, batc
     const modOverrides = mod.fileOverrides || [];
     const invalidOverrides: string[] = modOverrides.reduce((accum, o) => { 
       const hasConflict = conflicts.some(c => c.files.includes(o));
-      if (!hasConflict) {
+      const canFileDeploy = conflicts
+        .filter(c => c.files.includes(o))
+        .some(c => {
+          const otherMod = enabled.find(m => m.id === c.otherMod.id);
+          return !otherMod?.fileOverrides?.includes(o);
+        });
+      if (!hasConflict || !canFileDeploy) {
         accum.push(o);
       }
       return accum;

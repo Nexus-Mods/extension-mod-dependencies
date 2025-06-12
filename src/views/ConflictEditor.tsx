@@ -282,12 +282,21 @@ class ConflictEditor extends ComponentEx<IProps, IComponentState> {
     this.context.api.showDialog('question', t('Confirm'), {
       text: t('This change will only be applied once you choose to "Save" the change in the main '
         + 'dialogue window. Please be aware that once saved, this action cannot be undone and the '
-        + 'mod rules will have to be set again.'),
+        + 'mod rules and file overrides will have to be set again.'),
     }, [
         { label: 'Cancel', default: true },
         {
           label: 'Clear Rules',
           action: () => {
+            const batchedActions: Redux.Action[] = [];
+            for (const modId of modIds || []) {
+              if (Array.isArray(this.props.mods[modId]?.fileOverrides)) {
+                batchedActions.push(vortexActions.setFileOverride(this.props.gameId, modId, []));
+              }
+            }
+            if (batchedActions.length > 0) {
+              this.props.onBatchDispatch(batchedActions);
+            }
             this.nextState.rules = (modIds || []).reduce(
               (prev: { [modId: string]: { [refId: string]: IRuleSpec } }, modId: string) => {
                 const res: { [modId: string]: IRuleSpec } = {};
