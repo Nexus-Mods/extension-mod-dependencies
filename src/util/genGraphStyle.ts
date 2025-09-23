@@ -16,16 +16,16 @@ export default function(rules: CSSStyleRule[]) {
       selector: 'node',
       style: {
         'background-color': variables['brand-bg'],
-        label: 'data(title)',
-        color: variables['text-color'],
+        'label': 'data(title)',
+        'color': variables['text-color'],
         'text-background-color': variables['brand-bg'],
         'text-border-opacity': 1,
         'text-border-width': 1,
         'text-border-color': variables['border-color'],
         'text-border-style': 'solid',
         'text-background-opacity': 1,
-        'text-background-padding': '4px',
-        'text-margin-y': '-20px',
+        'text-background-padding': 4,
+        'text-margin-y': -20,
         'font-family': 'Roboto',
         'overlay-color': variables['link-hover-color'],
       },
@@ -33,7 +33,7 @@ export default function(rules: CSSStyleRule[]) {
     {
       selector: 'edge',
       style: {
-        width: 2,
+        'width': 2,
         'curve-style': 'bezier',
         'mid-target-arrow-shape': 'triangle',
         'arrow-scale': 1.25,
@@ -55,5 +55,5 @@ export default function(rules: CSSStyleRule[]) {
         'mid-target-arrow-color': variables['link-color'],
       }
     }
-  ];
+  ] as any;
 }

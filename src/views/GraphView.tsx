@@ -25,7 +25,7 @@ export interface IGraphViewProps {
   elements: { [id: string]: IGraphElement };
   className: string;
   style?: any;
-  visualStyle: cytoscape.Stylesheet[];
+  visualStyle: cytoscape.StylesheetJson;
   onContext: (x: number, y: number, selection: IGraphSelection) => void;
 }
 
