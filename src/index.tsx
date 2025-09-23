@@ -43,6 +43,7 @@ import * as Redux from 'redux';
 import {} from 'redux-thunk';
 import shortid = require('shortid');
 import { actions, fs, log, PureComponentEx, selectors, ToolbarIcon, types, util } from 'vortex-api';
+import { activeGameId } from 'vortex-api/lib/util/selectors';
 
 const CONFLICT_NOTIFICATION_ID = 'mod-file-conflict';
 const UNFULFILLED_NOTIFICATION_ID = 'mod-rule-unfulfilled';
@@ -1092,7 +1093,7 @@ function once(api: types.IExtensionApi) {
       });
   }, 200);
 
-  updateConflictDebouncer = new util.Debouncer(async (calculateOverrides: boolean, batched?: Redux.Action[]) => (shouldSuppressUpdate(api)
+  updateConflictDebouncer = new util.Debouncer(async (calculateOverrides: boolean, batched?: Redux.Action[], force?: boolean) => (!force && shouldSuppressUpdate(api)
     ? Promise.reject(new util.ProcessCanceled('suppressed'))
     : checkConflictsAndRules(api))
       .then(() => {
@@ -1128,6 +1129,22 @@ function once(api: types.IExtensionApi) {
 
   api.setStylesheet('dependency-manager',
     path.join(__dirname, 'dependency-manager.scss'));
+
+  api.events.on('will-install-dependencies', (profileId: string, modId: string, recommendations: boolean, onCancel: () => void) => {
+    api.dismissNotification(UNFULFILLED_NOTIFICATION_ID);
+  });
+
+  api.events.on('did-install-dependencies', (gameId: string, modId: string, recommendations: boolean) => {
+    const state = store.getState();
+    if (gameId !== selectors.activeGameId(state)) {
+      return;
+    }
+    const mod = state.persistent.mods[gameId]?.[modId];
+    if (mod?.type !== 'collection') {
+      return;
+    }
+    updateConflictDebouncer.schedule(undefined, false, [], true);
+  });
 
   api.events.on('profile-did-change', () => {
     const gameMode = selectors.activeGameId(store.getState());

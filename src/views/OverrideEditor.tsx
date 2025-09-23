@@ -320,17 +320,18 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
     }) !== undefined;
   }
 
-  private getNodeKey = (node: TreeT.TreeNode) => node.node.path;
+  private getNodeKey = (node: TreeT.TreeNode) => (node.node as IFileTree).path;
 
   private generateNodeProps = (rowInfo: TreeT.ExtendedNodeData) => {
     const { t, mods } = this.props;
+    const node = rowInfo.node as IFileTree;
 
     const renderName = (id: string, clip?: number) => {
       let name: string = mods[id] !== undefined ? util.renderModName(mods[id], { version: true }) : '';
       if (clip && name.length > clip) {
         name = name.substr(0, clip - 3) + '...';
       }
-      if (id === rowInfo.node.providers[0]) {
+      if (id === node.providers[0]) {
         name += ` (${t('Default')})`;
       }
       return name;
@@ -338,22 +339,22 @@ class OverrideEditor extends ComponentEx<IProps, IComponentState> {
 
     const key = `provider-select-${rowInfo.path.join('_')}`;
     return {
-      buttons: rowInfo.node.isDirectory ? [] : [(
+      buttons: node.isDirectory ? [] : [(
         <a key='preview' data-row={rowInfo.path} onClick={this.preview}>{t('Preview')}</a>
       ), (
         <Dropdown
           id={key}
           key={key}
-          data-filepath={rowInfo.node.path}
+          data-filepath={node.path}
           onSelect={this.changeProvider as any}
-          title={renderName(rowInfo.node.selected)}
+          title={renderName(node.selected)}
           pullRight
         >
           <Dropdown.Toggle>
-            <span>{renderName(rowInfo.node.selected, 30)}</span>
+            <span>{renderName(node.selected, 30)}</span>
           </Dropdown.Toggle>
           <Dropdown.Menu>
-            {rowInfo.node.providers.map(provider => (
+            {node.providers.map(provider => (
               <MenuItem key={provider} eventKey={provider}>
                 {renderName(provider)}
               </MenuItem>
