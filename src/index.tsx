@@ -1076,6 +1076,7 @@ function once(api: types.IExtensionApi) {
 
   const updateRulesDebouncer = new util.Debouncer((gameMode: string) => {
     const state = store.getState();
+    gameMode = gameMode || selectors.activeGameId(state);
     return generateLoadOrder(api)
       .then(() => updateMetaRules(api, gameMode, state.persistent.mods[gameMode]))
       .then(rules => {
@@ -1183,6 +1184,16 @@ function once(api: types.IExtensionApi) {
 
   api.events.on('edit-mod-cycle', (gameId: string, cycle: string[]) => {
     store.dispatch(setEditCycle(gameId, cycle));
+  });
+
+  api.onAsync('update-conflicts-and-rules', (calculateOverrides: boolean) => {
+    return new Promise<void>((resolve) => {
+      const gameMode = selectors.activeGameId(store.getState());
+      updateConflictInfo(api, gameMode, {});
+      updateRulesDebouncer.schedule(() => {
+        updateConflictDebouncer.schedule(() => resolve(), calculateOverrides);
+      }, gameMode);
+    });
   });
 
   api.onAsync('did-remove-mod',
