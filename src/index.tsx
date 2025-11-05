@@ -1135,16 +1135,9 @@ function once(api: types.IExtensionApi) {
     api.dismissNotification(UNFULFILLED_NOTIFICATION_ID);
   });
 
-  api.events.on('did-install-dependencies', (gameId: string, modId: string, recommendations: boolean) => {
-    const state = store.getState();
-    if (gameId !== selectors.activeGameId(state)) {
-      return;
-    }
-    const mod = state.persistent.mods[gameId]?.[modId];
-    if (mod?.type !== 'collection') {
-      return;
-    }
+  api.onAsync('did-deploy', (profileId: string, deployment: types.IDeploymentManifest) => {
     updateConflictDebouncer.schedule(undefined, false, [], true);
+    return Promise.resolve();
   });
 
   api.events.on('profile-did-change', () => {
