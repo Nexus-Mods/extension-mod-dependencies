@@ -48,7 +48,7 @@
     "redux-thunk": "^2.3.0",
     "ts-loader": "^9.2.6",
     "turbowalk": "Nexus-Mods/node-turbowalk",
-    "vortex-api": "Nexus-Mods/Vortex-api#18709-collection-rule-export-import-improvements",
+    "vortex-api": "Nexus-Mods/Vortex-api",
     "webpack": "^5.76.0",
     "webpack-cli": "^4.9.1"
   }
