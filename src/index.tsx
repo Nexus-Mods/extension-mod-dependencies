@@ -1076,6 +1076,7 @@ function once(api: types.IExtensionApi) {
 
   const updateRulesDebouncer = new util.Debouncer((gameMode: string) => {
     const state = store.getState();
+    gameMode = gameMode || selectors.activeGameId(state);
     return generateLoadOrder(api)
       .then(() => updateMetaRules(api, gameMode, state.persistent.mods[gameMode]))
       .then(rules => {
@@ -1134,16 +1135,9 @@ function once(api: types.IExtensionApi) {
     api.dismissNotification(UNFULFILLED_NOTIFICATION_ID);
   });
 
-  api.events.on('did-install-dependencies', (gameId: string, modId: string, recommendations: boolean) => {
-    const state = store.getState();
-    if (gameId !== selectors.activeGameId(state)) {
-      return;
-    }
-    const mod = state.persistent.mods[gameId]?.[modId];
-    if (mod?.type !== 'collection') {
-      return;
-    }
+  api.onAsync('did-deploy', (profileId: string, deployment: types.IDeploymentManifest) => {
     updateConflictDebouncer.schedule(undefined, false, [], true);
+    return Promise.resolve();
   });
 
   api.events.on('profile-did-change', () => {
@@ -1183,6 +1177,16 @@ function once(api: types.IExtensionApi) {
 
   api.events.on('edit-mod-cycle', (gameId: string, cycle: string[]) => {
     store.dispatch(setEditCycle(gameId, cycle));
+  });
+
+  api.onAsync('update-conflicts-and-rules', (calculateOverrides: boolean) => {
+    return new Promise<void>((resolve) => {
+      const gameMode = selectors.activeGameId(store.getState());
+      updateConflictInfo(api, gameMode, {});
+      updateRulesDebouncer.schedule(() => {
+        updateConflictDebouncer.schedule(() => resolve(), calculateOverrides);
+      }, gameMode);
+    });
   });
 
   api.onAsync('did-remove-mod',
