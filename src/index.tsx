@@ -1136,7 +1136,10 @@ function once(api: types.IExtensionApi) {
   });
 
   api.onAsync('did-deploy', (profileId: string, deployment: types.IDeploymentManifest) => {
-    updateConflictDebouncer.schedule(undefined, false, [], true);
+    const hasActiveCollectionSession = selectors.getCollectionActiveSession(api.getState()) != null;
+    if (!hasActiveCollectionSession) {
+      updateConflictDebouncer.schedule(undefined, false, [], true);
+    }
     return Promise.resolve();
   });
 
